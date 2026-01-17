@@ -14,9 +14,10 @@ const Icons = {
 
 interface HeaderProps {
     user?: any;
+    onToggleSidebar?: () => void;
 }
 
-export default function Header({ user }: HeaderProps) {
+export default function Header({ user, onToggleSidebar }: HeaderProps) {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -83,13 +84,24 @@ export default function Header({ user }: HeaderProps) {
 
     return (
         <header className="dash-header" style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: '12px', padding: '10px 16px', width: '400px', gap: '8px' }}>
-                <div style={{ color: '#94a3b8' }}><Icons.Search /></div>
-                <input
-                    type="text"
-                    placeholder="Search doctors, records..."
-                    style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '14px', color: '#1e293b' }}
-                />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {/* Mobile Menu Toggle */}
+                <button
+                    className="mobile-header-toggle"
+                    onClick={onToggleSidebar}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                >
+                    <Icons.Menu />
+                </button>
+
+                <div className="header-search-bar" style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: '12px', padding: '10px 16px', width: '400px', gap: '8px' }}>
+                    <div style={{ color: '#94a3b8' }}><Icons.Search /></div>
+                    <input
+                        type="text"
+                        placeholder="Search doctors, records..."
+                        style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '14px', color: '#1e293b' }}
+                    />
+                </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
@@ -106,10 +118,10 @@ export default function Header({ user }: HeaderProps) {
 
                     {/* Notification Dropdown */}
                     {showNotifications && (
-                        <div className="animate-fade-in" style={{
+                        <div className="animate-fade-in notification-dropdown" style={{
                             position: 'absolute',
                             top: '40px',
-                            right: '-120px',
+                            right: '-80px', // Adjusted for mobile
                             width: '360px',
                             background: 'white',
                             borderRadius: '16px',
@@ -175,7 +187,7 @@ export default function Header({ user }: HeaderProps) {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ textAlign: 'right', display: 'none', flexDirection: 'column', gap: '2px', '@media (min-width: 768px)': { display: 'flex' } } as any}>
+                    <div className="header-user-info" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{user?.name || 'Loading...'}</span>
                         <span style={{ fontSize: '12px', color: '#64748b' }}>Patient</span>
                     </div>

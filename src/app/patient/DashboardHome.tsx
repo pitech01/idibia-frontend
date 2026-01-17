@@ -78,7 +78,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
             </div>
 
             {/* Quick Actions Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+            <div className="quick-actions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                 {[
                     { label: 'Book Doctor', icon: <WidgetIcons.Book />, color: '#2E37A4', bg: '#eef2ff' },
                     { label: 'Buy Medicine', icon: <WidgetIcons.Medicine />, color: '#10b981', bg: '#dcfce7' },
@@ -122,7 +122,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                 {/* Row 1: Appointment & Wallet */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'stretch' }}>
+                <div className="dashboard-grid-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'stretch' }}>
 
                     {/* Upcoming Appointment */}
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -199,7 +199,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                 </div>
 
                 {/* Row 2: Recent Activity & Vitals */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'stretch' }}>
+                <div className="dashboard-grid-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', alignItems: 'stretch' }}>
 
                     {/* Recent Activity */}
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

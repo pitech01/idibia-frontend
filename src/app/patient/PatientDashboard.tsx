@@ -52,6 +52,12 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
 
     return (
         <div className="dashboard-container">
+            {/* Sidebar Overlay (Mobile) */}
+            <div
+                className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+            ></div>
+
             {/* Sidebar Component */}
             <Sidebar
                 sidebarOpen={sidebarOpen}
@@ -66,7 +72,7 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
             {/* Main Content */}
             <main className={`dashboard-main ${sidebarCollapsed ? 'expanded' : ''}`}>
                 {/* Header Component */}
-                <Header user={user} />
+                <Header user={user} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
                 {/* Dashboard View */}
                 <div className="content-scrollable">

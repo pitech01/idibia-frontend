@@ -642,3 +642,81 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .toggle-switch.active::after {
     left: 16px !important;
 }
+
+/* Mobile Header & Sidebar Overrides */
+
+/* Mobile Menu Button - Hidden by default on desktop */
+.mobile-header-toggle {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+
+    /* Show menu button on mobile */
+    .mobile-header-toggle {
+        display: block;
+        padding: 8px;
+    }
+
+    /* Adjust search bar for mobile */
+    .header-search-bar {
+        display: none !important;
+        /* Hide search on small screens for now to save space, or use icon */
+    }
+
+    /* Adjust Header Padding */
+    .dash-header {
+        padding: 0 20px;
+        gap: 12px;
+    }
+
+    /* Hide user text on mobile */
+    .header-user-info {
+        display: none !important;
+    }
+
+    /* Notification Dropdown Positioning for Mobile */
+    .notification-dropdown {
+        right: -60px !important;
+        /* Shift slightly to stay on screen */
+        width: 300px !important;
+    }
+
+    /* Dashboard Grid Overrides */
+    .dashboard-grid-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 640px) {
+
+    /* Stack cards on very small screens */
+    .quick-actions-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Overlay for Sidebar on Mobile */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 45;
+    /* Below sidebar (50) but above content */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}

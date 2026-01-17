@@ -68,7 +68,12 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed,
                     <div
                         key={item.id}
                         className={`nav-link ${activeTab === item.id ? 'active' : ''}`}
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => {
+                            setActiveTab(item.id);
+                            if (window.innerWidth < 1024 && setSidebarOpen) {
+                                setSidebarOpen(false);
+                            }
+                        }}
                     >
                         {item.icon}
                         <span>{item.label}</span>
