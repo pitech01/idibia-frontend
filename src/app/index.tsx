@@ -100,7 +100,7 @@ export default function Homepage({ onLoginClick }: HomepageProps) {
 
                     <div className="hero-image-wrapper">
                         <div className="hero-circle-bg"></div>
-                        <div style={{ width: '100%', height: '550px', backgroundImage: `url(${heroImg})`, backgroundPosition: 'top center', backgroundSize: 'cover', backgroundRepeat: 'no-repeat', position: 'relative', borderRadius: '20px' }}>
+                        <div className="hero-bg-image" style={{ backgroundImage: `url(${heroImg})`, backgroundPosition: 'top center', backgroundSize: 'cover', backgroundRepeat: 'no-repeat', position: 'relative', borderRadius: '20px' }}>
                             <div className="exp-badge">
                                 <div style={{ fontSize: '32px', fontWeight: '800', lineHeight: 1, color: 'var(--primary-color)' }}>12+</div>
                                 <div style={{ fontSize: '13px', lineHeight: 1.2, color: '#666' }}>Specialist <br />Categories</div>
@@ -122,7 +122,7 @@ export default function Homepage({ onLoginClick }: HomepageProps) {
             <section className="about-area">
                 <div className="container grid-2" style={{ alignItems: 'center' }}>
                     <div className="relative">
-                        <div style={{ width: '100%', height: '500px', backgroundImage: `url(${aboutImg})`, backgroundPosition: 'center', backgroundSize: 'cover', borderRadius: '20px 20px 100px 20px' }}></div>
+                        <div className="about-bg-image" style={{ backgroundImage: `url(${aboutImg})`, backgroundPosition: 'center', backgroundSize: 'cover', borderRadius: '20px 20px 100px 20px' }}></div>
                         <div style={{ position: 'absolute', bottom: '-30px', right: '-30px', background: 'white', padding: '20px', borderRadius: '20px', boxShadow: 'var(--shadow)' }}>
                             <div style={{ fontSize: '40px', fontWeight: '800', color: 'var(--secondary-color)' }}>MDCN</div>
                             <div style={{ color: 'var(--primary-color)', fontWeight: '600' }}>Verified Doctors</div>
@@ -156,19 +156,19 @@ export default function Homepage({ onLoginClick }: HomepageProps) {
             <div className="stats-strip">
                 <div className="container grid-4 text-center">
                     <div>
-                        <h2 style={{ fontSize: '48px', marginBottom: '5px' }}>15+</h2>
+                        <h2 className="stat-number">15+</h2>
                         <div style={{ fontSize: '14px', textTransform: 'uppercase', opacity: 0.8 }}>Cardiologists</div>
                     </div>
                     <div>
-                        <h2 style={{ fontSize: '48px', marginBottom: '5px' }}>10+</h2>
+                        <h2 className="stat-number">10+</h2>
                         <div style={{ fontSize: '14px', textTransform: 'uppercase', opacity: 0.8 }}>Neurologists</div>
                     </div>
                     <div>
-                        <h2 style={{ fontSize: '48px', marginBottom: '5px' }}>12+</h2>
+                        <h2 className="stat-number">12+</h2>
                         <div style={{ fontSize: '14px', textTransform: 'uppercase', opacity: 0.8 }}>Orthopedics</div>
                     </div>
                     <div>
-                        <h2 style={{ fontSize: '48px', marginBottom: '5px' }}>5 Languages</h2>
+                        <h2 className="stat-number">5 Languages</h2>
                         <div style={{ fontSize: '14px', textTransform: 'uppercase', opacity: 0.8 }}>Supported</div>
                     </div>
                 </div>
@@ -425,8 +425,8 @@ export default function Homepage({ onLoginClick }: HomepageProps) {
                     </div>
 
                     {/* Newsletter Bar */}
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '40px', paddingTop: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
+                    <div className="newsletter-wrapper">
+                        <div className="newsletter-text">
                             <h3 style={{ margin: 0 }}>Important Updates Waiting for you</h3>
                             <p style={{ opacity: 0.7, fontSize: '14px' }}>Get our latest and best contents right into your inbox</p>
                         </div>
