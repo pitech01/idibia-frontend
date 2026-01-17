@@ -16,7 +16,7 @@ interface DoctorDashboardProps {
 export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
     const [activeTab, setActiveTab] = useState('overview');
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<any>(null);
+    const [, setUser] = useState<any>(null);
 
     useEffect(() => {
         const fetchUser = async () => {
