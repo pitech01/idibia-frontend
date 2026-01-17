@@ -145,6 +145,14 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
                 {/* Right Side - Form Panel */}
                 <div className="login-form-container">
                     <div className="login-form-box fade-in-up">
+                        {/* Mobile Header (Visible only on mobile via CSS) */}
+                        <div className="mobile-auth-header">
+                            <img src="/logo.png" alt="IDIBIA" style={{ height: '40px', objectFit: 'contain' }} />
+                            <button onClick={onBack} className="btn-back-simple">
+                                <Icons.ArrowLeft /> Back
+                            </button>
+                        </div>
+
                         {/* Header */}
                         <div className="login-header">
                             <h2>Welcome back</h2>

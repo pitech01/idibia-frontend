@@ -1336,42 +1336,86 @@ img {
 }
 
 /* Responsive */
+/* Responsive Login / Register */
 @media (max-width: 900px) {
   .login-box-centered {
     flex-direction: column;
     overflow-y: auto;
+    height: 100vh;
+    /* Ensure full height */
+    background: #f8fafc;
+    /* Slightly darker bg for separation */
   }
 
+  /* Hide or Minimize Illustration on Mobile */
   .login-illustration {
-    min-height: 250px;
-    flex: none;
-    padding: 30px;
-    justify-content: center;
-  }
-
-  .image-panel-logo h1,
-  .image-panel-logo {
-    top: 20px;
-    left: 20px;
-  }
-
-  .btn-back-pill {
-    top: 20px;
-    right: 20px;
-    padding: 6px 12px;
-    font-size: 11px;
-  }
-
-  .illustration-text h1 {
-    font-size: 2rem;
-  }
-
-  .role-indicators {
     display: none;
+    /* Simplest approach for clean mobile UX */
   }
 
+  /* Ensure Form container takes full width and height if needed */
   .login-form-container {
-    padding: 40px 20px;
+    flex: 1;
+    width: 100%;
+    padding: 20px;
+    align-items: center;
+    /* Center horizontally */
+    background: white;
+  }
+
+  .login-form-box {
+    width: 100%;
+    max-width: 100%;
+    padding-top: 20px;
+  }
+
+  /* Make standard inputs accessible */
+  .form-input-dark {
+    padding: 12px;
+    font-size: 16px;
+    /* Prevent zoom on iOS */
+  }
+}
+
+@media (max-width: 480px) {
+  .login-header h2 {
+    font-size: 1.8rem;
+  }
+
+  .role-tabs {
+    overflow-x: auto;
+    /* Scroll tabs if too many */
+  }
+}
+
+/* Mobile Auth Header classes */
+.mobile-auth-header {
+  display: none;
+  /* Default hidden */
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.btn-back-simple {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .mobile-auth-header {
+    display: flex;
+  }
+
+  .login-header {
+    margin-bottom: 20px;
   }
 }
 

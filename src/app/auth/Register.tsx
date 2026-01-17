@@ -217,6 +217,14 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
     // STEP 1: Create Account
     const renderStep1 = () => (
         <div>
+            {/* Mobile Header (Visible only on mobile via CSS) */}
+            <div className="mobile-auth-header">
+                <img src="/logo.png" alt="IDIBIA" style={{ height: '40px', objectFit: 'contain' }} />
+                <button onClick={onBack} className="btn-back-simple">
+                    <Icons.ArrowLeft /> Back
+                </button>
+            </div>
+
             <div className="login-header">
                 <h2>Create Account</h2>
                 <p className="sub-text">Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onLoginClick(); }}>Log in</a></p>
