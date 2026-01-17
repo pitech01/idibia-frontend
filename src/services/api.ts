@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Define API & Web URLs (Single Source of Truth)
+export const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://idibia-backend-main-wjhaop.laravel.cloud/api';
+export const WEB_URL = API_URL.replace(/\/api\/?$/, ''); // Strip /api to get root URL
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://idbia-main-nvknos.laravel.cloud/api',
+    baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../../services';
+import { api, WEB_URL } from '../../services';
 import { toast } from 'react-hot-toast';
 
 
@@ -57,7 +57,7 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
         const toastId = toast.loading('Logging in...');
 
         try {
-            await api.get('/sanctum/csrf-cookie', { baseURL: 'http://localhost:8000' });
+            await api.get('/sanctum/csrf-cookie', { baseURL: WEB_URL });
 
             const response = await api.post('/login', {
                 email: formData.email,

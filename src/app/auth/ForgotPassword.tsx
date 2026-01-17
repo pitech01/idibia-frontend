@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../../services';
+import { api, WEB_URL } from '../../services';
 import { toast } from 'react-hot-toast';
 
 // Reusing Icons
@@ -24,7 +24,7 @@ export default function ForgotPassword({ onBack, onLoginClick }: ForgotPasswordP
         e.preventDefault();
         setLoading(true);
         try {
-            await api.get('/sanctum/csrf-cookie', { baseURL: 'http://localhost:8000' });
+            await api.get('/sanctum/csrf-cookie', { baseURL: WEB_URL });
             await api.post('/forgot-password', { email });
             setIsEmailSent(true);
             toast.success('Reset link sent to your email!');

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import CustomDatePicker from '../../components/CustomDatePicker';
 import { toast, Toaster } from 'react-hot-toast';
-import { api } from '../../services';
+import { api, WEB_URL } from '../../services';
 
 // --- Icons ---
 const Icons = {
@@ -137,7 +137,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
     const sendOtp = async () => {
         const toastId = toast.loading('Sending verification code...');
         try {
-            await api.get('/sanctum/csrf-cookie', { baseURL: 'http://localhost:8000' });
+            await api.get('/sanctum/csrf-cookie', { baseURL: WEB_URL });
             await api.post('/otp/send', { email: data.email });
             toast.success('Verification code sent!', { id: toastId });
         } catch (error: any) {
