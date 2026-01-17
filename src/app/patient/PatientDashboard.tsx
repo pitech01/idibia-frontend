@@ -12,6 +12,7 @@ import NewBooking from './NewBooking.tsx';
 import Settings from './Settings.tsx';
 import Sidebar from './Sidebar.tsx';
 import Header from './Header.tsx';
+import Preloader from '../../components/Preloader.tsx';
 import './patient.css';
 
 interface DashboardProps {
@@ -38,11 +39,16 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
                 // console.error("Failed to fetch user", error);
                 // Silently fail or redirect to login if 401
             } finally {
-                setLoading(false);
+                // Determine a minimum loading time for better UX if needed, or just set false
+                setTimeout(() => setLoading(false), 1000); // 1s delay for smoother experience
             }
         };
         fetchUser();
     }, []);
+
+    if (loading) {
+        return <Preloader />;
+    }
 
     return (
         <div className="dashboard-container">
@@ -65,13 +71,13 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
                 {/* Dashboard View */}
                 <div className="content-scrollable">
                     {activeTab === 'dashboard' && <DashboardHome onNavigate={setActiveTab} user={user} loading={loading} />}
-                    {activeTab === 'appointments' && <Appointments onRequestNewBooking={() => setActiveTab('new-booking')} />}
+                    {activeTab === 'appointments' && <Appointments onRequestNewBooking={() => setActiveTab('new-booking')} onNavigateToMessages={() => setActiveTab('messages')} />}
                     {activeTab === 'new-booking' && <NewBooking onBack={() => setActiveTab('appointments')} />}
                     {activeTab === 'payment' && <PatientPayments />}
                     {activeTab === 'records' && <MedicalRecords onUploadRecord={() => setActiveTab('upload-record')} />}
                     {activeTab === 'upload-record' && <UploadRecord onBack={() => setActiveTab('records')} />}
                     {activeTab === 'resources' && <Resources />}
-                    {activeTab === 'messages' && <Messages />}
+                    {activeTab === 'messages' && <Messages user={user} />}
 
                     {activeTab === 'settings' && <Settings />}
 
@@ -107,7 +113,15 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
                 }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    onClick={() => toast.error("Dialing Emergency Services...")}
+                    onClick={() => {
+                        const phone = user?.patient?.emergency_phone;
+                        if (phone) {
+                            window.location.href = `tel:${phone}`;
+                        } else {
+                            toast.error("No emergency contact set. Please update your profile.");
+                            setActiveTab('settings');
+                        }
+                    }}
                 >
                     <Icons.Phone />
                 </button>

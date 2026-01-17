@@ -653,6 +653,10 @@ img {
   text-align: center;
 }
 
+/* =========================================
+   MODERN PRELOADER STYLES
+   ========================================= */
+
 .preloader-container {
   position: fixed;
   top: 0;
@@ -667,74 +671,146 @@ img {
   flex-direction: column;
 }
 
-.pharmacy-cross {
+.preloader-content {
   position: relative;
-  width: 60px;
-  height: 60px;
-  background: transparent;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
 }
 
-.pharmacy-cross:before,
-.pharmacy-cross:after {
-  content: '';
+/* Rotating Rings */
+.spinner-ring {
   position: absolute;
-  background: var(--primary-color);
-  border-radius: 8px;
-  animation: pulse-cross 2s infinite ease-in-out;
+  border-radius: 50%;
+  border: 2px solid transparent;
 }
 
-.pharmacy-cross:before {
-  width: 20px;
-  height: 60px;
-  left: 20px;
-  top: 0;
+.ring-1 {
+  width: 100%;
+  height: 100%;
+  border-top-color: #0ea5e9;
+  /* Sky Blue */
+  border-left-color: #0ea5e9;
+  animation: spin-right 1.5s linear infinite;
 }
 
-.pharmacy-cross:after {
-  width: 60px;
-  height: 20px;
-  top: 20px;
-  left: 0;
+.ring-2 {
+  width: 75%;
+  height: 75%;
+  border-bottom-color: #2563eb;
+  /* Royal Blue */
+  border-right-color: #2563eb;
+  animation: spin-left 2s linear infinite;
 }
 
-@keyframes pulse-cross {
+/* Logo Animation */
+.logo-center img {
+  width: 50px;
+  height: auto;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes spin-right {
   0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
+    transform: rotate(0deg);
   }
 
   100% {
-    transform: scale(1);
-    opacity: 1;
+    transform: rotate(360deg);
   }
 }
 
-.preloader-text {
-  margin-top: 30px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 700;
-  color: var(--secondary-color);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  font-size: 16px;
-  animation: fade-text 2s infinite;
+@keyframes spin-left {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(-360deg);
+  }
 }
 
-@keyframes fade-text {
+@keyframes breathe {
 
   0%,
   100% {
-    opacity: 0.6;
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+/* Typography */
+.preloader-text-modern {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: 8px;
+  color: #1e293b;
+  margin-left: 8px;
+  /* Offset for tracking */
+  display: flex;
+  gap: 2px;
+}
+
+.preloader-text-modern span {
+  animation: letter-fade 1.5s ease-in-out infinite;
+}
+
+.preloader-text-modern span:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.preloader-text-modern span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.preloader-text-modern span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.preloader-text-modern span:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.preloader-text-modern span:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.preloader-text-modern span:nth-child(6) {
+  animation-delay: 0.6s;
+}
+
+@keyframes letter-fade {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
   }
 
   50% {
     opacity: 1;
+    transform: translateY(-2px);
   }
+}
+
+.preloader-subtext {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0.8;
 }
 
 @media (max-width: 1024px) {
@@ -1286,5 +1362,16 @@ img {
     padding: 40px 20px;
   }
 }
-.fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
-@keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+.fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

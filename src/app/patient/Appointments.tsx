@@ -35,9 +35,10 @@ interface Appointment {
 
 interface AppointmentsProps {
     onRequestNewBooking?: () => void;
+    onNavigateToMessages?: () => void;
 }
 
-export default function Appointments({ onRequestNewBooking }: AppointmentsProps) {
+export default function Appointments({ onRequestNewBooking, onNavigateToMessages }: AppointmentsProps) {
     const [activeTab, setActiveTab] = useState('upcoming');
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -66,6 +67,16 @@ export default function Appointments({ onRequestNewBooking }: AppointmentsProps)
             fetchAppointments(); // Refresh
         } catch (error) {
             toast.error('Failed to cancel appointment');
+        }
+    };
+
+    const handleStartChat = async (appointmentId: number) => {
+        try {
+            await api.post('/chats/start', { appointment_id: appointmentId });
+            toast.success('Chat started');
+            onNavigateToMessages?.();
+        } catch (error) {
+            toast.error('Failed to start chat');
         }
     };
 
@@ -187,6 +198,11 @@ export default function Appointments({ onRequestNewBooking }: AppointmentsProps)
 
                             {/* Right: Actions */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginTop: '20px' }}>
+                                <button
+                                    onClick={() => handleStartChat(heroAppointment.id)}
+                                    style={{ background: 'transparent', border: '1px solid #2E37A4', color: '#2E37A4', padding: '11px 24px', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+                                    Chat Doctor
+                                </button>
                                 <button
                                     onClick={() => handleCancel(heroAppointment.id)}
                                     style={{ background: 'transparent', border: 'none', color: '#ef4444', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>

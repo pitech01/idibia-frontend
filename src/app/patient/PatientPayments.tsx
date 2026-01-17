@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { api } from '../../services';
 
 const Icons = {
     Wallet: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>,
@@ -44,14 +46,68 @@ export default function PatientPayments() {
         };
     }, []);
 
-    const transactions = [
-        { id: 1, date: 'Jan 10, 2026 - 14:30', desc: 'Consultation - Dr. Chioma Okeke', type: 'debit', method: 'Wallet', status: 'Success', amount: '5,000' },
-        { id: 2, date: 'Jan 10, 2026 - 10:15', desc: 'Wallet Top Up', type: 'credit', method: 'Mastercard ****4242', status: 'Success', amount: '20,000' },
-        { id: 3, date: 'Jan 08, 2026 - 16:45', desc: 'Lab Test - Malaria Screening', type: 'debit', method: 'Wallet', status: 'Success', amount: '3,500' },
-        { id: 4, date: 'Jan 05, 2026 - 09:20', desc: 'Prescription - Amartem Softgel', type: 'debit', method: 'Wallet', status: 'Pending', amount: '2,500' },
-        { id: 5, date: 'Jan 03, 2026 - 11:00', desc: 'Wallet Top Up', type: 'credit', method: 'Bank Transfer', status: 'Failed', amount: '10,000' },
-        { id: 6, date: 'Dec 28, 2025 - 15:30', desc: 'Consultation - Dr. Emeka Nwosu', type: 'debit', method: 'Visa ****1234', status: 'Success', amount: '8,000' },
-    ];
+    const [user, setUser] = useState<any>(null);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(false);
+
+    useEffect(() => {
+        fetchData();
+        // Check for payment callback
+        const params = new URLSearchParams(window.location.search);
+        const trxref = params.get('reference');
+        if (trxref) {
+            verifyPayment(trxref);
+        }
+    }, []);
+
+    const fetchData = async () => {
+        try {
+            const [userRes, transRes] = await Promise.all([
+                api.get('/user'),
+                api.get('/payments')
+            ]);
+            setUser(userRes.data);
+            setTransactions(transRes.data);
+        } catch (error) {
+            console.error("Failed to load payment data", error);
+            toast.error("Failed to load wallet info");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const verifyPayment = async (ref: string) => {
+        const toastId = toast.loading("Verifying payment...");
+        try {
+            await api.post('/payments/verify', { reference: ref });
+            toast.success("Payment successful!", { id: toastId });
+            // Clear URL param
+            window.history.replaceState({}, document.title, window.location.pathname);
+            fetchData(); // Refresh balance
+        } catch (error) {
+            toast.error("Payment verification failed", { id: toastId });
+        }
+    };
+
+    const handleTopUp = async () => {
+        if (!topUpAmount) return;
+        setProcessing(true);
+        const cleanAmount = topUpAmount.replace(/,/g, '');
+
+        try {
+            const { data } = await api.post('/payments/initialize', {
+                amount: parseFloat(cleanAmount),
+                email: user?.email
+            });
+
+            // Redirect to Paystack
+            window.location.href = data.authorization_url;
+        } catch (error) {
+            toast.error("Failed to initialize payment");
+            setProcessing(false);
+        }
+    };
 
     const getStatusStyle = (status: string) => {
         switch (status.toLowerCase()) {
@@ -99,7 +155,7 @@ export default function PatientPayments() {
                                 <Icons.Wallet /> Available Balance
                             </div>
                             <div style={{ fontSize: '48px', fontWeight: 'bold', letterSpacing: '-1px' }}>
-                                {balanceVisible ? '₦24,500.00' : '₦****'}
+                                {balanceVisible ? `₦${parseFloat(user?.patient?.wallet_balance || '0').toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '₦****'}
                             </div>
                         </div>
                         <button
@@ -382,12 +438,15 @@ export default function PatientPayments() {
                             >
                                 Cancel
                             </button>
-                            <button style={{
-                                background: '#0284c7', color: 'white', border: 'none',
-                                padding: '12px 32px', borderRadius: '8px', fontWeight: '600', fontSize: '15px',
-                                cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.4)'
-                            }}>
-                                Pay with Card
+                            <button
+                                onClick={handleTopUp}
+                                disabled={processing}
+                                style={{
+                                    background: processing ? '#94a3b8' : '#0284c7', color: 'white', border: 'none',
+                                    padding: '12px 32px', borderRadius: '8px', fontWeight: '600', fontSize: '15px',
+                                    cursor: processing ? 'not-allowed' : 'pointer', boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.4)'
+                                }}>
+                                {processing ? 'Processing...' : 'Pay Now'}
                             </button>
                         </div>
                     </div>

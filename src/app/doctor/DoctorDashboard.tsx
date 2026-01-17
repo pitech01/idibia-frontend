@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DoctorSidebar from './DoctorSidebar.tsx';
 import DoctorHeader from './DoctorHeader.tsx';
 import DoctorOverview from './DoctorOverview.tsx';
 import DoctorSchedule from './DoctorSchedule.tsx';
 import DoctorPatients from './DoctorPatients.tsx';
 import DoctorMessages from './DoctorMessages.tsx';
+import Preloader from '../../components/Preloader.tsx';
+import { api } from '../../services';
 import './doctor.css';
 
 interface DoctorDashboardProps {
@@ -13,6 +15,26 @@ interface DoctorDashboardProps {
 
 export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
     const [activeTab, setActiveTab] = useState('overview');
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await api.get('/user');
+                setUser(response.data);
+            } catch (error) {
+                console.error("Failed to fetch user", error);
+            } finally {
+                setTimeout(() => setLoading(false), 1000);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    if (loading) {
+        return <Preloader />;
+    }
 
     return (
         <div className="doc-layout">

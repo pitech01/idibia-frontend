@@ -4,8 +4,22 @@ import '../index.css';
 export default function Preloader() {
     return (
         <div className="preloader-container">
-            <img src="/logo.png" alt="IDIBIA" style={{ width: '80px', height: 'auto', marginBottom: '15px' }} />
-            <div className="preloader-text">IDIBIA PHARMACY & CARE</div>
+            <div className="preloader-content">
+                {/* Rotating Rings */}
+                <div className="spinner-ring ring-1"></div>
+                <div className="spinner-ring ring-2"></div>
+
+                {/* Breathing Logo */}
+                <div className="logo-center">
+                    <img src="/logo.png" alt="IDIBIA" />
+                </div>
+            </div>
+
+            {/* Elegant Text */}
+            <div className="preloader-text-modern">
+                <span>I</span><span>D</span><span>I</span><span>B</span><span>I</span><span>A</span>
+            </div>
+            <p className="preloader-subtext">PHARMACY & CARE</p>
         </div>
     );
 }
