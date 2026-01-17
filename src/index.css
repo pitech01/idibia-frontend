@@ -191,6 +191,18 @@ img {
   color: var(--primary-color);
 }
 
+/* Nav Item Wrapper (Desktop) */
+.nav-items-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.mobile-menu-btn {
+  display: none;
+  /* Hidden on desktop */
+}
+
 /* Hero */
 .hero {
   padding: 80px 0 100px;
@@ -1373,5 +1385,265 @@ img {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* =========================================
+   RESPONSIVE OVERRIDES (HOMEPAGE)
+   ========================================= */
+
+@media (max-width: 768px) {
+
+  /* Global Layout */
+  .container {
+    padding: 0 20px;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: 30px;
+  }
+
+  .text-center-mobile {
+    text-align: center;
+  }
+
+  /* Top Bar & Navbar */
+  .top-bar {
+    display: none;
+    /* Hide top bar on mobile to save space */
+  }
+
+  .navbar .container {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  /* Stack Nav Items */
+  .mobile-menu-btn {
+    display: block;
+    background: none;
+    border: none;
+    color: var(--secondary-color);
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1001;
+    align-self: flex-end;
+    /* Align button to right if flex-column container */
+    margin-bottom: 10px;
+  }
+
+  /* Since container is flex-column on mobile, let's adjust */
+  .navbar .container {
+    position: relative;
+    align-items: center;
+  }
+
+  /* Or better, make container row for logo + hamburger, then col for menu? */
+  .navbar .container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  /* Wrapper for Logo + Hamburger is implicit if we use row wrap. 
+     Logo is left, Hamburger is right. Wrapper width 100%. */
+
+  /* Wrapper for Logo + Hamburger is implicit if we use row wrap. 
+     Logo is left, Hamburger is right. Wrapper width 100%. */
+
+  .nav-items-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    background: white;
+    z-index: 1002;
+    padding: 80px 20px 20px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+
+    /* Animation State: Closed */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* When Open */
+  .nav-items-wrapper.open {
+    transform: translateX(0);
+  }
+
+  .nav-menu {
+    flex-direction: column;
+    width: 100%;
+    text-align: left;
+    gap: 20px;
+    display: flex;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .nav-menu a {
+    font-size: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+    width: 100%;
+    display: block;
+  }
+
+  /* Hero Section */
+  .hero {
+    text-align: center;
+    padding-top: 40px;
+  }
+
+  .hero .flex-start {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hero-content h1 {
+    font-size: 42px;
+  }
+
+  .hero-image-wrapper {
+    margin-top: 40px;
+  }
+
+  .hero-circle-bg {
+    width: 100%;
+    height: 300px;
+  }
+
+  /* About Section */
+  .about-area .grid-2 {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  /* Stats Strip */
+  .stats-strip .grid-4 {
+    grid-template-columns: 1fr 1fr !important;
+    /* 2x2 grid for stats */
+    gap: 40px;
+  }
+
+  /* Services */
+  .service-card {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Blog Grid */
+  .blog-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto !important;
+    gap: 30px;
+  }
+
+  .blog-card-1,
+  .blog-card-2 {
+    grid-row: auto !important;
+    height: 350px;
+  }
+
+  .blog-card-3,
+  .blog-card-4 {
+    height: 300px;
+  }
+
+  /* Reset height for overlay content in blog cards */
+  .blog-content-layer {
+    height: auto;
+    min-height: 100%;
+  }
+
+  /* Map Section */
+  .map-section {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .map-frame {
+    height: 300px;
+  }
+
+  .map-card {
+    position: relative;
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    border-radius: 0;
+    margin-top: -50px;
+    /* Overlap slightly */
+    padding: 30px;
+  }
+
+  /* Contact Strip */
+  .contact-strip .flex-between {
+    flex-direction: column;
+    gap: 30px;
+    align-items: center !important;
+    text-align: center;
+  }
+
+  .contact-strip .flex-start {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 20px;
+  }
+
+  .contact-strip-item {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  /* Footer */
+  .footer .grid-4 {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+  }
+
+  .footer .nav-logo {
+    justify-content: center;
+  }
+
+  .footer-bottom {
+    margin-top: 30px;
+  }
+
+  /* Newsletter */
+  .newsletter-bar {
+    flex-direction: column;
+    border-radius: 20px;
+    margin-top: 20px;
+  }
+
+  .newsletter-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-content h1 {
+    font-size: 32px;
+  }
+
+  .stats-strip .grid-4 {
+    grid-template-columns: 1fr !important;
+    /* Stack stats on very small screens */
   }
 }

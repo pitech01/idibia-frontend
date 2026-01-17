@@ -1,4 +1,4 @@
-
+import { useState } from 'react';
 import heroImg from '../assets/hero-doctor.png';
 import aboutImg from '../assets/about-team.png';
 import blogNurse from '../assets/blog-nurse.png';
@@ -17,7 +17,9 @@ const Icons = {
     Plus: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
     ArrowUpRight: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7V17" /></svg>,
     MapPin: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-    Clock: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    Clock: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+    Menu: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>,
+    Close: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
 };
 
 interface HomepageProps {
@@ -25,6 +27,8 @@ interface HomepageProps {
 }
 
 export default function Homepage({ onLoginClick }: HomepageProps) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     return (
         <div className="homepage-wrapper">
 
@@ -50,13 +54,25 @@ export default function Homepage({ onLoginClick }: HomepageProps) {
                     <div className="nav-logo">
                         <img src="/logo.png" alt="IDIBIA" style={{ height: '50px', objectFit: 'contain' }} />
                     </div>
-                    <div className="nav-menu">
-                        <a href="#" className="active">Home</a>
-                        <a href="#">Find a Doctor</a>
-                        <a href="#">Services</a>
-                        <a href="#">Pharmacy</a>
+
+                    {/* Mobile Menu Toggle */}
+                    <button
+                        className="mobile-menu-btn"
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    >
+                        {isMenuOpen ? <Icons.Close /> : <Icons.Menu />}
+                    </button>
+
+                    {/* Nav Items Container (Grouped for mobile toggling) */}
+                    <div className={`nav-items-wrapper ${isMenuOpen ? 'open' : ''}`}>
+                        <div className="nav-menu">
+                            <a href="#" className="active" onClick={() => setIsMenuOpen(false)}>Home</a>
+                            <a href="#" onClick={() => setIsMenuOpen(false)}>Find a Doctor</a>
+                            <a href="#" onClick={() => setIsMenuOpen(false)}>Services</a>
+                            <a href="#" onClick={() => setIsMenuOpen(false)}>Pharmacy</a>
+                        </div>
+                        <button className="btn btn-primary" onClick={onLoginClick}>Login</button>
                     </div>
-                    <button className="btn btn-primary" onClick={onLoginClick}>Login</button>
                 </div>
             </nav>
 
