@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-
+import { api } from '../../services';
 
 // Icons for specific dashboard widgets
 const WidgetIcons = {
@@ -33,6 +33,22 @@ interface DashboardHomeProps {
 export default function DashboardHome({ onNavigate, user, loading }: DashboardHomeProps) {
     const [balanceVisible, setBalanceVisible] = useState(false);
     const [comingSoonOpen, setComingSoonOpen] = useState(false);
+    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [dataLoading, setDataLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const response = await api.get('/patient/dashboard');
+                setDashboardData(response.data);
+            } catch (error) {
+                console.error("Failed to fetch dashboard data", error);
+            } finally {
+                setDataLoading(false);
+            }
+        };
+        fetchDashboardData();
+    }, []);
 
     const [greetingData] = useState(() => {
         const hour = parseInt(new Date().toLocaleTimeString('en-GB', { timeZone: 'Africa/Lagos', hour: '2-digit', hour12: false }));
@@ -59,6 +75,16 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
             default:
                 break;
         }
+    };
+
+    const upcoming = dashboardData?.upcoming_appointment;
+    const wallet = dashboardData?.wallet_balance;
+    const activity = dashboardData?.recent_activity || [];
+    const vitals = dashboardData?.vitals || [];
+
+    // Helper for formatting currency
+    const formatCurrency = (amount: any) => {
+        return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount || 0);
     };
 
     return (
@@ -130,35 +156,46 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                             <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                                     <h3 className="card-title" style={{ margin: 0, color: '#0f172a', fontSize: '18px' }}>Upcoming Appointment</h3>
-                                    <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>Confirmed</span>
+                                    {dataLoading ? <Skeleton width={80} /> : (
+                                        upcoming ? <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>Confirmed</span> :
+                                            <span className="status-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>None</span>
+                                    )}
                                 </div>
 
-                                <div style={{ background: 'linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%)', border: '1px solid #bfdbfe', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}>
-                                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px' }}>
-                                        <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2E37A4', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                                            <WidgetIcons.Book />
+                                {dataLoading ? <Skeleton height={150} /> : (
+                                    upcoming ? (
+                                        <div style={{ background: 'linear-gradient(180deg, #dbeafe 0%, #eff6ff 100%)', border: '1px solid #bfdbfe', borderRadius: '16px', padding: '24px', marginBottom: '24px' }}>
+                                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px' }}>
+                                                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2E37A4', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                                                    <WidgetIcons.Book />
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '700', color: '#1e2894' }}>{upcoming.doctor?.name || 'Doctor'}</h4>
+                                                    <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{upcoming.doctor?.specialty || 'Medical Doctor'}</p>
+                                                </div>
+                                            </div>
+                                            <div style={{ height: '1px', background: 'rgba(59, 130, 246, 0.15)', marginBottom: '24px' }}></div>
+                                            <div style={{ display: 'flex', gap: '20px', color: '#1e2894', fontWeight: '600', fontSize: '14px' }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><WidgetIcons.Book /> {upcoming.start_time}</span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><WidgetIcons.Calendar /> {upcoming.appointment_date}</span>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '700', color: '#1e2894' }}>Dr. Bala Okeke</h4>
-                                            <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>General Practitioner</p>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                                            <p>No upcoming appointments</p>
+                                            <button onClick={() => onNavigate('new-booking')} className="btn-secondary-light" style={{ marginTop: '10px' }}>Book Now</button>
                                         </div>
-                                    </div>
-                                    <div style={{ height: '1px', background: 'rgba(59, 130, 246, 0.15)', marginBottom: '24px' }}></div>
-                                    <div style={{ display: 'flex', gap: '20px', color: '#1e2894', fontWeight: '600', fontSize: '14px' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><WidgetIcons.Book /> 14:00</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><WidgetIcons.Calendar /> Today</span>
-                                    </div>
-                                </div>
+                                    )
+                                )}
                             </div>
 
-                            <div style={{ display: 'flex', gap: '16px' }}>
-                                <button className="btn-primary-dark" style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', background: '#2E37A4', border: 'none', padding: '12px', borderRadius: '10px', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
-                                    <WidgetIcons.Video /> Join Waiting Room
-                                </button>
-                                <button style={{ flex: 1, background: 'white', border: '1px solid #bfdbfe', color: '#2E37A4', padding: '12px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer' }}>
-                                    Reschedule Appointment
-                                </button>
-                            </div>
+                            {upcoming && (
+                                <div style={{ display: 'flex', gap: '16px' }}>
+                                    <a href={upcoming.meeting_link} target="_blank" rel="noreferrer" className="btn-primary-dark" style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
+                                        <WidgetIcons.Video /> Join Room
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -175,7 +212,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                 <div style={{ marginBottom: '32px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <h2 style={{ fontSize: '36px', fontWeight: '800', margin: 0, letterSpacing: '-0.5px' }}>
-                                            {balanceVisible ? '₦15,000.00' : '₦****'}
+                                            {dataLoading ? <Skeleton width={150} /> : (balanceVisible ? formatCurrency(wallet) : '₦****')}
                                         </h2>
                                         <button
                                             onClick={() => setBalanceVisible(!balanceVisible)}
@@ -185,13 +222,9 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                         </button>
                                     </div>
                                     <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>Available balance</p>
-                                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px', fontSize: '12px', fontWeight: '600' }}>
-                                        <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px' }}><WidgetIcons.ArrowUpRight /> ₦5,000</span>
-                                        <span style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '4px' }}><WidgetIcons.ArrowDownLeft /> ₦2,500</span>
-                                    </div>
                                 </div>
                             </div>
-                            <button style={{ width: '100%', padding: '12px', background: 'transparent', color: '#2E37A4', border: '1px solid #2E37A4', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <button onClick={() => onNavigate('payment')} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#2E37A4', border: '1px solid #2E37A4', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                 + Top Up
                             </button>
                         </div>
@@ -209,39 +242,33 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                 <a href="#" style={{ fontSize: '14px', color: '#2E37A4', fontWeight: '600' }}>View all</a>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {[
-                                    { title: 'Prescription: Amoxyl', subtitle: 'Sent to Pharmacy', date: 'Yesterday', status: 'Delivered', icon: <WidgetIcons.Medicine />, color: '#10b981', bg: '#dcfce7' },
-                                    { title: 'Lab Result: Malaria Test', subtitle: 'Negative - All clear', date: '2 days ago', status: 'Negative', icon: <WidgetIcons.Lab />, color: '#8b5cf6', bg: '#f3e8ff' },
-                                    { title: 'Vitals: BP Check', subtitle: 'Reading: 120/80 mmHg', date: '1 week ago', status: 'Normal', icon: <WidgetIcons.Heart />, color: '#2E37A4', bg: '#eef2ff' },
-                                    { title: 'Medical Report', subtitle: 'Annual checkup summary', date: '2 weeks ago', status: 'view', icon: <WidgetIcons.Document />, color: '#f59e0b', bg: '#fef3c7', special: true },
-                                ].map((item, idx) => (
-                                    <div key={idx} style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '16px',
-                                        background: item.special ? '#f8fafc' : 'white',
-                                        borderRadius: '16px',
-                                        border: item.special ? 'none' : '1px solid white'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: item.bg, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {item.icon}
+                                {dataLoading ? <Skeleton count={3} height={60} /> : (
+                                    activity.length > 0 ? activity.map((item: any, idx: number) => (
+                                        <div key={idx} style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '16px',
+                                            background: 'white',
+                                            borderRadius: '16px',
+                                            border: '1px solid #f8fafc'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f8fafc', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {item.type === 'appointment' ? <WidgetIcons.Calendar /> : <WidgetIcons.Wallet />}
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#0f172a', fontWeight: '600' }}>{item.title}</h4>
+                                                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{item.subtitle}</p>
+                                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>{new Date(item.date).toLocaleDateString()}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#0f172a', fontWeight: '600' }}>{item.title}</h4>
-                                                <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{item.subtitle}</p>
-                                                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8' }}>{item.date}</p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span className={`status-badge ${item.status === 'confirmed' || item.status === 'success' ? 'status-confirmed' : 'status-pending'}`}>{item.status}</span>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            {item.status !== 'view' ? (
-                                                <span className={`status-badge ${['Delivered', 'Normal'].includes(item.status) ? 'status-confirmed' : ''}`} style={{ background: item.status === 'Negative' ? '#f1f5f9' : undefined, color: item.status === 'Negative' ? '#64748b' : undefined }}>{item.status}</span>
-                                            ) : null}
-                                            <WidgetIcons.ChevronRight />
-                                        </div>
-                                    </div>
-                                ))}
+                                    )) : <p style={{ color: '#64748b' }}>No recent activity.</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -252,28 +279,26 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                     <h3 className="card-title" style={{ margin: 0, color: '#0f172a', fontSize: '18px' }}>Latest Vitals</h3>
-                                    <span style={{ fontSize: '12px', color: '#64748b' }}>Updated 1 week ago</span>
+                                    <span style={{ fontSize: '12px', color: '#64748b' }}>Recent</span>
                                 </div>
-                                {[
-                                    { label: 'Blood Pressure', value: '120/80', unit: 'mmHg', icon: <WidgetIcons.Heart />, color: '#dc2626', bg: '#fef2f2', status: 'Normal', trend: 'neutral' },
-                                    { label: 'Weight', value: '68', unit: 'kg', icon: <WidgetIcons.Scale />, color: '#2E37A4', bg: '#eef2ff', status: '-2kg', trend: 'down' },
-                                    { label: 'Blood Sugar', value: '95', unit: 'mg/dL', icon: <WidgetIcons.Drop />, color: '#9333ea', bg: '#f3e8ff', status: '+5', trend: 'up' },
-                                ].map((vital, idx) => (
-                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: vital.bg, color: vital.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {vital.icon}
+                                {dataLoading ? <Skeleton count={3} height={50} /> : (
+                                    vitals.length > 0 ? vitals.map((vital: any, idx: number) => (
+                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#eef2ff', color: '#2E37A4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <WidgetIcons.Heart />
+                                                </div>
+                                                <div>
+                                                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>{vital.type}</span>
+                                                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{vital.value} <small style={{ color: '#94a3b8', fontWeight: '500', fontSize: '12px' }}>{vital.unit}</small></span>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>{vital.label}</span>
-                                                <span style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{vital.value} <small style={{ color: '#94a3b8', fontWeight: '500', fontSize: '12px' }}>{vital.unit}</small></span>
-                                            </div>
+                                            <span style={{ fontSize: '13px', fontWeight: '600', color: vital.status === 'High' ? '#dc2626' : '#16a34a' }}>
+                                                {vital.status}
+                                            </span>
                                         </div>
-                                        <span style={{ fontSize: '13px', fontWeight: '600', color: vital.trend === 'down' ? '#dc2626' : (vital.trend === 'up' ? '#16a34a' : '#64748b') }}>
-                                            {vital.status}
-                                        </span>
-                                    </div>
-                                ))}
+                                    )) : <p style={{ color: '#64748b' }}>No records yet.</p>
+                                )}
                             </div>
                             <button style={{ width: '100%', marginTop: '12px', padding: '12px', background: 'transparent', color: '#2E37A4', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Update Vitals</button>
                         </div>
