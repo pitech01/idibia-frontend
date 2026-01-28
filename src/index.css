@@ -1753,3 +1753,183 @@ img {
     /* Stack stats on very small screens */
   }
 }
+
+/* Payment Page Styles */
+.payment-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.trans-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+  /* Ensure table doesn't get too squashed */
+}
+
+.top-up-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+
+.top-up-modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 450px;
+  max-width: 100%;
+  padding: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.3s ease-out;
+}
+
+@media (max-width: 900px) {
+  .payment-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.wallet-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  position: relative;
+  z-index: 10;
+}
+
+@media (max-width: 600px) {
+  .payment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .wallet-actions {
+    flex-direction: column;
+  }
+
+  .wallet-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Resources Page Styles */
+.resources-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.resources-search-container {
+  position: relative;
+  width: 400px;
+}
+
+.featured-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  margin-bottom: 40px;
+  min-height: 320px;
+}
+
+.featured-content {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.featured-image {
+  background-size: cover;
+  background-position: center;
+}
+
+.resources-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 32px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Resources Page Media Queries */
+@media (max-width: 1024px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .resources-layout {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: 1fr;
+    /* Override grid */
+  }
+
+  .resources-sidebar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .resources-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .resources-search-container {
+    width: 100%;
+  }
+
+  .featured-card {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column-reverse;
+    /* Put image on top? Or content on top? flexible. column-reverse puts image on top if image is 2nd child in DOM. Let's check DOM structure. DOM: Content first, then Image div. So column-reverse makes Image (2nd) go to top? No, column-reverse makes 1st item bottom. */
+    /* Wait, standard column: 1st item top. */
+    flex-direction: column-reverse;
+  }
+
+  .featured-image {
+    height: 200px;
+    width: 100%;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

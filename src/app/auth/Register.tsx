@@ -49,8 +49,10 @@ interface RegistrationData {
     issuingAuthority?: string;
 
     // Step 5 (Doctor): Documents
-    fileLicense?: string; // Mocked file path/name
-    fileId?: string;
+    fileLicense?: string; // For display name
+    fileLicenseObj?: File | null;
+    fileId?: string; // For display name
+    fileIdObj?: File | null;
 
     // Step 6 (Doctor): Practice
     practiceType?: string;
@@ -85,7 +87,7 @@ const INITIAL_DATA: RegistrationData = {
 interface RegisterProps {
     onBack: () => void;
     onLoginClick: () => void;
-    onRegisterSuccess: (role: 'patient' | 'doctor' | 'nurse') => void;
+    onRegisterSuccess: (role: 'patient' | 'doctor' | 'nurse', isCompleted?: boolean, isVerified?: boolean) => void;
 }
 
 export default function Register({ onBack, onLoginClick, onRegisterSuccess }: RegisterProps) {
@@ -108,6 +110,77 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
     };
 
     const prevStep = () => setStep(prev => prev - 1);
+
+    // Resume Flow: Check for token on mount
+    useEffect(() => {
+        const checkExistingSession = async () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    await api.get('/sanctum/csrf-cookie', { baseURL: WEB_URL });
+                    const response = await api.get('/user');
+                    const user = response.data;
+
+                    if (user) {
+                        // Pre-fill data
+                        updateData({
+                            firstName: user.name.split(' ')[0],
+                            lastName: user.name.split(' ').slice(1).join(' '),
+                            email: user.email,
+                            isVerified: true, // If they have a token, they are verified
+                            termsAccepted: true
+                        });
+
+                        // Handle Roles
+                        if (user.role === 'doctor') {
+                            setRole('doctor');
+                            if (user.doctor) {
+                                // Already has profile
+                                if (user.doctor.status === 'active' || user.doctor.is_verified) {
+                                    onRegisterSuccess('doctor', true, true);
+                                } else {
+                                    // Profile exists but not verified
+                                    onRegisterSuccess('doctor', true, false);
+                                }
+                            } else {
+                                // Resume Doctor Flow (Skip Account & Verify)
+                                setStep(3);
+                                toast("Welcome back! Let's finish your application.", { icon: '👨‍⚕️' });
+                            }
+                        } else if (user.role === 'patient') {
+                            setRole('patient');
+                            if (user.patient) {
+                                const p = user.patient;
+                                updateData({
+                                    dob: p.dob, gender: p.gender, phone: p.phone,
+                                    bloodGroup: p.blood_group, allergies: p.allergies, conditions: p.conditions,
+                                    emergencyName: p.emergency_name, emergencyPhone: p.emergency_phone,
+                                    address: p.address, city: p.city, state: p.state, country: p.country, zipCode: p.zip_code,
+                                    virtualOnly: Boolean(p.virtual_only)
+                                });
+
+                                if (p.is_completed) {
+                                    onRegisterSuccess('patient', true, true);
+                                } else {
+                                    setStep(3);
+                                    toast("Welcome back! Let's finish your profile.", { icon: '👋' });
+                                }
+                            } else {
+                                // User exists but no patient record
+                                setStep(3);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Invalid token or session
+                    localStorage.removeItem('token');
+                }
+            }
+        };
+
+        checkExistingSession();
+    }, []);
+
 
     // Update data when role changes
     useEffect(() => {
@@ -134,12 +207,15 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
         return () => clearInterval(interval);
     }, [isTimerRunning, timer]);
 
-    const sendOtp = async () => {
-        const toastId = toast.loading('Sending verification code...');
+    const sendOtp = async (isResend = false) => {
+        // If we are resuming (isVerified is true), skip sending OTP and move to next step logic handled elsewhere
+        if (data.isVerified) return;
+
+        const toastId = toast.loading(isResend ? 'Resending code...' : 'Sending verification code...');
         try {
             await api.get('/sanctum/csrf-cookie', { baseURL: WEB_URL });
             await api.post('/otp/send', { email: data.email });
-            toast.success('Verification code sent!', { id: toastId });
+            toast.success(isResend ? 'New code sent!' : 'Verification code sent!', { id: toastId });
         } catch (error: any) {
             const message = error.response?.data?.message || 'Failed to send code.';
             toast.error(message, { id: toastId });
@@ -152,42 +228,111 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
             return;
         }
 
-        const toastId = toast.loading('Verifying...');
+        const toastId = toast.loading('Verifying & Creating Account...');
         try {
             await api.post('/otp/verify', { email: data.email, code: otp });
-            toast.success('Email Verified!', { id: toastId });
+
+            // OTP Verified. Now CREATE THE ACCOUNT immediately so they can "resume" later.
+            // We register with basic info + OTP to prove we verified
+            const response = await api.post('/register', {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                password: data.password,
+                role: role, // Use selected role (patient or doctor)
+                otp: otp,
+                // Pass empty/null for others to keep profile incomplete
+                is_completed: false
+            });
+
+            if (response.data.token) {
+                localStorage.setItem('token', response.data.token);
+            }
+
+            toast.success('Account Created! Let\'s setup your profile.', { id: toastId });
             updateData({ isVerified: true });
-            nextStep();
+            nextStep(); // Move to Step 3
         } catch (error: any) {
-            toast.error('Invalid or expired code', { id: toastId });
+            toast.error(error.response?.data?.message || 'Invalid code or failed to create account', { id: toastId });
         }
     };
 
     const handlePatientSubmit = async () => {
-        const toastId = toast.loading('Creating your account...');
+        const toastId = toast.loading('Finishing up...');
 
         try {
-            // Include OTP in registration to prove verification 
-            const response = await api.post('/register', { ...data, role: 'patient', otp: otp });
+            // We are now "Logged In", so we use PUT /profile (mapped from ProfileController@update)
+            // We need to map frontend camelCase to backend snake_case as expected by ProfileController
+            const payload = {
+                first_name: data.firstName,
+                last_name: data.lastName,
+                email: data.email, // Should match auth user
+                phone: data.phone, // Though patient flow didn't ask for phone? 
+                // Wait, patient step 3 asks for DOB/Gender, Step 4 asks for emergency.
+                dob: data.dob,
+                gender: data.gender,
+                blood_group: data.bloodGroup,
+                allergies: data.allergies, // ProfileController might need update to accept these or they are in patient relation
+                conditions: data.conditions,
+                emergency_name: data.emergencyName,
+                emergency_phone: data.emergencyPhone,
+                address: data.address,
+                city: data.city,
+                state: data.state,
+                country: data.country,
+                zip_code: data.zipCode,
+                virtual_only: data.virtualOnly
+            };
 
-            // Store Token & User immediately
-            if (response.data.token) {
-                localStorage.setItem('token', response.data.token);
-                // Optionally store user if you have a user context, otherwise strictly reliance on token is fine
-            }
+            await api.put('/profile', payload);
 
-            toast.success(<b>Registration Successful! Welcome to Idibia.</b>, { id: toastId });
-
-            setTimeout(() => onRegisterSuccess('patient'), 2000);
+            toast.success(<b>Registration Complete! Welcome.</b>, { id: toastId });
+            setTimeout(() => onRegisterSuccess('patient', true, true), 2000);
         } catch (error: any) {
-            const message = error.response?.data?.message || 'Could not create account. Please try again.';
+            const message = error.response?.data?.message || 'Could not update profile. Please try again.';
             toast.error(<b>{message}</b>, { id: toastId });
         }
     };
 
-    const handleDoctorSubmit = () => {
-        toast.success("Application Submitted for Review!");
-        updateData({ submissionStatus: 'pending_approval' });
+    const handleDoctorSubmit = async () => {
+        const toastId = toast.loading('Submitting application...');
+
+        try {
+            const formData = new FormData();
+            formData.append('specialty', data.specialty || '');
+            formData.append('experience_years', data.experienceYears || '');
+            formData.append('license_number', data.license || '');
+            formData.append('issuing_authority', data.issuingAuthority || '');
+            formData.append('practice_type', data.practiceType || '');
+            formData.append('workplace_name', data.workplaceName || '');
+            formData.append('city', data.city || '');
+            formData.append('state', data.state || '');
+            formData.append('consultation_type', data.consultationType || 'both');
+            formData.append('bio', data.bio || '');
+
+            if (data.fileLicenseObj) {
+                formData.append('license_document', data.fileLicenseObj);
+            }
+            if (data.fileIdObj) {
+                formData.append('id_document', data.fileIdObj);
+            }
+
+            // Note: Sending FormData often requires setting Content-Type to multipart/form-data, 
+            // but Axios/browser usually handles this automatically if data is FormData.
+            // However, we need to ensure the sanctum token is attached (which 'api' instance does).
+
+            await api.post('/doctor/profile', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            toast.success("Application Submitted for Review!", { id: toastId });
+            // Doctor is completed but NOT verified
+            setTimeout(() => onRegisterSuccess('doctor', true, false), 1500);
+
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Submission failed. Please try again.';
+            toast.error(message, { id: toastId });
+        }
     };
 
     // --- RENDER SUCCESS STATE ---
@@ -266,7 +411,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
 
                 <div className="form-group">
                     <div className="input-wrapper-dark">
-                        <input type="email" placeholder="Email Address" className="form-input-dark" value={data.email || ''} onChange={e => updateData({ email: e.target.value })} required />
+                        <input type="email" placeholder="Email Address" className="form-input-dark" value={data.email || ''} onChange={e => updateData({ email: e.target.value, isVerified: false })} required />
                     </div>
                 </div>
 
@@ -301,57 +446,86 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
     );
 
     // STEP 2: Verification (OTP)
-    const renderStep2 = () => (
-        <div className="text-center">
-            <h2 className="step-title">Verify Email</h2>
-            <p className="step-desc">Enter the code sent to <b>{data.email}</b></p>
-            <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '20px' }}>Check your spam folder if you don't see it.</p>
+    // STEP 2: Verification (OTP)
+    const renderStep2 = () => {
+        if (data.isVerified) {
+            return (
+                <div className="text-center">
+                    <h2 className="step-title">Email Verified!</h2>
+                    <div style={{ margin: '30px auto', color: '#10b981', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ width: '60px', height: '60px', background: '#d1fae5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px' }}>
+                            <svg width="30" height="30" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <p style={{ marginTop: '5px', color: '#334155', fontSize: '15px' }}>Your email <b>{data.email}</b> has been verified.</p>
+                    </div>
+                    <button className={`btn-login-main ${role}`} onClick={nextStep}>Continue to Profile</button>
+                    <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                        <button onClick={prevStep} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline', fontSize: '13px' }}>
+                            Change Email
+                        </button>
+                    </div>
+                </div>
+            );
+        }
 
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <input
-                    type="text"
-                    maxLength={6}
-                    value={otp}
-                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                    className="otp-input"
-                    placeholder="- - - - - -"
-                    style={{ maxWidth: '200px', letterSpacing: '8px' }}
-                />
-            </div>
+        return (
+            <div className="text-center">
+                <h2 className="step-title">Verify Email</h2>
+                <p className="step-desc">Enter the code sent to <b>{data.email}</b></p>
+                <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '20px' }}>Check your spam folder if you don't see it.</p>
 
-            <button className={`btn-login-main ${role}`} onClick={handleVerify} disabled={otp.length !== 6}>Verify Account</button>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <input
+                        type="text"
+                        maxLength={6}
+                        value={otp}
+                        onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                        className="otp-input"
+                        placeholder="- - - - - -"
+                        style={{ maxWidth: '200px', letterSpacing: '8px' }}
+                    />
+                </div>
 
-            <div style={{ marginTop: '20px', color: '#64748b', fontSize: '14px', textAlign: 'center' }}>
-                {timer > 0 ? (
-                    <p className="timer-text">
-                        Resend code in <span style={{ color: '#0077B6', fontWeight: 'bold' }}>{timer}s</span>
-                    </p>
-                ) : (
-                    <button
-                        onClick={() => { setTimer(30); setIsTimerRunning(true); sendOtp(); }}
-                        style={{ border: 'none', background: 'none', color: '#0077B6', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                    >
-                        Resend Code
+                <button className={`btn-login-main ${role}`} onClick={handleVerify} disabled={otp.length !== 6}>Verify Account</button>
+
+                <div style={{ marginTop: '20px', color: '#64748b', fontSize: '14px', textAlign: 'center' }}>
+                    {timer > 0 ? (
+                        <p className="timer-text">
+                            Resend code in <span style={{ color: '#0077B6', fontWeight: 'bold' }}>{timer}s</span>
+                        </p>
+                    ) : (
+                        <button
+                            onClick={() => { setTimer(30); setIsTimerRunning(true); sendOtp(true); }}
+                            style={{ border: 'none', background: 'none', color: '#0077B6', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                            Resend Code
+                        </button>
+                    )}
+                </div>
+
+                <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                    <button onClick={prevStep} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline', fontSize: '13px' }}>
+                        Change Email
                     </button>
-                )}
+                </div>
             </div>
-
-            <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                <button onClick={prevStep} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline', fontSize: '13px' }}>
-                    Change Email
-                </button>
-            </div>
-        </div>
-    );
+        );
+    };
 
     // STEP 3: Personal Info
     const renderStep3 = () => (
         <div>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-                <button onClick={prevStep} style={{ background: 'none', border: 'none', marginRight: '10px', cursor: 'pointer', color: '#64748b' }}>
-                    <Icons.ArrowLeft />
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button onClick={prevStep} style={{ background: 'none', border: 'none', marginRight: '10px', cursor: 'pointer', color: '#64748b' }}>
+                        <Icons.ArrowLeft />
+                    </button>
+                    <h2 className="step-title" style={{ marginBottom: 0 }}>Personal Details</h2>
+                </div>
+                {/* Logout Option for Resumed Sessions */}
+                <button onClick={() => { localStorage.removeItem('token'); window.location.reload(); }} style={{ fontSize: '12px', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Logout / Reset
                 </button>
-                <h2 className="step-title" style={{ marginBottom: 0 }}>Personal Details</h2>
             </div>
 
             <p className="step-desc">Tell us more about yourself.</p>
@@ -442,24 +616,47 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
     );
 
     // STEP 5: Documents (Doctor)
+    // STEP 5: Documents (Doctor)
     const renderDoctorStep5 = () => (
         <div>
             <h2 className="step-title">Documents</h2>
             <p className="step-desc">Upload validation documents.</p>
 
-            <div className="upload-box" onClick={() => updateData({ fileLicense: 'license_doc.pdf' })}>
+            <label className="upload-box" style={{ display: 'block' }}>
+                <input
+                    type="file"
+                    hidden
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                            updateData({ fileLicense: file.name, fileLicenseObj: file });
+                        }
+                    }}
+                />
                 <Icons.Upload />
                 <p>{data.fileLicense ? data.fileLicense : "Upload Medical License"}</p>
                 <span>PDF, JPG or PNG</span>
-            </div>
+            </label>
 
-            <div className="upload-box" onClick={() => updateData({ fileId: 'id_card.jpg' })}>
+            <label className="upload-box" style={{ display: 'block' }}>
+                <input
+                    type="file"
+                    hidden
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                            updateData({ fileId: file.name, fileIdObj: file });
+                        }
+                    }}
+                />
                 <Icons.Upload />
                 <p>{data.fileId ? data.fileId : "Upload Government ID"}</p>
                 <span>Valid Passport, NIN or Driver's License</span>
-            </div>
+            </label>
 
-            <button className={`btn-login-main ${role}`} onClick={nextStep} style={{ marginTop: '20px' }}>Next Step</button>
+            <button className={`btn-login-main ${role}`} onClick={nextStep} style={{ marginTop: '20px' }} disabled={!data.fileLicenseObj || !data.fileIdObj}>Next Step</button>
         </div>
     );
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import '../patient/patient.css'; // Reuse basic dashboard styles for consistency
 
 // Basic Icons
@@ -17,90 +17,80 @@ interface PendingDashboardProps {
 }
 
 export default function PendingDashboard({ role, onLogout }: PendingDashboardProps) {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-
-    const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <Icons.Grid /> },
-        { id: 'appointments', label: 'Schedule', icon: <Icons.Calendar /> },
-        { id: 'patients', label: 'Patients', icon: <Icons.Users /> },
-    ];
 
     const roleTitle = role === 'doctor' ? "Doctor's Workspace" : "Nurse Station";
     const primaryColor = role === 'doctor' ? '#2563eb' : '#4f46e5';
 
     return (
-        <div className="dashboard-container">
-            {/* Minimal Sidebar */}
-            <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
-                <div className="sidebar-logo">
-                    {/* Dynamic Logo Color */}
-                    <div className="logo-icon" style={{ background: primaryColor }}><div style={{ color: 'white' }}>+</div></div>
-                    <span className="logo-text">IDIBIA {role === 'doctor' ? 'Doc' : 'Care'}</span>
-                </div>
+        <div className="dashboard-container" style={{ background: '#f8fafc', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Header with Back Button (Logout) essentially acting as Back to Login */}
+            <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-start' }}>
+                <button
+                    onClick={onLogout}
+                    style={{
+                        background: 'transparent',
+                        border: '1px solid #cbd5e1',
+                        padding: '10px 20px',
+                        borderRadius: '30px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: '#475569',
+                        fontWeight: '500'
+                    }}
+                >
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    Back to Login
+                </button>
+            </div>
 
-                <nav className="sidebar-menu">
-                    {menuItems.map(item => (
-                        <button key={item.id} className={`menu-item ${item.id === 'dashboard' ? 'active' : ''}`} style={item.id === 'dashboard' ? { color: primaryColor, background: '#eff6ff' } : {}}>
-                            <span className="menu-icon">{item.icon}</span>
-                            {item.label}
-                        </button>
-                    ))}
-                </nav>
-
-                <div className="sidebar-footer">
-                    <button className="menu-item" onClick={onLogout}>
-                        <span className="menu-icon"><Icons.Logout /></span>
-                        Logout
-                    </button>
-                </div>
-            </aside>
-
-            {/* Main Content Area - White Slate Placeholder */}
-            <main className="dashboard-main" style={{ background: '#f8fafc' }}>
-                <header className="dashboard-header">
-                    <button className="mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                        <Icons.Menu />
-                    </button>
-                    <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#0f172a' }}>{roleTitle}</h2>
-                    <div className="user-profile">
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
-                            {role.charAt(0).toUpperCase()}
-                        </div>
-                    </div>
-                </header>
-
-                <div className="content-scrollable" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-
+            {/* Main Content Area */}
+            <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{
+                    background: 'white',
+                    padding: '60px',
+                    borderRadius: '24px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)',
+                    textAlign: 'center',
+                    maxWidth: '500px',
+                    width: '90%'
+                }}>
                     <div style={{
-                        background: 'white',
-                        padding: '60px',
-                        borderRadius: '24px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                        textAlign: 'center',
-                        maxWidth: '500px',
-                        width: '90%'
+                        width: '80px', height: '80px', background: '#f1f5f9', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px',
+                        color: primaryColor
                     }}>
-                        <div style={{
-                            width: '80px', height: '80px', background: '#f1f5f9', borderRadius: '50%',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px',
-                            color: '#94a3b8'
-                        }}>
-                            <Icons.Construction />
-                        </div>
-
-                        <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>
-                            Coming Soon
-                        </h1>
-                        <p style={{ color: '#64748b', fontSize: '16px', lineHeight: '1.6' }}>
-                            The <strong>{roleTitle}</strong> is currently under development. <br />
-                            We are working hard to bring you a premium experience for managing your medical practice.
-                        </p>
-
-                        <div style={{ marginTop: '30px', padding: '16px', background: '#f8fafc', borderRadius: '12px', fontSize: '14px', color: '#64748b' }}>
-                            Status: <span style={{ color: '#0ea5e9', fontWeight: '600' }}>In Progress</span>
-                        </div>
+                        {role === 'doctor' ? <Icons.Grid /> : <Icons.Construction />}
                     </div>
 
+                    {role === 'doctor' ? (
+                        <>
+                            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>
+                                Application Pending
+                            </h1>
+                            <p style={{ color: '#64748b', fontSize: '16px', lineHeight: '1.6' }}>
+                                Thanks for submitting your application, Doc! <br />
+                                Our team is currently reviewing your documents. You will be notified via email once approved.
+                            </p>
+                            <div style={{ marginTop: '30px', padding: '16px', background: '#ecfdf5', borderRadius: '12px', fontSize: '14px', color: '#059669', display: 'inline-block' }}>
+                                Status: <strong>Under Review</strong>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>
+                                Coming Soon
+                            </h1>
+                            <p style={{ color: '#64748b', fontSize: '16px', lineHeight: '1.6' }}>
+                                The <strong>{roleTitle}</strong> is currently under development. <br />
+                                We are working hard to bring you a premium experience.
+                            </p>
+                            <div style={{ marginTop: '30px', padding: '16px', background: '#f8fafc', borderRadius: '12px', fontSize: '14px', color: '#64748b', display: 'inline-block' }}>
+                                Status: <strong>In Progress</strong>
+                            </div>
+                        </>
+                    )}
                 </div>
             </main>
         </div>

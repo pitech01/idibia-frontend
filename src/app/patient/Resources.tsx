@@ -96,9 +96,9 @@ export default function Resources() {
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div className="resources-header">
                 <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a' }}>Resources & Health Hub</h2>
-                <div style={{ position: 'relative', width: '400px' }}>
+                <div className="resources-search-container">
                     <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#94a3b8' }}><Icons.Search /></span>
                     <input
                         type="text"
@@ -138,11 +138,8 @@ export default function Resources() {
                 <>
                     {/* Hero Card (Featured) */}
                     {featuredPost && activeFilter === 'All' && (
-                        <div style={{
-                            background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0',
-                            display: 'grid', gridTemplateColumns: '1.2fr 1fr', marginBottom: '40px', minHeight: '320px'
-                        }}>
-                            <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div className="featured-card">
+                            <div className="featured-content">
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                                     <span style={{ background: '#fef2f2', color: '#ef4444', fontSize: '12px', fontWeight: '600', padding: '4px 8px', borderRadius: '4px' }}>Important Alert</span>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#059669', fontSize: '12px', fontWeight: '500' }}>
@@ -171,15 +168,14 @@ export default function Resources() {
                                     </button>
                                 </div>
                             </div>
-                            <div style={{
-                                backgroundImage: `url('${featuredPost.image_url}')`,
-                                backgroundSize: 'cover', backgroundPosition: 'center'
+                            <div className="featured-image" style={{
+                                backgroundImage: `url('${featuredPost.image_url}')`
                             }}></div>
                         </div>
                     )}
 
                     {/* Content & Sidebar Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '32px' }}>
+                    <div className="resources-layout">
 
                         {/* Main Content Column */}
                         <div>
@@ -188,7 +184,7 @@ export default function Resources() {
                                 <a href="#" style={{ color: '#0284c7', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>View All</a>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+                            <div className="cards-grid">
                                 {filteredPosts.map(card => (
                                     <div key={card.id} onClick={() => setViewingPost(card)} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
                                         <div style={{ height: '160px', overflow: 'hidden', position: 'relative' }}>
@@ -240,7 +236,7 @@ export default function Resources() {
                         </div>
 
                         {/* Sidebar Column */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        <div className="resources-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                             {/* Ask a Doctor Widget */}
                             <div style={{ background: '#dbeafe', borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>

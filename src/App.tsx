@@ -12,15 +12,19 @@ import PatientDashboard from './app/patient/PatientDashboard'
 import DoctorDashboard from './app/doctor/DoctorDashboard'
 import PendingDashboard from './app/shared/PendingDashboard'
 import DoctorVerification from './app/doctor/DoctorVerification.tsx'
+import AdminLogin from './app/admin/AdminLogin'
+import AdminDashboard from './app/admin/AdminDashboard'
 import { Toaster, toast } from 'react-hot-toast';
 
 function App() {
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<'home' | 'login' | 'register' | 'forgot-password' | 'change-password' | 'patient-dashboard' | 'doctor-dashboard' | 'pending-dashboard' | 'doctor-verification'>(() => {
+  const [view, setView] = useState<'home' | 'login' | 'register' | 'forgot-password' | 'change-password' | 'patient-dashboard' | 'doctor-dashboard' | 'pending-dashboard' | 'doctor-verification' | 'admin-login' | 'admin-dashboard'>(() => {
     const savedView = localStorage.getItem('appView');
+    // Simple URL check for initial load
+    if (window.location.pathname === '/admin-login') return 'admin-login';
     return (savedView as any) || 'home';
   });
-  const [userRole, setUserRole] = useState<'patient' | 'doctor' | 'nurse'>(() => {
+  const [userRole, setUserRole] = useState<'patient' | 'doctor' | 'nurse' | 'admin'>(() => {
     const savedRole = localStorage.getItem('userRole');
     return (savedRole as any) || 'patient';
   });
@@ -52,16 +56,35 @@ function App() {
       // Clean URL
       window.history.replaceState({}, document.title, '/login');
     }
+
+    // Check for admin path
+    if (window.location.pathname === '/admin-login') {
+      setView('admin-login');
+    }
   }, []);
 
-  const handleLoginSuccess = (role: 'patient' | 'doctor' | 'nurse') => {
+  const handleLoginSuccess = (role: 'patient' | 'doctor' | 'nurse' | 'admin', isCompleted: boolean = true, isVerified: boolean = true) => {
     setUserRole(role);
+
+
+    // Check for incomplete profiles (Patient or Doctor who hasn't finished step 7)
+    // For Doctor, if !isCompleted, it means they have a User account but no Doctor record -> Send to Register
+    if (!isCompleted) {
+      setView('register');
+      toast('Please complete your profile registration.', { icon: '📝' });
+      return;
+    }
+
     if (role === 'patient') {
       setView('patient-dashboard');
     } else if (role === 'doctor') {
-      // Ideally check backend if verified. For demo:
-      // setView('doctor-dashboard'); // If verified
-      setView('doctor-dashboard'); // Go directly to dashboard as requested
+      if (isVerified) {
+        setView('doctor-dashboard');
+      } else {
+        setView('pending-dashboard');
+      }
+    } else if (role === 'admin') {
+      setView('admin-dashboard');
     } else {
       setView('pending-dashboard');
     }
@@ -117,6 +140,13 @@ function App() {
           onLogout={handleLogout}
         />
       )}
+      {view === 'admin-login' && (
+        <AdminLogin
+          onBack={() => setView('home')}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      )}
+      {view === 'admin-dashboard' && <AdminDashboard onLogout={handleLogout} />}
     </>
   )
 }

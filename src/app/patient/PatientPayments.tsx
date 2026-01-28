@@ -126,7 +126,7 @@ export default function PatientPayments() {
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div className="payment-header">
                 <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a' }}>Payments & Wallet</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '14px', background: '#f8fafc', padding: '6px 12px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', background: '#e2e8f0', borderRadius: '50%' }}><Icons.Lock /></span> Secured by <strong style={{ color: '#0f172a' }}>Paystack</strong>
@@ -134,7 +134,7 @@ export default function PatientPayments() {
             </div>
 
             {/* Top Cards Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', marginBottom: '32px' }}>
+            <div className="payment-grid">
 
                 {/* Wallet Balance Card */}
                 <div style={{
@@ -171,7 +171,7 @@ export default function PatientPayments() {
                         </button>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '24px', position: 'relative', zIndex: 10 }}>
+                    <div className="wallet-actions">
                         <button
                             onClick={() => setShowTopUpModal(true)}
                             style={{
@@ -312,17 +312,8 @@ export default function PatientPayments() {
 
             {/* TOP UP MODAL */}
             {showTopUpModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-                    background: 'rgba(0,0,0,0.6)', zIndex: 1000,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backdropFilter: 'blur(4px)'
-                }}>
-                    <div style={{
-                        background: 'white', borderRadius: '16px', width: '450px',
-                        padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                        animation: 'slideUp 0.3s ease-out'
-                    }}>
+                <div className="top-up-modal">
+                    <div className="top-up-modal-content">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Top Up Wallet</h3>
                             <button onClick={() => setShowTopUpModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
