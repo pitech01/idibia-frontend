@@ -1,7 +1,13 @@
 import axios from 'axios';
 
-// Define API & Web URLs (Single Source of Truth)
-export const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://idibia-backend-main-wjhaop.laravel.cloud/api';
+// Get the base URL from env
+const BASE_ENV_URL = import.meta.env.VITE_API_BASE_URL || 'https://idibia-backend-main-wjhaop.laravel.cloud/api';
+
+// Auto-upgrade to HTTPS if the current page is HTTPS to prevent Mixed Content errors
+export const API_URL = typeof window !== 'undefined' && window.location.protocol === 'https:' && BASE_ENV_URL.startsWith('http:')
+    ? BASE_ENV_URL.replace('http:', 'https:') // Upgrade to HTTPS
+    : BASE_ENV_URL;
+
 export const WEB_URL = API_URL.replace(/\/api\/?$/, ''); // Strip /api to get root URL
 
 const api = axios.create({
