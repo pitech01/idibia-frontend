@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
+import { api } from '../../services';
+import Preloader from '../../components/Preloader';
+import VideoCall from '../../components/VideoCall';
 
 const Icons = {
+    // ... icons don't change here
     Search: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
     Edit: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
     Video: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
@@ -15,12 +19,17 @@ const Icons = {
 };
 
 export default function DoctorMessages() {
-    const [selectedChatId, setSelectedChatId] = useState(1);
+    const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
     const [activeFilter, setActiveFilter] = useState('All');
     const [messageInput, setMessageInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const [chats, setChats] = useState<any[]>([]);
+    const [messages, setMessages] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [showVideoCall, setShowVideoCall] = useState(false);
 
     // Track window width for responsive behavior
     useEffect(() => {
@@ -29,87 +38,108 @@ export default function DoctorMessages() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Mock Chats Data (Relative to Doctor)
-    const [chats, setChats] = useState([
-        {
-            id: 1,
-            name: 'Sarah Johnson',
-            role: 'Migraine Follow-up', // Context for Doctor
-            lastMsg: 'Yes, I recall. I will take the medication.',
-            time: '1:34 PM',
-            unread: 0,
-            online: true,
-            img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1888&auto=format&fit=crop',
-            encrypted: true,
-            messages: [
-                { id: 1, sender: 'them', text: "It's a dull pain, mostly at the front of my head. It gets worse in the afternoon.", time: '12:04 PM' },
-                { id: 2, sender: 'me', text: "I see. This sounds like tension headaches, which are quite common. Have you been under stress lately or spending a lot of time on screens?", time: '12:10 PM' },
-                { id: 3, sender: 'them', text: "Yes, I've been working late on my laptop for the past week.", time: '1:22 PM' },
-                { id: 4, sender: 'me', text: "Please take the tablet after eating. I'm prescribing Paracetamol 500mg. Take one tablet every 6 hours. Also try to take regular breaks from screens - the 20-20-20 rule helps.", time: '1:34 PM' },
-                { id: 5, sender: 'them', text: "Yes, I recall. I will take the medication.", time: '1:36 PM' }
-            ]
-        },
-        {
-            id: 2,
-            name: 'Michael Chen',
-            role: 'Annual Checkup',
-            lastMsg: 'When is the best time to drop by?',
-            time: '11:52 AM',
-            unread: 1,
-            online: false,
-            img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop',
-            encrypted: true,
-            messages: []
-        },
-        {
-            id: 3,
-            name: 'Amara Ndiaye',
-            role: 'Skin Rush Inquiry',
-            lastMsg: 'Here is the photo of the rash.',
-            time: '8:52 AM',
-            unread: 2,
-            online: true,
-            img: 'https://images.unsplash.com/photo-1628157588553-5eeea00af15c?q=80&w=1780&auto=format&fit=crop',
-            encrypted: false,
-            messages: []
-        },
-        {
-            id: 4,
-            name: 'James Wilson',
-            role: 'Prescription Refill',
-            lastMsg: 'Thanks doc!',
-            time: 'Yesterday',
-            unread: 0,
-            online: false,
-            img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1887&auto=format&fit=crop',
-            encrypted: true,
-            messages: []
-        },
-    ]);
+    // Fetch Chats
+    useEffect(() => {
+        const fetchChats = async () => {
+            try {
+                const [chatsRes, userRes] = await Promise.all([
+                    api.get('/chats'),
+                    api.get('/user')
+                ]);
+                setCurrentUser(userRes.data);
 
-    const handleSendMessage = () => {
-        if (!messageInput.trim()) return;
+                const mappedChats = chatsRes.data.map((chat: any) => {
+                    // Determine the other party (since I am the doctor, the other is the patient)
+                    // But the chat endpoint returns both.
+                    // Logic: if current user is doctor, other is patient.
+                    const otherUser = chat.doctor_id === userRes.data.id ? chat.patient : chat.doctor;
 
-        const updatedChats = chats.map(chat => {
-            if (chat.id === selectedChatId) {
-                const newMsg = {
-                    id: Date.now(),
-                    sender: 'me',
-                    text: messageInput,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                };
-                return {
-                    ...chat,
-                    lastMsg: messageInput,
-                    time: 'Just now',
-                    messages: [...chat.messages, newMsg]
-                };
+                    return {
+                        id: chat.id,
+                        name: otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : 'Unknown',
+                        role: 'Patient', // Mock role context
+                        lastMsg: chat.latest_message ? chat.latest_message.message : 'No messages yet',
+                        time: chat.updated_at ? new Date(chat.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                        unread: 0, // Mock unread count
+                        online: false, // Mock
+                        img: otherUser?.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1888&auto=format&fit=crop',
+                        encrypted: true,
+                        otherUserId: otherUser?.id
+                    };
+                });
+                setChats(mappedChats);
+                if (mappedChats.length > 0 && !selectedChatId) {
+                    setSelectedChatId(mappedChats[0].id);
+                }
+            } catch (error) {
+                console.error("Failed to fetch chats", error);
+            } finally {
+                setLoading(false);
             }
-            return chat;
-        });
+        };
+        fetchChats();
+    }, []);
 
-        setChats(updatedChats);
-        setMessageInput('');
+    // Fetch Messages when chat selected
+    useEffect(() => {
+        if (!selectedChatId) return;
+
+        const fetchMessages = async () => {
+            try {
+                const response = await api.get(`/chats/${selectedChatId}`);
+                // Map messages
+                const mappedMessages = response.data.messages.data.map((msg: any) => ({
+                    id: msg.id,
+                    sender: msg.sender_id === currentUser.id ? 'me' : 'them',
+                    text: msg.message,
+                    time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                })).reverse(); // Reverse to show latest at bottom if needed, or adjust
+
+                setMessages(mappedMessages);
+            } catch (error) {
+                console.error("Failed to fetch messages", error);
+            }
+        };
+
+        fetchMessages();
+
+        // Polling for new messages (simple implementation)
+        const interval = setInterval(fetchMessages, 10000);
+        return () => clearInterval(interval);
+
+    }, [selectedChatId, currentUser]);
+
+
+    const handleSendMessage = async () => {
+        if (!messageInput.trim() || !selectedChatId) return;
+
+        try {
+            const response = await api.post(`/chats/${selectedChatId}/send`, {
+                message: messageInput
+            });
+
+            const newMsg = {
+                id: response.data.id,
+                sender: 'me', // Optimistic update
+                text: messageInput,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            setMessages([...messages, newMsg]);
+
+            // Update last message in chat list
+            setChats(chats.map(chat => {
+                if (chat.id === selectedChatId) {
+                    return { ...chat, lastMsg: messageInput, time: 'Just now' };
+                }
+                return chat;
+            }));
+
+            setMessageInput('');
+
+        } catch (error) {
+            console.error("Failed to send message", error);
+        }
     };
 
     const activeChat = chats.find(c => c.id === selectedChatId);
@@ -133,11 +163,19 @@ export default function DoctorMessages() {
         if (windowWidth <= 768) {
             setShowChatOnMobile(true);
         }
-        // Mark as read mock
+        // Mark as read (optional API call here)
         setChats(chats.map(c => c.id === id ? { ...c, unread: 0 } : c));
     };
 
     const isMobile = windowWidth <= 768;
+
+    const handleStartVideoCall = () => {
+        if (selectedChatId) {
+            setShowVideoCall(true);
+        }
+    };
+
+    if (loading) return <Preloader />;
 
     return (
         <div className="doc-content-area animate-fade-in" style={{
@@ -153,6 +191,14 @@ export default function DoctorMessages() {
             margin: '0', // Reset margin if doc-content-area has it
             padding: '0' // Reset padding if doc-content-area has it
         }}>
+            {showVideoCall && selectedChatId && (
+                <VideoCall
+                    roomName={`idibia_video_${selectedChatId}`}
+                    userName={currentUser?.name || 'Doctor'}
+                    onClose={() => setShowVideoCall(false)}
+                />
+            )}
+
             {/* Sidebar List */}
             <div style={{
                 borderRight: '1px solid #e2e8f0',
@@ -262,9 +308,15 @@ export default function DoctorMessages() {
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '16px', color: '#64748b' }}>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Icons.Video /></button>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Icons.Info /></button>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Icons.More /></button>
+                        <button
+                            onClick={handleStartVideoCall}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                        >
+                            <Icons.Video />
+                        </button>
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+                            <Icons.Info />
+                        </button>
                     </div>
                 </div>
 
@@ -276,10 +328,10 @@ export default function DoctorMessages() {
 
                     <div style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', margin: '10px 0' }}>Today</div>
 
-                    {activeChat?.messages.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '20px' }}>No messages yet. Start the conversation with {activeChat.name}.</div>
+                    {messages.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '20px' }}>No messages yet. Start the conversation with {activeChat?.name}.</div>
                     ) : (
-                        activeChat?.messages.map(msg => (
+                        messages.map(msg => (
                             <div
                                 key={msg.id}
                                 style={{

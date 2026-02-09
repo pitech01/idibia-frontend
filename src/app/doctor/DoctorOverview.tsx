@@ -1,3 +1,7 @@
+import { useState, useEffect } from 'react';
+import { api } from '../../services';
+import Preloader from '../../components/Preloader';
+import { toast } from 'react-hot-toast';
 
 const Icons = {
     Clock: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
@@ -14,23 +18,47 @@ const Icons = {
     Beaker: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>,
 };
 
-export default function DoctorOverview() {
+interface DoctorOverviewProps {
+    setActiveTab: (tab: string) => void;
+}
+
+export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
+    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboard = async () => {
+            try {
+                const response = await api.get('/doctor/dashboard');
+                setDashboardData(response.data);
+            } catch (error) {
+                console.error("Failed to fetch dashboard", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDashboard();
+    }, []);
+
+    if (loading) return <Preloader />;
+
+    const { stats, today_schedule, recent_patient, user } = dashboardData || {};
+
     return (
         <div className="doc-content animate-fade-in">
             {/* Greeting Banner */}
             <div className="doc-banner">
                 <div className="doc-banner-text">
-                    <h1>Good Morning, Dr. Chioma Michael</h1>
+                    <h1>Good Morning, Dr. {user?.last_name || 'Doctor'}</h1>
                     <p>Have a nice day at work</p>
                 </div>
+                {/* ... (illustration code unchanged) ... */}
                 <div style={{ position: 'relative', width: '300px', height: '140px' }}>
-                    {/* Illustration placeholder */}
                     <svg width="300" height="140" viewBox="0 0 300 140" fill="none">
                         <path d="M220 140V60C220 60 230 40 250 40C270 40 280 60 280 60V140H220Z" fill="#e2e8f0" />
                         <rect x="230" y="70" width="40" height="50" fill="#cbd5e1" rx="2" />
                         <circle cx="250" cy="30" r="15" fill="#1e293b" />
                         <path d="M250 45C235 45 225 60 225 80H275C275 60 265 45 250 45Z" fill="#3b82f6" />
-                        {/* Decorative background patterns */}
                         <circle cx="50" cy="20" r="4" fill="#cbd5e1" />
                         <circle cx="70" cy="40" r="4" fill="#cbd5e1" />
                         <circle cx="30" cy="60" r="4" fill="#cbd5e1" />
@@ -44,11 +72,13 @@ export default function DoctorOverview() {
                     <div className="stat-icon-box" style={{ background: '#ffedd5', color: '#c2410c' }}>
                         <div style={{ position: 'relative' }}>
                             <Icons.Clock />
-                            <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }}></span>
+                            {stats?.pending_requests > 0 && (
+                                <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }}></span>
+                            )}
                         </div>
                     </div>
                     <div className="stat-info">
-                        <h3>8</h3>
+                        <h3>{stats?.pending_requests || 0}</h3>
                         <p>Pending Requests</p>
                     </div>
                 </div>
@@ -57,7 +87,7 @@ export default function DoctorOverview() {
                         <Icons.Calendar />
                     </div>
                     <div className="stat-info">
-                        <h3>12</h3>
+                        <h3>{stats?.today_appointments || 0}</h3>
                         <p>Today's Appts</p>
                     </div>
                 </div>
@@ -66,7 +96,7 @@ export default function DoctorOverview() {
                         <Icons.Wallet />
                     </div>
                     <div className="stat-info">
-                        <h3>₦450k</h3>
+                        <h3>₦{(stats?.earnings || 0).toLocaleString()}</h3>
                         <p>Earnings (Jan)</p>
                     </div>
                 </div>
@@ -75,7 +105,7 @@ export default function DoctorOverview() {
                         <Icons.Star />
                     </div>
                     <div className="stat-info">
-                        <h3>4.9 <small style={{ color: '#ca8a04' }}>★</small></h3>
+                        <h3>{stats?.rating || 0} <small style={{ color: '#ca8a04' }}>★</small></h3>
                         <p>Rating</p>
                     </div>
                 </div>
@@ -85,48 +115,73 @@ export default function DoctorOverview() {
                 {/* Left Column */}
                 <div>
                     {/* Patient Card */}
-                    <div className="doc-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div style={{ display: 'flex', gap: '16px' }}>
-                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }} alt="Patient" />
-                                <div>
-                                    <h3 style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 4 }}>Mr. Emeka Adebayo <span style={{ fontSize: 14, fontWeight: 400, color: '#64748b' }}>(32y, Male)</span></h3>
-                                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                                        <span style={{ fontSize: 12, background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>Malaria Suspect</span>
-                                        <span style={{ fontSize: 12, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4, fontWeight: 500 }}>First Visit</span>
-                                    </div>
-                                    <div style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <Icons.VideoSmall /> Virtual Consultation  •  Scheduled: 09:00 AM
+                    {recent_patient ? (
+                        <div className="doc-card">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ display: 'flex', gap: '16px' }}>
+                                    <img
+                                        src={recent_patient.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"}
+                                        style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
+                                        alt="Patient"
+                                    />
+                                    <div>
+                                        <h3 style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 4 }}>
+                                            {recent_patient.first_name} {recent_patient.last_name}
+                                        </h3>
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                                            <span
+                                                onClick={() => setActiveTab('patients')}
+                                                style={{ fontSize: 12, background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: 4, fontWeight: 600, cursor: 'pointer' }}
+                                            >
+                                                Review Patient
+                                            </span>
+                                            <span style={{ fontSize: 12, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4, fontWeight: 500 }}>Recent</span>
+                                        </div>
+                                        <div style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <Icons.VideoSmall /> Last interaction recently
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-                                <button style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Icons.Video /> Start Video Consult
-                                </button>
-                                <button style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <Icons.Phone /> Call Patient
-                                </button>
+
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+                                    <button
+                                        onClick={() => toast.success('Starting secure video consultation...')}
+                                        style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+                                    >
+                                        <Icons.Video /> Start Video Consult
+                                    </button>
+                                    <button
+                                        onClick={() => toast('Voice call feature coming soon', { icon: '📞' })}
+                                        style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+                                    >
+                                        <Icons.Phone /> Call Patient
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="doc-card">
+                            <p style={{ textAlign: 'center', color: '#64748b' }}>No recent patient activity.</p>
+                        </div>
+                    )}
 
                     {/* Unread Messages */}
                     <div className="doc-card">
                         <div className="doc-card-header">
                             <span className="doc-card-title">Unread Messages <span style={{ background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: 6, fontSize: 12, marginLeft: 6 }}>1</span></span>
-                            <a href="#" style={{ fontSize: 13, color: '#64748b', textDecoration: 'none' }}>View All</a>
+                            <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('messages'); }} style={{ fontSize: 13, color: '#64748b', textDecoration: 'none' }}>View All</a>
                         </div>
                         <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, display: 'flex', gap: 12 }}>
                             <div style={{ width: 40, height: 40, background: '#e2e8f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Icons.Message /> {/* Placeholder for avatar */}
+                                <Icons.Message />
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>Mrs Adebayo</span>
-                                    <span style={{ fontSize: 12, color: '#94a3b8' }}>2m ago</span>
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>System</span>
+                                    <span style={{ fontSize: 12, color: '#94a3b8' }}>Now</span>
                                 </div>
-                                <p style={{ fontSize: 13, color: '#64748b' }}>Doctor, the fever is back and I'm feeling...</p>
+                                <p style={{ fontSize: 13, color: '#64748b' }}>Welcome to your new dashboard.</p>
                             </div>
                         </div>
                     </div>
@@ -137,19 +192,19 @@ export default function DoctorOverview() {
                             <span className="doc-card-title">Quick Actions</span>
                         </div>
                         <div className="quick-action-grid">
-                            <button className="btn-quick-action">
+                            <button className="btn-quick-action" onClick={() => setActiveTab('patients')}>
                                 <Icons.Edit />
                                 <span>Write Prescription</span>
                             </button>
-                            <button className="btn-quick-action">
+                            <button className="btn-quick-action" onClick={() => setActiveTab('schedule')}>
                                 <Icons.Calendar />
                                 <span>Update Availability</span>
                             </button>
-                            <button className="btn-quick-action">
+                            <button className="btn-quick-action" onClick={() => setActiveTab('patients')}>
                                 <Icons.Beaker />
                                 <span>Request Lab</span>
                             </button>
-                            <button className="btn-quick-action">
+                            <button className="btn-quick-action" onClick={() => setActiveTab('messages')}>
                                 <Icons.Message />
                                 <span>Send Message</span>
                             </button>
@@ -161,67 +216,33 @@ export default function DoctorOverview() {
                 <div className="doc-card" style={{ height: 'fit-content' }}>
                     <div className="doc-card-header">
                         <span className="doc-card-title">Today's Schedule</span>
-                        <span style={{ fontSize: 12, color: '#64748b' }}>📅 Jan 10</span>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>📅 Today</span>
                     </div>
 
                     <div className="timeline-list">
-                        <div className="timeline-item">
-                            <div className="timeline-line"></div>
-                            <div className="timeline-icon" style={{ background: '#dbeafe', color: '#2563eb' }}><Icons.VideoSmall /></div>
-                            <div className="timeline-content">
-                                <div className="timeline-time">09:00 <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10, marginLeft: 4 }}>Now</span></div>
-                                <h4>Emeka Adebayo</h4>
-                                <p>General Consultation</p>
+                        {today_schedule && today_schedule.length > 0 ? (
+                            today_schedule.map((appt: any, idx: number) => (
+                                <div className="timeline-item" key={appt.id}>
+                                    <div className="timeline-line"></div>
+                                    <div className="timeline-icon" style={{ background: '#dbeafe', color: '#2563eb' }}><Icons.VideoSmall /></div>
+                                    <div className="timeline-content">
+                                        <div className="timeline-time">
+                                            {appt.start_time.substring(0, 5)}
+                                            {idx === 0 && <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10, marginLeft: 4 }}>Next</span>}
+                                        </div>
+                                        <h4>{appt.patient?.first_name} {appt.patient?.last_name}</h4>
+                                        <p>{appt.reason || 'General Consultation'}</p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="timeline-item">
+                                <div className="timeline-content">
+                                    <p>No appointments today.</p>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
-                        <div className="timeline-item">
-                            <div className="timeline-line"></div>
-                            <div className="timeline-icon"><Icons.VideoSmall /></div>
-                            <div className="timeline-content">
-                                <div className="timeline-time">10:30</div>
-                                <h4>Amina Bello</h4>
-                                <p>Follow-up</p>
-                            </div>
-                        </div>
-
-                        <div className="timeline-item">
-                            <div className="timeline-line"></div>
-                            <div className="timeline-icon" style={{ background: '#f3e8ff', color: '#7e22ce' }}><Icons.MapPin /></div>
-                            <div className="timeline-content">
-                                <div className="timeline-time">12:00</div>
-                                <h4>LUTH Clinic</h4>
-                                <p>Ward 3 - Physical Rounds</p>
-                            </div>
-                        </div>
-
-                        <div className="timeline-item">
-                            <div className="timeline-line"></div>
-                            <div className="timeline-icon"><Icons.Coffee /></div>
-                            <div className="timeline-content">
-                                <div className="timeline-time">14:00</div>
-                                <h4>Lunch Break</h4>
-                            </div>
-                        </div>
-
-                        <div className="timeline-item">
-                            <div className="timeline-line"></div>
-                            <div className="timeline-icon"><Icons.VideoSmall /></div>
-                            <div className="timeline-content">
-                                <div className="timeline-time">15:00</div>
-                                <h4>Chidi Okonkwo</h4>
-                                <p>New Patient Intake</p>
-                            </div>
-                        </div>
-
-                        <div className="timeline-item">
-                            <div className="timeline-icon" style={{ background: '#f3e8ff', color: '#7e22ce' }}><Icons.MapPin /></div>
-                            <div className="timeline-content">
-                                <div className="timeline-time">16:30</div>
-                                <h4>St. Nicholas Hospital</h4>
-                                <p>Evening Consultations</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

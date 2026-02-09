@@ -15,6 +15,7 @@ import DoctorVerification from './app/doctor/DoctorVerification.tsx'
 import AdminLogin from './app/admin/AdminLogin'
 import AdminDashboard from './app/admin/AdminDashboard'
 import { Toaster, toast } from 'react-hot-toast';
+import { api } from './services';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -90,7 +91,13 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post('/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    localStorage.removeItem('token');
     localStorage.removeItem('appView');
     localStorage.removeItem('userRole');
     setView('login');

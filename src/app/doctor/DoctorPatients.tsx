@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../../services';
+import Preloader from '../../components/Preloader';
 
 // Icons
 const Icons = {
@@ -25,73 +27,41 @@ interface Patient {
     image: string;
 }
 
-export default function DoctorPatients() {
+interface DoctorPatientsProps {
+    setActiveTab: (tab: string) => void;
+}
+
+export default function DoctorPatients({ setActiveTab }: DoctorPatientsProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data
-    const patients: Patient[] = [
-        {
-            id: '1',
-            patientId: 'PT-2023-089',
-            name: 'Sarah Johnson',
-            age: 34,
-            gender: 'Female',
-            reason: 'Chronic Migraine',
-            lastVisit: 'Oct 10, 2023',
-            nextAppointment: 'Oct 24, 2023',
-            status: 'Active',
-            image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1888&auto=format&fit=crop'
-        },
-        {
-            id: '2',
-            patientId: 'PT-2023-104',
-            name: 'Michael Chen',
-            age: 45,
-            gender: 'Male',
-            reason: 'Hypertension',
-            lastVisit: 'Sep 28, 2023',
-            nextAppointment: 'Nov 15, 2023',
-            status: 'Follow-Up',
-            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop'
-        },
-        {
-            id: '3',
-            patientId: 'PT-2023-156',
-            name: 'Amara Ndiaye',
-            age: 28,
-            gender: 'Female',
-            reason: 'Dermatitis',
-            lastVisit: 'Oct 05, 2023',
-            nextAppointment: 'None',
-            status: 'Completed',
-            image: 'https://images.unsplash.com/photo-1628157588553-5eeea00af15c?q=80&w=1780&auto=format&fit=crop'
-        },
-        {
-            id: '4',
-            patientId: 'PT-2023-112',
-            name: 'James Wilson',
-            age: 52,
-            gender: 'Male',
-            reason: 'Type 2 Diabetes',
-            lastVisit: 'Oct 02, 2023',
-            nextAppointment: 'Oct 30, 2023',
-            status: 'Active',
-            image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1887&auto=format&fit=crop'
-        },
-        {
-            id: '5',
-            patientId: 'PT-2023-201',
-            name: 'Funke Adebayo',
-            age: 61,
-            gender: 'Female',
-            reason: 'Arthritis',
-            lastVisit: 'Sep 15, 2023',
-            nextAppointment: 'Dec 01, 2023',
-            status: 'Follow-Up',
-            image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=1740&auto=format&fit=crop'
-        }
-    ];
+    useEffect(() => {
+        const fetchPatients = async () => {
+            try {
+                const response = await api.get('/doctor/patients');
+                const loadedPatients = response.data.map((user: any) => ({
+                    id: user.id.toString(),
+                    patientId: `PT-${user.id.toString().padStart(4, '0')}`,
+                    name: `${user.first_name} ${user.last_name}`,
+                    age: user.patient?.dob ? new Date().getFullYear() - new Date(user.patient.dob).getFullYear() : 30, // Mock age if missing
+                    gender: user.patient?.gender ? (user.patient.gender === 'male' ? 'Male' : 'Female') : 'Male',
+                    reason: 'General Consultation', // Mock
+                    lastVisit: 'Recently', // Mock
+                    nextAppointment: 'None', // Mock
+                    status: 'Active', // Mock
+                    image: user.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop'
+                }));
+                setPatients(loadedPatients);
+            } catch (error) {
+                console.error("Failed to fetch patients", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPatients();
+    }, []);
 
     // Filter Logic
     const filteredPatients = patients.filter(patient => {
@@ -109,6 +79,12 @@ export default function DoctorPatients() {
             default: return { bg: '#f1f5f9', text: '#475569' };
         }
     };
+
+    const handleChatClick = () => {
+        setActiveTab('messages');
+    };
+
+    if (loading) return <Preloader />;
 
     return (
         <div className="doc-content-area animate-fade-in" style={{ paddingBottom: '40px' }}>
@@ -224,7 +200,11 @@ export default function DoctorPatients() {
                                         <button title="View Records" style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b' }}>
                                             <Icons.FileText />
                                         </button>
-                                        <button title="Chat" style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#2563eb' }}>
+                                        <button
+                                            onClick={() => handleChatClick()}
+                                            title="Chat"
+                                            style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#2563eb' }}
+                                        >
                                             <Icons.Chat />
                                         </button>
                                     </div>

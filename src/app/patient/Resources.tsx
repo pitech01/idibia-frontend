@@ -28,13 +28,23 @@ interface Post {
     author_name?: string;
 }
 
+const FALLBACK_IMAGE = 'https://placehold.co/600x400?text=Health+Resource';
+
 export default function Resources() {
     const [activeFilter, setActiveFilter] = useState('All');
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewingPost, setViewingPost] = useState<Post | null>(null);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const postsPerPage = 6;
 
     const filters = ['All', 'Maternal Health', "Men's Health", 'Nutrition', 'Mental Health', 'Common Illnesses'];
+
+    // Reset page when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeFilter]);
 
     useEffect(() => {
         const fetchPosts = async () => {
@@ -42,7 +52,7 @@ export default function Resources() {
                 const response = await api.get('/posts');
                 setPosts(response.data);
             } catch (error) {
-                console.error("Failed to fetcw resources", error);
+                console.error("Failed to fetch resources", error);
             } finally {
                 setLoading(false);
             }
@@ -50,13 +60,38 @@ export default function Resources() {
         fetchPosts();
     }, []);
 
-    const featuredPost = posts.find(p => p.is_featured) || posts[0];
-    const otherPosts = posts.filter(p => p.id !== featuredPost?.id);
+    const featuredPosts = posts.filter(p => p.is_featured);
+    const effectiveFeaturedPosts = featuredPosts.length > 0 ? featuredPosts : (posts.length > 0 ? [posts[0]] : []);
+    const currentFeaturedPost = effectiveFeaturedPosts[currentSlide] || effectiveFeaturedPosts[0];
+    const otherPosts = posts.filter(p => !effectiveFeaturedPosts.find(fp => fp.id === p.id));
+
+    const nextSlide = () => {
+        setCurrentSlide((prev) => (prev + 1) % effectiveFeaturedPosts.length);
+    };
+
+    const prevSlide = () => {
+        setCurrentSlide((prev) => (prev === 0 ? effectiveFeaturedPosts.length - 1 : prev - 1));
+    };
+
+    // Auto-slide
+    useEffect(() => {
+        if (effectiveFeaturedPosts.length <= 1) return;
+        const interval = setInterval(nextSlide, 6000);
+        return () => clearInterval(interval);
+    }, [currentSlide, effectiveFeaturedPosts.length]);
 
     // Filtering logic (client side for now as dataset is small)
     const filteredPosts = activeFilter === 'All'
         ? otherPosts
         : otherPosts.filter(p => p.category === activeFilter);
+
+    // Pagination logic
+    const indexOfLastPost = currentPage * postsPerPage;
+    const indexOfFirstPost = indexOfLastPost - postsPerPage;
+    const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
     if (viewingPost) {
         return (
@@ -85,7 +120,7 @@ export default function Resources() {
                         </div>
                     </div>
 
-                    <img src={viewingPost.image_url} alt={viewingPost.title} style={{ width: '100%', height: '400px', objectFit: 'cover', borderRadius: '16px', marginBottom: '40px' }} />
+                    <img src={viewingPost.image_url || FALLBACK_IMAGE} alt={viewingPost.title} style={{ width: '100%', height: '400px', objectFit: 'cover', borderRadius: '16px', marginBottom: '40px' }} />
 
                     <div style={{ lineHeight: '1.8', color: '#334155', fontSize: '17px' }} dangerouslySetInnerHTML={{ __html: viewingPost.content }} />
                 </div>
@@ -136,133 +171,154 @@ export default function Resources() {
                 </div>
             ) : (
                 <>
-                    {/* Hero Card (Featured) */}
-                    {featuredPost && activeFilter === 'All' && (
-                        <div className="featured-card">
+                    {/* Hero Card (Featured Slider) */}
+                    {currentFeaturedPost && activeFilter === 'All' && (
+                        <div className="featured-card" style={{ position: 'relative' }}>
                             <div className="featured-content">
                                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                                    <span style={{ background: '#fef2f2', color: '#ef4444', fontSize: '12px', fontWeight: '600', padding: '4px 8px', borderRadius: '4px' }}>Important Alert</span>
+                                    <span style={{ background: '#fef2f2', color: '#ef4444', fontSize: '12px', fontWeight: '600', padding: '4px 8px', borderRadius: '4px' }}>
+                                        Featured Update {effectiveFeaturedPosts.length > 1 ? `(${currentSlide + 1}/${effectiveFeaturedPosts.length})` : ''}
+                                    </span>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#059669', fontSize: '12px', fontWeight: '500' }}>
                                         <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icons.Check /></div>
                                         Medically Reviewed
                                     </span>
                                 </div>
                                 <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#0f172a', lineHeight: '1.3', marginBottom: '16px' }}>
-                                    {featuredPost.title}
+                                    {currentFeaturedPost.title}
                                 </h1>
                                 <p style={{ color: '#64748b', fontSize: '15px', lineHeight: '1.6', marginBottom: '24px' }}>
-                                    {featuredPost.description}
+                                    {currentFeaturedPost.description}
                                 </p>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', fontSize: '13px', color: '#64748b' }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                                        {featuredPost.author_name ? featuredPost.author_name.charAt(0) : 'A'}
+                                        {currentFeaturedPost.author_name ? currentFeaturedPost.author_name.charAt(0) : 'A'}
                                     </div>
-                                    <span>By <strong>{featuredPost.author_name || 'Dr. Idibia'}</strong> • {featuredPost.time_to_read}</span>
+                                    <span>By <strong>{currentFeaturedPost.author_name || 'Dr. Idibia'}</strong> • {currentFeaturedPost.time_to_read}</span>
                                 </div>
-                                <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     <button
-                                        onClick={() => setViewingPost(featuredPost)}
+                                        onClick={() => setViewingPost(currentFeaturedPost)}
                                         style={{ background: '#0284c7', color: 'white', padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}
                                     >
                                         Read Article <Icons.ChevronRight />
                                     </button>
+
+                                    {effectiveFeaturedPosts.length > 1 && (
+                                        <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                                            <button
+                                                onClick={prevSlide}
+                                                style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                                <Icons.ChevronRight style={{ transform: 'rotate(180deg)', width: '14px' }} />
+                                            </button>
+                                            <button
+                                                onClick={nextSlide}
+                                                style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                                <Icons.ChevronRight style={{ width: '14px' }} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="featured-image" style={{
-                                backgroundImage: `url('${featuredPost.image_url}')`
+                                backgroundImage: `url('${currentFeaturedPost.image_url || FALLBACK_IMAGE}')`,
+                                transition: 'background-image 0.5s ease-in-out'
                             }}></div>
                         </div>
                     )}
 
-                    {/* Content & Sidebar Grid */}
-                    <div className="resources-layout">
+                    {/* Content Grid */}
+                    <div style={{ marginTop: '40px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>Latest Content</h3>
+                        </div>
 
-                        {/* Main Content Column */}
-                        <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>Latest Content</h3>
-                                <a href="#" style={{ color: '#0284c7', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>View All</a>
-                            </div>
-
-                            <div className="cards-grid">
-                                {filteredPosts.map(card => (
-                                    <div key={card.id} onClick={() => setViewingPost(card)} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                        <div style={{ height: '160px', overflow: 'hidden', position: 'relative' }}>
-                                            <img src={card.image_url} alt={card.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            {card.type === 'article' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
+                            {currentPosts.map(card => (
+                                <div key={card.id} onClick={() => setViewingPost(card)} style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'transform 0.2s', height: '100%' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-4px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                                    <div style={{ height: '200px', overflow: 'hidden', position: 'relative' }}>
+                                        <img src={card.image_url || FALLBACK_IMAGE} alt={card.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        {card.type === 'article' && (
+                                            <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.9)', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', color: '#0f172a' }}>
+                                                {card.category}
+                                            </span>
+                                        )}
+                                        {card.type === 'video' && (
+                                            <>
                                                 <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.9)', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', color: '#0f172a' }}>
                                                     {card.category}
                                                 </span>
-                                            )}
-                                            {card.type === 'video' && (
-                                                <>
-                                                    <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.9)', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', color: '#0f172a' }}>
-                                                        {card.category}
-                                                    </span>
-                                                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)' }}>
-                                                        <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
-                                                            <Icons.Play />
-                                                        </div>
+                                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)' }}>
+                                                    <div style={{ width: '48px', height: '48px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
+                                                        <Icons.Play />
                                                     </div>
-                                                </>
-                                            )}
-                                        </div>
-                                        <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#059669', marginBottom: '8px', fontWeight: '500' }}>
-                                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid #059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icons.Check /></div>
-                                                Medically Reviewed
-                                            </div>
-                                            <h4 style={{ fontSize: '15px', fontWeight: 'bold', color: '#0f172a', marginBottom: '8px', lineHeight: '1.4' }}>
-                                                {card.title}
-                                            </h4>
-                                            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5', marginBottom: '16px', flex: 1 }}>
-                                                {card.description}
-                                            </p>
-
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                                                <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                                    {card.type === 'article' ? `Article • ${card.time_to_read}` : 'Watch Now'}
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '12px' }}>
-                                                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
-                                                        <Icons.Bookmark />
-                                                    </button>
-                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#059669', marginBottom: '8px', fontWeight: '500' }}>
+                                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid #059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icons.Check /></div>
+                                            Medically Reviewed
+                                        </div>
+                                        <h4 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', marginBottom: '8px', lineHeight: '1.4' }}>
+                                            {card.title}
+                                        </h4>
+                                        <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6', marginBottom: '16px', flex: 1, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            {card.description}
+                                        </p>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginTop: 'auto' }}>
+                                            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
+                                                {card.type === 'article' ? `Article • ${card.time_to_read}` : 'Watch Now'}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                                                    <Icons.Bookmark />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Sidebar Column */}
-                        <div className="resources-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-                            {/* Ask a Doctor Widget */}
-                            <div style={{ background: '#dbeafe', borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
-                                <div style={{ position: 'relative', zIndex: 10 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                                        <div style={{ background: 'white', padding: '8px', borderRadius: '50%', color: '#0284c7' }}><Icons.Message /></div>
-                                        <h4 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a8a' }}>Ask a Doctor</h4>
-                                    </div>
-                                    <p style={{ fontSize: '13px', color: '#1e40af', lineHeight: '1.5', marginBottom: '16px' }}>
-                                        Confused by a symptom? Ask our medical community anonymously.
-                                    </p>
-                                    <textarea
-                                        placeholder="Describe your symptom or question..."
-                                        style={{ width: '100%', height: '80px', borderRadius: '12px', border: 'none', padding: '12px', fontSize: '13px', marginBottom: '12px', resize: 'none', outline: 'none' }}
-                                    ></textarea>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748b', marginBottom: '16px' }}>
-                                        <div style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%' }}></div>
-                                        Your identity stays private
-                                    </div>
-                                    <button style={{ width: '100%', background: '#3b82f6', color: 'white', padding: '12px', borderRadius: '8px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
-                                        Submit Question
-                                    </button>
                                 </div>
-
-                            </div>
+                            ))}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '40px' }}>
+                                <button
+                                    onClick={() => paginate(Math.max(1, currentPage - 1))}
+                                    disabled={currentPage === 1}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        background: currentPage === 1 ? '#f1f5f9' : 'white',
+                                        color: currentPage === 1 ? '#cbd5e1' : '#64748b',
+                                        border: '1px solid #e2e8f0',
+                                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Previous
+                                </button>
+                                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                                    disabled={currentPage === totalPages}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        background: currentPage === totalPages ? '#f1f5f9' : 'white',
+                                        color: currentPage === totalPages ? '#cbd5e1' : '#64748b',
+                                        border: '1px solid #e2e8f0',
+                                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </>
             )}

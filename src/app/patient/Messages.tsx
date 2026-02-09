@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { api } from '../../services';
+import VideoCall from '../../components/VideoCall';
 
 const Icons = {
     Edit: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
@@ -17,11 +18,13 @@ const Icons = {
 
 export default function Messages({ user }: { user: any }) {
     const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
-    const [activeFilter, setActiveFilter] = useState('All');
     const [messageInput, setMessageInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showChatOnMobile, setShowChatOnMobile] = useState(false);
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+    // Video Call State
+    const [showVideoCall, setShowVideoCall] = useState(false);
 
     const [chats, setChats] = useState<any[]>([]);
     const [activeMessages, setActiveMessages] = useState<any[]>([]);
@@ -167,20 +170,18 @@ export default function Messages({ user }: { user: any }) {
         }
     };
 
+    const handleStartVideoCall = () => {
+        if (selectedChatId) {
+            setShowVideoCall(true);
+        }
+    };
+
     const isMobile = windowWidth <= 768;
 
     // Filter Logic
+    // Filter Logic
     const filteredChats = chats.filter((chat: any) => {
-        const matchesFilter = activeFilter === 'All'
-            ? true
-            : activeFilter === 'Doctors'
-                ? chat.role.includes('Doctor') || chat.role.includes('Dr')
-                : activeFilter === 'Support' // Could just be a type on chat
-                    ? false
-                    : true;
-
-        const matchesSearch = chat.name.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesFilter && matchesSearch;
+        return chat.name.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
     return (
@@ -195,6 +196,14 @@ export default function Messages({ user }: { user: any }) {
             border: '1px solid #e2e8f0',
             overflow: 'hidden'
         }}>
+            {showVideoCall && selectedChatId && (
+                <VideoCall
+                    roomName={`idibia_video_${selectedChatId}`}
+                    userName={user?.name || 'Patient'}
+                    onClose={() => setShowVideoCall(false)}
+                />
+            )}
+
             {/* Sidebar */}
             <div style={{
                 borderRight: '1px solid #e2e8f0',
@@ -219,22 +228,6 @@ export default function Messages({ user }: { user: any }) {
                                 border: '1px solid #e2e8f0', background: '#f8fafc', outline: 'none', fontSize: '14px'
                             }}
                         />
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        {['All', 'Doctors', 'Support'].map(filter => (
-                            <button
-                                key={filter}
-                                onClick={() => setActiveFilter(filter)}
-                                style={{
-                                    flex: 1, padding: '6px', borderRadius: '20px', border: 'none',
-                                    background: activeFilter === filter ? '#0284c7' : 'transparent',
-                                    color: activeFilter === filter ? 'white' : '#64748b',
-                                    cursor: 'pointer', fontSize: '13px', fontWeight: '500'
-                                }}
-                            >
-                                {filter}
-                            </button>
-                        ))}
                     </div>
                 </div>
 
@@ -305,7 +298,11 @@ export default function Messages({ user }: { user: any }) {
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: '16px', color: '#64748b' }}>
-                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Icons.Video /></button>
+                            <button
+                                onClick={handleStartVideoCall}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+                                <Icons.Video />
+                            </button>
                             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Icons.Info /></button>
                         </div>
                     </div>

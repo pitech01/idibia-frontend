@@ -12,6 +12,7 @@ import NewBooking from './NewBooking.tsx';
 import Settings from './Settings.tsx';
 import Sidebar from './Sidebar.tsx';
 import Header from './Header.tsx';
+import Support from './Support.tsx';
 import Preloader from '../../components/Preloader.tsx';
 import './patient.css';
 
@@ -84,6 +85,7 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
                     {activeTab === 'upload-record' && <UploadRecord onBack={() => setActiveTab('records')} />}
                     {activeTab === 'resources' && <Resources />}
                     {activeTab === 'messages' && <Messages user={user} />}
+                    {activeTab === 'support' && <Support />}
 
                     {activeTab === 'settings' && <Settings />}
 

@@ -31,6 +31,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed,
         { id: 'messages', label: 'Messaging', icon: <Icons.Chat /> },
         { id: 'payment', label: 'Payment', icon: <Icons.CreditCard /> },
         { id: 'resources', label: 'Resources', icon: <Icons.Book /> },
+        { id: 'support', label: 'Support', icon: <Icons.Question /> },
         { id: 'settings', label: 'Settings', icon: <Icons.Cog /> },
     ];
 

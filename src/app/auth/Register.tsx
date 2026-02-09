@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import CustomDatePicker from '../../components/CustomDatePicker';
-import { toast, Toaster } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { api, WEB_URL } from '../../services';
 
 // --- Icons ---
@@ -207,9 +207,11 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
         return () => clearInterval(interval);
     }, [isTimerRunning, timer]);
 
+    const isSendingOtp = useRef(false);
+
     const sendOtp = async (isResend = false) => {
-        // If we are resuming (isVerified is true), skip sending OTP and move to next step logic handled elsewhere
-        if (data.isVerified) return;
+        if (data.isVerified || isSendingOtp.current) return;
+        isSendingOtp.current = true;
 
         const toastId = toast.loading(isResend ? 'Resending code...' : 'Sending verification code...');
         try {
@@ -219,6 +221,8 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
         } catch (error: any) {
             const message = error.response?.data?.message || 'Failed to send code.';
             toast.error(message, { id: toastId });
+        } finally {
+            isSendingOtp.current = false;
         }
     };
 
@@ -517,13 +521,15 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
         <div>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <button onClick={prevStep} style={{ background: 'none', border: 'none', marginRight: '10px', cursor: 'pointer', color: '#64748b' }}>
-                        <Icons.ArrowLeft />
-                    </button>
                     <h2 className="step-title" style={{ marginBottom: 0 }}>Personal Details</h2>
                 </div>
                 {/* Logout Option for Resumed Sessions */}
-                <button onClick={() => { localStorage.removeItem('token'); window.location.reload(); }} style={{ fontSize: '12px', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                <button onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('appView');
+                    localStorage.removeItem('userRole');
+                    window.location.reload();
+                }} style={{ fontSize: '12px', color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
                     Logout / Reset
                 </button>
             </div>
@@ -1112,7 +1118,6 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                     </div>
                 </div>
             </div>
-            <Toaster position="top-center" reverseOrder={false} />
         </div>
     );
 }

@@ -130,18 +130,39 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
                                 onChange={(e) => setViewMonth(Number(e.target.value))}
                                 style={{ border: 'none', fontWeight: '600', color: '#1e293b', background: 'transparent', cursor: 'pointer', outline: 'none' }}
                             >
-                                {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                                {MONTHS.map((m, i) => {
+                                    const isFutureMonth = viewYear === new Date().getFullYear() && i > new Date().getMonth();
+                                    return <option key={i} value={i} disabled={isFutureMonth}>{m}</option>;
+                                })}
                             </select>
                             <select
                                 value={viewYear}
-                                onChange={(e) => setViewYear(Number(e.target.value))}
+                                onChange={(e) => {
+                                    const newYear = Number(e.target.value);
+                                    setViewYear(newYear);
+                                    // If switching to current year and current month is future, reset month
+                                    if (newYear === new Date().getFullYear() && viewMonth > new Date().getMonth()) {
+                                        setViewMonth(new Date().getMonth());
+                                    }
+                                }}
                                 style={{ border: 'none', fontWeight: '600', color: '#1e293b', background: 'transparent', cursor: 'pointer', outline: 'none' }}
                             >
                                 {range(YEAR_RANGE_START, YEAR_RANGE_END).reverse().map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         </div>
 
-                        <button onClick={nextMonth} type="button" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', padding: '5px' }}>
+                        <button
+                            onClick={nextMonth}
+                            type="button"
+                            disabled={viewYear === new Date().getFullYear() && viewMonth >= new Date().getMonth()}
+                            style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: viewYear === new Date().getFullYear() && viewMonth >= new Date().getMonth() ? 'not-allowed' : 'pointer',
+                                color: viewYear === new Date().getFullYear() && viewMonth >= new Date().getMonth() ? '#e2e8f0' : '#64748b',
+                                padding: '5px'
+                            }}
+                        >
                             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                         </button>
                     </div>
@@ -163,24 +184,32 @@ export default function CustomDatePicker({ value, onChange, placeholder = "Selec
                             const isToday = day === new Date().getDate() && viewMonth === new Date().getMonth() && viewYear === new Date().getFullYear();
                             const isSelected = value === `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
+                            // Check if date is in the future
+                            const dateObj = new Date(viewYear, viewMonth, day);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const isFuture = dateObj > today;
+
                             return (
                                 <button
                                     key={day}
                                     type="button"
-                                    onClick={() => handleDateClick(day)}
+                                    onClick={() => !isFuture && handleDateClick(day)}
+                                    disabled={isFuture}
                                     style={{
                                         width: '100%',
                                         aspectRatio: '1',
                                         border: 'none',
                                         background: isSelected ? '#0ea5e9' : (isToday ? '#e0f2fe' : 'transparent'),
-                                        color: isSelected ? 'white' : '#334155',
+                                        color: isFuture ? '#cbd5e1' : (isSelected ? 'white' : '#334155'),
                                         borderRadius: '8px',
                                         fontSize: '13px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.1s'
+                                        cursor: isFuture ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.1s',
+                                        opacity: isFuture ? 0.6 : 1
                                     }}
-                                    onMouseEnter={e => !isSelected && (e.currentTarget.style.background = '#f1f5f9')}
-                                    onMouseLeave={e => !isSelected && (e.currentTarget.style.background = isToday ? '#e0f2fe' : 'transparent')}
+                                    onMouseEnter={e => !isSelected && !isFuture && (e.currentTarget.style.background = '#f1f5f9')}
+                                    onMouseLeave={e => !isSelected && !isFuture && (e.currentTarget.style.background = isToday ? '#e0f2fe' : 'transparent')}
                                 >
                                     {day}
                                 </button>

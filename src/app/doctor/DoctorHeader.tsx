@@ -2,6 +2,8 @@
 interface DoctorHeaderProps {
     sidebarOpen?: boolean;
     setSidebarOpen?: (open: boolean) => void;
+    user?: any;
+    activeTab?: string;
 }
 
 const Icons = {
@@ -11,7 +13,7 @@ const Icons = {
     Settings: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
 };
 
-export default function DoctorHeader({ }: DoctorHeaderProps) {
+export default function DoctorHeader({ user, activeTab }: DoctorHeaderProps) {
     return (
         <header className="doc-header">
             {/* Left side usually has search or title in classic layout */}
@@ -20,7 +22,7 @@ export default function DoctorHeader({ }: DoctorHeaderProps) {
                 <div className="doc-breadcrumbs">
                     <span style={{ color: '#94a3b8', fontWeight: '400' }}>Dashboard</span>
                     <span style={{ margin: '0 8px', color: '#cbd5e1' }}>/</span>
-                    <span>Overview</span>
+                    <span style={{ textTransform: 'capitalize' }}>{activeTab || 'Overview'}</span>
                 </div>
 
                 {/* Classic Search Bar */}
@@ -57,9 +59,9 @@ export default function DoctorHeader({ }: DoctorHeaderProps) {
 
                 {/* Classic Profile - No Pill Background */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                    <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=2070&auto=format&fit=crop" alt="Doctor" className="doc-avatar" />
+                    <img src={user?.avatar || "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=2070&auto=format&fit=crop"} alt="Doctor" className="doc-avatar" />
                     <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>Dr. Chioma</span>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>Dr. {user?.last_name || 'User'}</span>
                         {/* Role often omitted in dense classic headers, or kept small */}
                     </div>
                     <span style={{ color: '#94a3b8' }}><Icons.ChevronDown /></span>
