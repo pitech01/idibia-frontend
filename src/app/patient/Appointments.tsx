@@ -28,6 +28,8 @@ interface Appointment {
     start_time: string;
     end_time: string;
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+    payment_status: 'unpaid' | 'paid';
+    amount: number;
     type: 'video' | 'in-person';
     meeting_link?: string;
     reason?: string;
@@ -45,7 +47,29 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
 
     useEffect(() => {
         fetchAppointments();
+
+        // Handle Paystack Verification Redirect
+        const params = new URLSearchParams(window.location.search);
+        const verifyRef = params.get('verify');
+        if (verifyRef) {
+            handleVerifyPayment(verifyRef);
+        }
     }, []);
+
+    const handleVerifyPayment = async (ref: string) => {
+        const toastId = toast.loading('Verifying appointment payment...');
+        try {
+            await api.post('/payments/paystack/verify', { reference: ref });
+            toast.success('Appointment Confirmed!', { id: toastId });
+            // Remove verify param from URL
+            const url = new URL(window.location.href);
+            url.searchParams.delete('verify');
+            window.history.replaceState({}, '', url.toString());
+            fetchAppointments();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Verification failed', { id: toastId });
+        }
+    };
 
     const fetchAppointments = async () => {
         try {
@@ -77,6 +101,19 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
             onNavigateToMessages?.();
         } catch (error) {
             toast.error('Failed to start chat');
+        }
+    };
+
+    const handlePay = async (appointmentId: number) => {
+        const toastId = toast.loading('Initializing payment...');
+        try {
+            // Use Paystack Initialization
+            const { data } = await api.post('/payments/paystack/initialize', { appointment_id: appointmentId });
+
+            // Redirect to Paystack
+            window.location.href = data.authorization_url;
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Payment initiation failed', { id: toastId });
         }
     };
 
@@ -208,7 +245,14 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     style={{ background: 'transparent', border: 'none', color: '#ef4444', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
                                     Cancel
                                 </button>
-                                {heroAppointment.type === 'video' && (
+                                {heroAppointment.payment_status === 'unpaid' && (
+                                    <button
+                                        onClick={() => handlePay(heroAppointment.id)}
+                                        style={{ background: '#16a34a', color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                        Pay Consultation Fee (₦{heroAppointment.amount.toLocaleString()})
+                                    </button>
+                                )}
+                                {heroAppointment.payment_status === 'paid' && heroAppointment.type === 'video' && (
                                     <button
                                         onClick={() => handleJoinRoom(heroAppointment.meeting_link)}
                                         style={{ background: '#2E37A4', color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -238,7 +282,20 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                                 <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Cancel</button>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            {appt.payment_status === 'unpaid' && (
+                                                <button
+                                                    onClick={() => handlePay(appt.id)}
+                                                    style={{ background: '#dcfce7', color: '#166534', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
+                                                >
+                                                    Pay ₦{appt.amount.toLocaleString()}
+                                                </button>
+                                            )}
+                                            {appt.payment_status === 'paid' && (
+                                                <span style={{ color: '#16a34a', fontSize: '13px', fontWeight: '600' }}>Paid</span>
+                                            )}
+                                            <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Cancel</button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

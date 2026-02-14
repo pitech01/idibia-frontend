@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { api } from '../../services';
 
@@ -17,6 +18,7 @@ const Icons = {
     Image: () => <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
     Eye: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
     Loading: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="animate-spin"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 100-16 8 8 0 000 16z" /></svg>,
+    Close: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
 };
 
 interface MedicalRecordsProps {
@@ -37,6 +39,7 @@ interface MedicalRecord {
 }
 
 export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) {
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('Lab Result');
     const [records, setRecords] = useState<MedicalRecord[]>([]);
     const [loading, setLoading] = useState(true);
@@ -56,9 +59,10 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
         try {
             const { data } = await api.get('/medical-records');
             setRecords(data);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast.error('Failed to load medical records');
+            const message = error.response?.data?.message || error.message || 'Failed to load medical records';
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -68,7 +72,7 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
 
     const handleFileOpen = (url?: string) => {
         if (url) {
-            window.open(url, '_blank');
+            setPreviewUrl(url);
         } else {
             toast.error('No file attached to this record');
         }
@@ -165,6 +169,9 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8' }}>
                                             <Icons.CalendarSmall /> <span>{new Date(p.record_date).toDateString()}</span>
                                         </div>
+                                        <button onClick={(e) => { e.stopPropagation(); handleFileOpen(p.file_url) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                                            <Icons.Download />
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -305,9 +312,16 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
                                                 <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                                                     <button
                                                         onClick={() => handleFileOpen(r.file_url)}
-                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                                                        style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                                            padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white',
+                                                            color: '#0f172a', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        onMouseOver={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                                        onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
                                                     >
-                                                        <Icons.Download />
+                                                        <Icons.Eye /> View
                                                     </button>
                                                 </td>
                                             </tr>
@@ -318,6 +332,69 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Preview Modal */}
+            {previewUrl && createPortal(
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '24px', backdropFilter: 'blur(4px)'
+                }} onClick={() => setPreviewUrl(null)}>
+                    <div style={{
+                        background: 'white', borderRadius: '24px',
+                        width: '100%', height: '100%', maxWidth: '1024px', maxHeight: '800px',
+                        display: 'flex', flexDirection: 'column',
+                        position: 'relative', overflow: 'hidden',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                    }} onClick={e => e.stopPropagation()}>
+
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: '16px 24px', borderBottom: '1px solid #e2e8f0',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            background: 'white', zIndex: 10
+                        }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>File Preview</h3>
+                            <button
+                                onClick={() => setPreviewUrl(null)}
+                                style={{
+                                    background: '#f1f5f9', border: 'none', borderRadius: '50%',
+                                    width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', color: '#64748b', transition: 'all 0.2s'
+                                }}
+                            >
+                                <Icons.Close />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div style={{ flex: 1, overflow: 'auto', background: '#f8fafc', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+                            {previewUrl.toLowerCase().endsWith('.pdf') ? (
+                                <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none', borderRadius: '8px', background: 'white' }} title="Preview"></iframe>
+                            ) : /\.(jpg|jpeg|png|gif|webp)$/i.test(previewUrl) ? (
+                                <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '40px' }}>
+                                    <div style={{ marginBottom: '16px', color: '#64748b' }}>
+                                        <Icons.FileText />
+                                    </div>
+                                    <p style={{ color: '#0f172a', fontWeight: '600', marginBottom: '8px' }}>Preview not available</p>
+                                    <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '14px' }}>This file type cannot be previewed directly.</p>
+                                    <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                        padding: '10px 20px', background: '#2E37A4', color: 'white',
+                                        textDecoration: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px'
+                                    }}>
+                                        <Icons.Download /> Download File
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

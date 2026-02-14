@@ -44,7 +44,7 @@ export default function DoctorPatients({ setActiveTab }: DoctorPatientsProps) {
                 const loadedPatients = response.data.map((user: any) => ({
                     id: user.id.toString(),
                     patientId: `PT-${user.id.toString().padStart(4, '0')}`,
-                    name: `${user.first_name} ${user.last_name}`,
+                    name: user.name || 'Unknown Patient',
                     age: user.patient?.dob ? new Date().getFullYear() - new Date(user.patient.dob).getFullYear() : 30, // Mock age if missing
                     gender: user.patient?.gender ? (user.patient.gender === 'male' ? 'Male' : 'Female') : 'Male',
                     reason: 'General Consultation', // Mock

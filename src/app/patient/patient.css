@@ -38,7 +38,26 @@
     left: 0;
     top: 0;
     z-index: 50;
+    z-index: 50;
     transition: width 0.3s ease, transform 0.3s ease;
+    overflow-y: auto;
+}
+
+.dash-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.dash-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dash-sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.dash-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .dash-sidebar.collapsed {

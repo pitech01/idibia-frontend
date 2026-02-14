@@ -15,18 +15,27 @@ interface User {
     name: string;
     email: string;
     role: string;
+    doctor?: {
+        id: number;
+        specialty: string;
+        consultation_fee: number;
+        bio: string;
+    }
 }
 
 interface NewBookingProps {
     onBack: () => void;
+    user?: any;
 }
 
-export default function NewBooking({ onBack }: NewBookingProps) {
+export default function NewBooking({ onBack, user }: NewBookingProps) {
     const [step, setStep] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [doctors, setDoctors] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [bookingLoading, setBookingLoading] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'paystack'>('wallet');
+    const [useWalletForHybrid, setUseWalletForHybrid] = useState(true);
 
     // Selection State
     const [selectedDoctor, setSelectedDoctor] = useState<User | null>(null);
@@ -57,6 +66,10 @@ export default function NewBooking({ onBack }: NewBookingProps) {
     };
 
     const handleNext = () => {
+        if (step === 1 && !selectedDoctor) {
+            toast.error("Please select a specialist");
+            return;
+        }
         if (step === 2 && (!selectedDate || !selectedTime)) {
             toast.error("Please select both date and time");
             return;
@@ -76,19 +89,41 @@ export default function NewBooking({ onBack }: NewBookingProps) {
         if (!selectedDoctor || !selectedDate || !selectedTime) return;
 
         setBookingLoading(true);
+        const toastId = toast.loading('Initializing booking...');
         try {
-            await api.post('/appointments', {
+            // 1. Create Pending Appointment
+            const { data: bookingData } = await api.post('/appointments', {
                 doctor_id: selectedDoctor.id,
                 appointment_date: selectedDate,
                 start_time: selectedTime,
                 type: consultationType,
                 reason: reason
             });
-            toast.success('Booking Confirmed!');
-            onBack();
+
+            const appointmentId = bookingData.appointment.id;
+
+            if (paymentMethod === 'wallet') {
+                toast.loading('Processing wallet payment...', { id: toastId });
+                // 2a. Pay with Wallet
+                await api.post('/payments/pay-appointment', {
+                    appointment_id: appointmentId
+                });
+                toast.success('Booking Confirmed!', { id: toastId });
+                // We should probably refresh user data here to reflect new balance
+                onBack();
+            } else {
+                toast.loading('Redirecting to Paystack...', { id: toastId });
+                // 2b. Initialize Paystack
+                const { data: paystackData } = await api.post('/payments/paystack/initialize', {
+                    appointment_id: appointmentId,
+                    use_wallet: useWalletForHybrid
+                });
+                // 3. Redirect to Paystack
+                window.location.href = paystackData.authorization_url;
+            }
+
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Failed to book appointment');
-        } finally {
+            toast.error(error.response?.data?.message || 'Failed to complete booking', { id: toastId });
             setBookingLoading(false);
         }
     };
@@ -111,7 +146,29 @@ export default function NewBooking({ onBack }: NewBookingProps) {
     };
 
     const dateOptions = generateDates();
-    const timeSlots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
+    const [timeSlots, setTimeSlots] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (selectedDoctor && selectedDate) {
+            fetchSlots();
+        } else {
+            setTimeSlots([]);
+        }
+    }, [selectedDoctor, selectedDate]);
+
+    const fetchSlots = async () => {
+        // Reset selection when fetching new slots
+        setSelectedTime('');
+
+        try {
+            const { data } = await api.get(`/doctors/${selectedDoctor?.id}/slots?date=${selectedDate}`);
+            setTimeSlots(data);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to load available slots");
+            setTimeSlots([]);
+        }
+    };
 
     return (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -239,6 +296,7 @@ export default function NewBooking({ onBack }: NewBookingProps) {
 
                             {/* Slots Grid */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '40px' }}>
+                                {timeSlots.length === 0 && <p style={{ gridColumn: '1 / -1', color: '#64748b' }}>No available slots for this date.</p>}
                                 {timeSlots.map((slot) => (
                                     <button
                                         key={slot}
@@ -320,6 +378,80 @@ export default function NewBooking({ onBack }: NewBookingProps) {
                                     <div style={{ color: '#64748b', fontSize: '15px', fontWeight: '500' }}>Consultation Type</div>
                                     <div style={{ color: '#0f172a', fontSize: '16px', fontWeight: '700' }}>{consultationType === 'video' ? 'Virtual Consultation' : 'In-Person Visit'}</div>
                                 </div>
+
+                                <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '24px', marginTop: '24px' }}>
+                                    <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '16px' }}>Select Payment Method</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+                                        <button
+                                            onClick={() => setPaymentMethod('wallet')}
+                                            style={{
+                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '12px',
+                                                border: paymentMethod === 'wallet' ? '2px solid #2E37A4' : '1px solid #e2e8f0',
+                                                background: paymentMethod === 'wallet' ? '#f0f4ff' : 'white', cursor: 'pointer'
+                                            }}
+                                        >
+                                            <div>
+                                                <div style={{ fontWeight: '700', color: '#0f172a' }}>Pay from Wallet</div>
+                                                <div style={{ fontSize: '13px', color: '#64748b' }}>Balance: ₦{user?.patient?.wallet_balance?.toLocaleString() || '0.00'}</div>
+                                            </div>
+                                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #2E37A4', background: paymentMethod === 'wallet' ? '#2E37A4' : 'transparent' }}></div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setPaymentMethod('paystack')}
+                                            style={{
+                                                display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', borderRadius: '12px',
+                                                border: paymentMethod === 'paystack' ? '2px solid #2E37A4' : '1px solid #e2e8f0',
+                                                background: paymentMethod === 'paystack' ? '#f0f4ff' : 'white', cursor: 'pointer', textAlign: 'left', width: '100%'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: '700', color: '#0f172a' }}>Pay with Paystack</div>
+                                                    <div style={{ fontSize: '13px', color: '#64748b' }}>Cards, Bank Transfer, USSD</div>
+                                                </div>
+                                                <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #2E37A4', background: paymentMethod === 'paystack' ? '#2E37A4' : 'transparent' }}></div>
+                                            </div>
+
+                                            {paymentMethod === 'paystack' && user?.patient?.wallet_balance > 0 && user?.patient?.wallet_balance < (selectedDoctor?.doctor?.consultation_fee || 0) && (
+                                                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #dbeafe', width: '100%' }}>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={useWalletForHybrid}
+                                                            onChange={(e) => setUseWalletForHybrid(e.target.checked)}
+                                                        />
+                                                        <span style={{ fontSize: '13px', color: '#1e40af' }}>
+                                                            Use my ₦{user.patient.wallet_balance.toLocaleString()} wallet balance first
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                        <div style={{ color: '#64748b', fontSize: '15px' }}>Consultation Fee</div>
+                                        <div style={{ color: '#0f172a', fontSize: '16px', fontWeight: '600' }}>₦{selectedDoctor?.doctor?.consultation_fee?.toLocaleString() || '0'}</div>
+                                    </div>
+
+                                    {paymentMethod === 'paystack' && useWalletForHybrid && user?.patient?.wallet_balance > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                            <div style={{ color: '#059669', fontSize: '15px' }}>Wallet Deduction</div>
+                                            <div style={{ color: '#059669', fontSize: '16px', fontWeight: '600' }}>-₦{Math.min(user.patient.wallet_balance, selectedDoctor?.doctor?.consultation_fee || 0).toLocaleString()}</div>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #eef2ff', paddingTop: '16px', marginTop: '16px' }}>
+                                        <div style={{ color: '#0f172a', fontSize: '18px', fontWeight: '800' }}>{paymentMethod === 'paystack' ? 'Paystack Amount' : 'Total Due'}</div>
+                                        <div style={{ color: '#2E37A4', fontSize: '20px', fontWeight: '800' }}>
+                                            ₦{(paymentMethod === 'paystack' && useWalletForHybrid
+                                                ? Math.max(0, (selectedDoctor?.doctor?.consultation_fee || 0) - (user?.patient?.wallet_balance || 0))
+                                                : (selectedDoctor?.doctor?.consultation_fee || 0)
+                                            ).toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -332,14 +464,14 @@ export default function NewBooking({ onBack }: NewBookingProps) {
                     </button>
                     <button
                         onClick={handleNext}
-                        disabled={bookingLoading}
+                        disabled={bookingLoading || (step === 1 && !selectedDoctor)}
                         style={{
                             padding: '14px 40px', background: '#2E37A4', color: 'white', borderRadius: '12px',
-                            border: 'none', fontWeight: '700', fontSize: '15px', cursor: bookingLoading ? 'not-allowed' : 'pointer',
-                            boxShadow: '0 4px 6px -1px rgba(46, 55, 164, 0.3)', opacity: bookingLoading ? 0.7 : 1
+                            border: 'none', fontWeight: '700', fontSize: '15px', cursor: (bookingLoading || (step === 1 && !selectedDoctor)) ? 'not-allowed' : 'pointer',
+                            boxShadow: '0 4px 6px -1px rgba(46, 55, 164, 0.3)', opacity: (bookingLoading || (step === 1 && !selectedDoctor)) ? 0.7 : 1
                         }}
                     >
-                        {bookingLoading ? 'Processing...' : (step === 3 ? 'Confirm Booking' : 'Continue')}
+                        {bookingLoading ? 'Processing...' : (step === 3 ? 'Proceed to Payment' : 'Continue')}
                     </button>
                 </div>
             </div>

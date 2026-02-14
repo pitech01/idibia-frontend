@@ -125,19 +125,19 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
                                         alt="Patient"
                                     />
                                     <div>
-                                        <h3 style={{ fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 4 }}>
-                                            {recent_patient.first_name} {recent_patient.last_name}
+                                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>
+                                            {recent_patient.name || 'Patient'}
                                         </h3>
-                                        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                                             <span
                                                 onClick={() => setActiveTab('patients')}
-                                                style={{ fontSize: 12, background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: 4, fontWeight: 600, cursor: 'pointer' }}
+                                                style={{ fontSize: '12px', background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '4px', fontWeight: '600', cursor: 'pointer' }}
                                             >
                                                 Review Patient
                                             </span>
-                                            <span style={{ fontSize: 12, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4, fontWeight: 500 }}>Recent</span>
+                                            <span style={{ fontSize: '12px', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>Recent</span>
                                         </div>
-                                        <div style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <Icons.VideoSmall /> Last interaction recently
                                         </div>
                                     </div>
@@ -230,7 +230,7 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
                                             {appt.start_time.substring(0, 5)}
                                             {idx === 0 && <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10, marginLeft: 4 }}>Next</span>}
                                         </div>
-                                        <h4>{appt.patient?.first_name} {appt.patient?.last_name}</h4>
+                                        <h4>{appt.patient?.name || 'Unknown Patient'}</h4>
                                         <p>{appt.reason || 'General Consultation'}</p>
                                     </div>
                                 </div>

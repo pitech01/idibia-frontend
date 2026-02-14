@@ -25,7 +25,12 @@ const Icons = {
 };
 
 export default function PatientDashboard({ onLogout }: DashboardProps) {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('reference')) return 'payment';
+        if (params.get('verify')) return 'appointments';
+        return 'dashboard';
+    });
     const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile state
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Desktop state
     const [user, setUser] = useState<any>(null);
@@ -79,7 +84,7 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
                 <div className="content-scrollable">
                     {activeTab === 'dashboard' && <DashboardHome onNavigate={setActiveTab} user={user} loading={loading} />}
                     {activeTab === 'appointments' && <Appointments onRequestNewBooking={() => setActiveTab('new-booking')} onNavigateToMessages={() => setActiveTab('messages')} />}
-                    {activeTab === 'new-booking' && <NewBooking onBack={() => setActiveTab('appointments')} />}
+                    {activeTab === 'new-booking' && <NewBooking user={user} onBack={() => setActiveTab('appointments')} />}
                     {activeTab === 'payment' && <PatientPayments />}
                     {activeTab === 'records' && <MedicalRecords onUploadRecord={() => setActiveTab('upload-record')} />}
                     {activeTab === 'upload-record' && <UploadRecord onBack={() => setActiveTab('records')} />}

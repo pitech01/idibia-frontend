@@ -56,7 +56,7 @@ export default function DoctorMessages() {
 
                     return {
                         id: chat.id,
-                        name: otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : 'Unknown',
+                        name: otherUser ? (otherUser.name || 'Unknown User') : 'Unknown',
                         role: 'Patient', // Mock role context
                         lastMsg: chat.latest_message ? chat.latest_message.message : 'No messages yet',
                         time: chat.updated_at ? new Date(chat.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',

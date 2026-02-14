@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api, WEB_URL } from '../../services';
 import { toast } from 'react-hot-toast';
 import FilePreview from '../../components/FilePreview';
@@ -25,6 +26,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const [selectedTicket, setSelectedTicket] = useState<any>(null);
     const [replyMessage, setReplyMessage] = useState('');
     const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
+    const [pricingFee, setPricingFee] = useState<string>('');
     const [selectedPatient, setSelectedPatient] = useState<any>(null);
     const [patientSearch, setPatientSearch] = useState('');
     const [patientGenderFilter, setPatientGenderFilter] = useState('');
@@ -39,6 +41,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (selectedDoctor && selectedDoctor.doctor) {
+            setPricingFee(selectedDoctor.doctor.consultation_fee || '0');
+        }
+    }, [selectedDoctor]);
 
     const fetchData = async () => {
         try {
@@ -760,6 +768,37 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 </div>
                             </div>
 
+                            <div style={{ marginBottom: '30px' }}>
+                                <h3 style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', marginBottom: '15px' }}>Consultation Pricing</h3>
+                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Consultation Fee (₦)</label>
+                                        <input
+                                            type="number"
+                                            value={pricingFee}
+                                            onChange={(e) => setPricingFee(e.target.value)}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: '600', color: '#0f172a' }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            const toastId = toast.loading('Updating price...');
+                                            try {
+                                                await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/pricing`, { consultation_fee: pricingFee });
+                                                toast.success('Pricing updated!', { id: toastId });
+                                                fetchData();
+                                            } catch (error: any) {
+                                                console.error(error);
+                                                toast.error('Failed to update pricing', { id: toastId });
+                                            }
+                                        }}
+                                        style={{ background: '#0f172a', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', marginTop: '18px' }}
+                                    >
+                                        Save Fee
+                                    </button>
+                                </div>
+                            </div>
+
                             <div style={{ display: 'flex', gap: '15px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
                                 {selectedDoctor.doctor?.status === 'pending_approval' ? (
                                     <>
@@ -886,9 +925,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 }
 
                 {/* Ticket Details Modal */}
-                {selectedTicket && (
+                {selectedTicket && createPortal(
                     <div style={{
-                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999
                     }}>
                         <div style={{
                             background: 'white', width: '90%', maxWidth: '700px', height: '80vh', display: 'flex', flexDirection: 'column', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
@@ -985,7 +1024,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
 
                 {/* File Preview Modal */}
