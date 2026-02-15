@@ -13,7 +13,7 @@ const Icons = {
 
 interface AdminLoginProps {
     onBack: () => void;
-    onLoginSuccess: (role: 'admin', isCompleted?: boolean, isVerified?: boolean) => void;
+    onLoginSuccess: (role: 'admin', isCompleted?: boolean, isVerified?: boolean, userData?: any) => void;
 }
 
 export default function AdminLogin({ onBack, onLoginSuccess }: AdminLoginProps) {
@@ -48,7 +48,7 @@ export default function AdminLogin({ onBack, onLoginSuccess }: AdminLoginProps) 
                 toast.success(<b>Welcome back, Administrator.</b>, { id: toastId });
 
                 setTimeout(() => {
-                    onLoginSuccess('admin', true, true);
+                    onLoginSuccess('admin', true, true, response.data.user);
                 }, 1000);
             }
         } catch (error: any) {

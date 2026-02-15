@@ -87,7 +87,7 @@ const INITIAL_DATA: RegistrationData = {
 interface RegisterProps {
     onBack: () => void;
     onLoginClick: () => void;
-    onRegisterSuccess: (role: 'patient' | 'doctor' | 'nurse', isCompleted?: boolean, isVerified?: boolean) => void;
+    onRegisterSuccess: (role: 'patient' | 'doctor' | 'nurse', isCompleted?: boolean, isVerified?: boolean, userData?: any) => void;
 }
 
 export default function Register({ onBack, onLoginClick, onRegisterSuccess }: RegisterProps) {
@@ -137,10 +137,10 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                             if (user.doctor) {
                                 // Already has profile
                                 if (user.doctor.status === 'active' || user.doctor.is_verified) {
-                                    onRegisterSuccess('doctor', true, true);
+                                    onRegisterSuccess('doctor', true, true, user);
                                 } else {
                                     // Profile exists but not verified
-                                    onRegisterSuccess('doctor', true, false);
+                                    onRegisterSuccess('doctor', true, false, user);
                                 }
                             } else {
                                 // Resume Doctor Flow (Skip Account & Verify)
@@ -160,7 +160,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                                 });
 
                                 if (p.is_completed) {
-                                    onRegisterSuccess('patient', true, true);
+                                    onRegisterSuccess('patient', true, true, user);
                                 } else {
                                     setStep(3);
                                     toast("Welcome back! Let's finish your profile.", { icon: '👋' });
@@ -288,10 +288,11 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 virtual_only: data.virtualOnly
             };
 
-            await api.put('/profile', payload);
+            const response = await api.put('/profile', payload);
+            const updatedUser = response.data.user || response.data;
 
             toast.success(<b>Registration Complete! Welcome.</b>, { id: toastId });
-            setTimeout(() => onRegisterSuccess('patient', true, true), 2000);
+            setTimeout(() => onRegisterSuccess('patient', true, true, updatedUser), 2000);
         } catch (error: any) {
             const message = error.response?.data?.message || 'Could not update profile. Please try again.';
             toast.error(<b>{message}</b>, { id: toastId });
@@ -325,13 +326,14 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
             // but Axios/browser usually handles this automatically if data is FormData.
             // However, we need to ensure the sanctum token is attached (which 'api' instance does).
 
-            await api.post('/doctor/profile', formData, {
+            const response = await api.post('/doctor/profile', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
+            const updatedUser = response.data.user || response.data;
 
             toast.success("Application Submitted for Review!", { id: toastId });
             // Doctor is completed but NOT verified
-            setTimeout(() => onRegisterSuccess('doctor', true, false), 1500);
+            setTimeout(() => onRegisterSuccess('doctor', true, false, updatedUser), 1500);
 
         } catch (error: any) {
             const message = error.response?.data?.message || 'Submission failed. Please try again.';

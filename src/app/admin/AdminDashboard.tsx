@@ -18,8 +18,12 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'doctors' | 'patients' | 'consultations' | 'payments' | 'updates' | 'settings' | 'support'>('overview');
-    const [stats, setStats] = useState({ doctors: 0, updates: 0, tickets: 0, patients: 0 });
+    const [stats, setStats] = useState({
+        doctors: 0, updates: 0, tickets: 0, patients: 0,
+        financials: { total_commissions: 0, wallet_balance: 0, recent_earnings: [] as any[] }
+    });
     const [doctors, setDoctors] = useState<any[]>([]);
+    // ... rest of states ...
     const [patients, setPatients] = useState<any[]>([]);
     const [updates, setUpdates] = useState<any[]>([]);
     const [tickets, setTickets] = useState<any[]>([]);
@@ -51,17 +55,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [docsRes, postsRes, ticketsRes, patientsRes] = await Promise.allSettled([
+            const [docsRes, postsRes, ticketsRes, patientsRes, statsRes] = await Promise.allSettled([
                 api.get('/doctors'),
                 api.get('/posts'),
                 api.get('/support'),
-                api.get('/admin/patients')
+                api.get('/admin/patients'),
+                api.get('/admin/stats')
             ]);
 
             let docCount = 0;
             let postCount = 0;
             let ticketCount = 0;
             let patientCount = 0;
+            let financials = { total_commissions: 0, wallet_balance: 0, recent_earnings: [] };
 
             if (docsRes.status === 'fulfilled') {
                 setDoctors(docsRes.value.data);
@@ -79,8 +85,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 setPatients(patientsRes.value.data);
                 patientCount = patientsRes.value.data.length;
             }
+            if (statsRes.status === 'fulfilled') {
+                financials = statsRes.value.data.financials;
+            }
 
-            setStats({ doctors: docCount, updates: postCount, tickets: ticketCount, patients: patientCount });
+            setStats({
+                doctors: docCount, updates: postCount, tickets: ticketCount, patients: patientCount,
+                financials: financials
+            });
         } catch (error) {
             console.error("Failed to load admin data", error);
             toast.error("Some data could not be loaded.");
@@ -244,11 +256,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     ) : (
                         <>
                             {activeTab === 'overview' && (
-                                <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                                <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                                     <StatCard title="Total Doctors" value={stats.doctors} color="#3b82f6" icon={<Users size={24} />} />
                                     <StatCard title="Total Patients" value={stats.patients} color="#8b5cf6" icon={<UserRound size={24} />} />
-                                    <StatCard title="Health Updates" value={stats.updates} color="#10b981" icon={<Megaphone size={24} />} />
-                                    <StatCard title="Open Support Tickets" value={stats.tickets} color="#e11d48" icon={<MessageSquare size={24} />} />
+                                    <StatCard title="Platform Earnings" value={`₦${stats.financials.total_commissions.toLocaleString()}`} color="#f59e0b" icon={<CreditCard size={24} />} />
+                                    <StatCard title="Admin Wallet" value={`₦${stats.financials.wallet_balance.toLocaleString()}`} color="#10b981" icon={<Droplet size={24} />} />
+                                    <StatCard title="Open Tickets" value={stats.tickets} color="#e11d48" icon={<MessageSquare size={24} />} />
                                 </div>
                             )}
 
@@ -635,13 +648,51 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 );
                             })()}
 
-                            {(activeTab === 'consultations' || activeTab === 'payments') && (
+                            {(activeTab === 'consultations') && (
                                 <EmptyState
-                                    title={
-                                        activeTab === 'consultations' ? 'Consultation Management' : 'Transaction History'
-                                    }
+                                    title={'Consultation Management'}
                                     message="No records available. Global admin access for this module is currently pending backend support."
                                 />
+                            )}
+
+                            {activeTab === 'payments' && (
+                                <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                        <h3 style={{ margin: 0 }}>Platform Transaction History</h3>
+                                        <div style={{ background: '#f0fdf4', color: '#166534', padding: '10px 20px', borderRadius: '10px', fontWeight: 'bold' }}>
+                                            Total Commissions: ₦{stats.financials.total_commissions.toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Date</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Reference</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Description</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {stats.financials.recent_earnings.map((tx: any) => (
+                                                    <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{tx.date}</td>
+                                                        <td style={{ padding: '12px', fontSize: '12px', color: '#64748b' }}>{tx.id}</td>
+                                                        <td style={{ padding: '12px', fontSize: '13px' }}>{tx.description}</td>
+                                                        <td style={{ padding: '12px', fontWeight: '700', color: '#16a34a' }}>+₦{tx.amount.toLocaleString()}</td>
+                                                    </tr>
+                                                ))}
+                                                {stats.financials.recent_earnings.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                                            No transactions found. Earnings will appear here as consultations are paid.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             )}
 
                             {activeTab === 'settings' && (

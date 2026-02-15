@@ -19,11 +19,11 @@ import { api } from './services';
 
 function App() {
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [view, setView] = useState<'home' | 'login' | 'register' | 'forgot-password' | 'change-password' | 'patient-dashboard' | 'doctor-dashboard' | 'pending-dashboard' | 'doctor-verification' | 'admin-login' | 'admin-dashboard'>(() => {
-    const savedView = localStorage.getItem('appView');
     // Simple URL check for initial load
     if (window.location.pathname === '/admin-login') return 'admin-login';
-    return (savedView as any) || 'home';
+    return 'home';
   });
   const [userRole, setUserRole] = useState<'patient' | 'doctor' | 'nurse' | 'admin'>(() => {
     const savedRole = localStorage.getItem('userRole');
@@ -31,15 +31,34 @@ function App() {
   });
 
   useEffect(() => {
-    // Simulate initial loading
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000); // 2 seconds loader
-    return () => clearTimeout(timer);
+    const checkSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await api.get('/user');
+        setCurrentUser(response.data);
+        setUserRole(response.data.role);
+        // We stay at 'home' as per user request: "starts from the homepage"
+      } catch (error) {
+        console.error('Session check failed:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('appView');
+        localStorage.removeItem('userRole');
+      } finally {
+        // Enforce a minimum loading time for better UX if it's too fast
+        setTimeout(() => setLoading(false), 1000);
+      }
+    };
+
+    checkSession();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('appView', view);
+    // Only save the role, don't force-restore the view on reload anymore
     localStorage.setItem('userRole', userRole);
   }, [view, userRole]);
 
@@ -64,8 +83,14 @@ function App() {
     }
   }, []);
 
-  const handleLoginSuccess = (role: 'patient' | 'doctor' | 'nurse' | 'admin', isCompleted: boolean = true, isVerified: boolean = true) => {
+  const handleLoginSuccess = (role: 'patient' | 'doctor' | 'nurse' | 'admin', isCompleted: boolean = true, isVerified: boolean = true, userData?: any) => {
     setUserRole(role);
+    if (userData) {
+      setCurrentUser(userData);
+    } else {
+      // Fetch user data if not provided (fallback)
+      api.get('/user').then(res => setCurrentUser(res.data));
+    }
 
 
     // Check for incomplete profiles (Patient or Doctor who hasn't finished step 7)
@@ -100,6 +125,7 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('appView');
     localStorage.removeItem('userRole');
+    setCurrentUser(null);
     setView('login');
   };
 
@@ -110,7 +136,23 @@ function App() {
   return (
     <>
       <Toaster position="top-right" />
-      {view === 'home' && <Homepage onLoginClick={() => setView('login')} />}
+      {view === 'home' && (
+        <Homepage
+          user={currentUser}
+          onLoginClick={() => setView('login')}
+          onDashboardClick={() => {
+            if (userRole === 'patient') setView('patient-dashboard');
+            else if (userRole === 'doctor') {
+              // Check if verified/completed 
+              const isVerified = currentUser?.doctor?.is_verified; // Adjust based on API structure
+              if (isVerified === false) setView('pending-dashboard');
+              else setView('doctor-dashboard');
+            }
+            else if (userRole === 'admin') setView('admin-dashboard');
+            else setView('pending-dashboard');
+          }}
+        />
+      )}
       {view === 'login' && (
         <Login
           onBack={() => setView('home')}

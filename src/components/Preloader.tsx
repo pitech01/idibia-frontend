@@ -19,7 +19,7 @@ export default function Preloader() {
             <div className="preloader-text-modern">
                 <span>I</span><span>D</span><span>I</span><span>B</span><span>I</span><span>A</span>
             </div>
-            <p className="preloader-subtext">PHARMACY & CARE</p>
+            <p className="preloader-subtext">MEDICAL SERVICES AND LOGISTICS</p>
         </div>
     );
 }

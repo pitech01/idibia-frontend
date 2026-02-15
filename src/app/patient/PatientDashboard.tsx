@@ -36,19 +36,18 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    const fetchUser = async () => {
+        try {
+            const response = await api.get('/user');
+            setUser(response.data);
+        } catch (error) {
+            // console.error("Failed to fetch user", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const response = await api.get('/user');
-                setUser(response.data);
-            } catch (error) {
-                // console.error("Failed to fetch user", error);
-                // Silently fail or redirect to login if 401
-            } finally {
-                // Determine a minimum loading time for better UX if needed, or just set false
-                setTimeout(() => setLoading(false), 1000); // 1s delay for smoother experience
-            }
-        };
         fetchUser();
     }, []);
 
@@ -83,8 +82,8 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
                 {/* Dashboard View */}
                 <div className="content-scrollable">
                     {activeTab === 'dashboard' && <DashboardHome onNavigate={setActiveTab} user={user} loading={loading} />}
-                    {activeTab === 'appointments' && <Appointments onRequestNewBooking={() => setActiveTab('new-booking')} onNavigateToMessages={() => setActiveTab('messages')} />}
-                    {activeTab === 'new-booking' && <NewBooking user={user} onBack={() => setActiveTab('appointments')} />}
+                    {activeTab === 'appointments' && <Appointments onRequestNewBooking={() => setActiveTab('new-booking')} onNavigateToMessages={() => setActiveTab('messages')} onRefresh={fetchUser} />}
+                    {activeTab === 'new-booking' && <NewBooking user={user} onBack={() => setActiveTab('appointments')} onRefresh={fetchUser} />}
                     {activeTab === 'payment' && <PatientPayments />}
                     {activeTab === 'records' && <MedicalRecords onUploadRecord={() => setActiveTab('upload-record')} />}
                     {activeTab === 'upload-record' && <UploadRecord onBack={() => setActiveTab('records')} />}

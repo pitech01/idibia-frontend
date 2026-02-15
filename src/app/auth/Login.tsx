@@ -20,7 +20,7 @@ interface LoginProps {
     onBack: () => void;
     onRegisterClick: () => void;
     onForgotPasswordClick: () => void;
-    onLoginSuccess: (role: Role, isCompleted?: boolean, isVerified?: boolean) => void;
+    onLoginSuccess: (role: Role, isCompleted?: boolean, isVerified?: boolean, userData?: any) => void;
 }
 
 export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, onLoginSuccess }: LoginProps) {
@@ -96,7 +96,7 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
                 toast.success(<b>Welcome back!</b>, { id: toastId });
 
                 setTimeout(() => {
-                    onLoginSuccess(role, isProfileComplete, isVerified);
+                    onLoginSuccess(role, isProfileComplete, isVerified, response.data.user);
                 }, 1000);
             }
         } catch (error: any) {

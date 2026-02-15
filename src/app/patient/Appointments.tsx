@@ -38,9 +38,10 @@ interface Appointment {
 interface AppointmentsProps {
     onRequestNewBooking?: () => void;
     onNavigateToMessages?: () => void;
+    onRefresh?: () => void;
 }
 
-export default function Appointments({ onRequestNewBooking, onNavigateToMessages }: AppointmentsProps) {
+export default function Appointments({ onRequestNewBooking, onNavigateToMessages, onRefresh }: AppointmentsProps) {
     const [activeTab, setActiveTab] = useState('upcoming');
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -61,10 +62,13 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
         try {
             await api.post('/payments/paystack/verify', { reference: ref });
             toast.success('Appointment Confirmed!', { id: toastId });
+
             // Remove verify param from URL
             const url = new URL(window.location.href);
             url.searchParams.delete('verify');
             window.history.replaceState({}, '', url.toString());
+
+            if (onRefresh) onRefresh();
             fetchAppointments();
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Verification failed', { id: toastId });

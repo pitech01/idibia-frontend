@@ -24,9 +24,11 @@ const Icons = {
 
 interface HomepageProps {
     onLoginClick?: () => void;
+    onDashboardClick?: () => void;
+    user?: any;
 }
 
-export default function Homepage({ onLoginClick }: HomepageProps) {
+export default function Homepage({ onLoginClick, onDashboardClick, user }: HomepageProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
@@ -71,7 +73,11 @@ export default function Homepage({ onLoginClick }: HomepageProps) {
                             <a href="#" onClick={() => setIsMenuOpen(false)}>Services</a>
                             <a href="#" onClick={() => setIsMenuOpen(false)}>Pharmacy</a>
                         </div>
-                        <button className="btn btn-primary" onClick={onLoginClick}>Login</button>
+                        {user ? (
+                            <button className="btn btn-primary" onClick={onDashboardClick}>Dashboard</button>
+                        ) : (
+                            <button className="btn btn-primary" onClick={onLoginClick}>Login</button>
+                        )}
                     </div>
                 </div>
             </nav>
