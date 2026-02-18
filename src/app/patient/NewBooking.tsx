@@ -435,7 +435,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                 <div style={{
                     position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
                     background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000
                 }}>
                     <div className="animate-fade-in" style={{
                         background: 'white', width: '100%', maxWidth: '480px', borderRadius: '32px',
