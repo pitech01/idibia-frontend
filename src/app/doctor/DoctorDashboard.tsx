@@ -44,7 +44,7 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
             <DoctorSidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} />
 
             <main className="doc-main">
-                <DoctorHeader user={user} activeTab={activeTab} />
+                <DoctorHeader user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} />
 
                 {activeTab === 'overview' && <DoctorOverview setActiveTab={setActiveTab} />}
                 {activeTab === 'schedule' && <DoctorSchedule />}

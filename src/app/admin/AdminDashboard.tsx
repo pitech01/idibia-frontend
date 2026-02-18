@@ -25,6 +25,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const [doctors, setDoctors] = useState<any[]>([]);
     // ... rest of states ...
     const [patients, setPatients] = useState<any[]>([]);
+    const [appointments, setAppointments] = useState<any[]>([]);
     const [updates, setUpdates] = useState<any[]>([]);
     const [tickets, setTickets] = useState<any[]>([]);
     const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -55,11 +56,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [docsRes, postsRes, ticketsRes, patientsRes, statsRes] = await Promise.allSettled([
+            const [docsRes, postsRes, ticketsRes, patientsRes, apptsRes, statsRes] = await Promise.allSettled([
                 api.get('/doctors'),
                 api.get('/posts'),
                 api.get('/support'),
                 api.get('/admin/patients'),
+                api.get('/admin/appointments'),
                 api.get('/admin/stats')
             ]);
 
@@ -85,7 +87,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 setPatients(patientsRes.value.data);
                 patientCount = patientsRes.value.data.length;
             }
-            if (statsRes.status === 'fulfilled') {
+            if (apptsRes.status === 'fulfilled') {
+                setAppointments(apptsRes.value.data);
+            }
+            if (statsRes.status === 'fulfilled' && statsRes.value.data && statsRes.value.data.financials) {
                 financials = statsRes.value.data.financials;
             }
 
@@ -648,11 +653,66 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 );
                             })()}
 
-                            {(activeTab === 'consultations') && (
-                                <EmptyState
-                                    title={'Consultation Management'}
-                                    message="No records available. Global admin access for this module is currently pending backend support."
-                                />
+                            {activeTab === 'consultations' && (
+                                <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                    <h3>All Consultations</h3>
+                                    <div style={{ overflowX: 'auto', marginTop: '20px' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Date & Duration</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Doctor</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Patient</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Status</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Payment</th>
+                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Earnings</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {appointments.map(appt => (
+                                                    <tr key={appt.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '12px' }}>
+                                                            <div style={{ fontWeight: '500' }}>{appt.date}</div>
+                                                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>{appt.time} ({appt.duration || 30} mins)</div>
+                                                        </td>
+                                                        <td style={{ padding: '12px' }}>Dr. {appt.doctor_name}</td>
+                                                        <td style={{ padding: '12px' }}>{appt.patient_name}</td>
+                                                        <td style={{ padding: '12px' }}>
+                                                            <span style={{
+                                                                padding: '4px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600',
+                                                                background: appt.status === 'completed' ? '#dcfce7' : appt.status === 'ongoing' ? '#dbeafe' : appt.status === 'confirmed' ? '#e0e7ff' : '#f1f5f9',
+                                                                color: appt.status === 'completed' ? '#166534' : appt.status === 'ongoing' ? '#1e40af' : appt.status === 'confirmed' ? '#3730a3' : '#64748b'
+                                                            }}>
+                                                                {appt.status}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '12px' }}>
+                                                            <span style={{
+                                                                color: appt.payment_status === 'paid' ? '#16a34a' : '#ea580c',
+                                                                fontWeight: '600', fontSize: '13px'
+                                                            }}>
+                                                                {appt.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
+                                                            </span>
+                                                            <div style={{ fontSize: '11px', color: '#64748b' }}>₦{appt.amount}</div>
+                                                        </td>
+                                                        <td style={{ padding: '12px' }}>
+                                                            {appt.earnings_distributed ? (
+                                                                <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                                                                    <CheckCircle size={14} /> Distributed
+                                                                </span>
+                                                            ) : (
+                                                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>Pending</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {appointments.length === 0 && (
+                                                    <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>No consultations found.</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             )}
 
                             {activeTab === 'payments' && (
@@ -1120,14 +1180,4 @@ function StatCard({ title, value, sub, color, icon }: any) {
     );
 }
 
-function EmptyState({ title, message }: any) {
-    return (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ color: '#cbd5e1', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-                <AlertCircle size={48} />
-            </div>
-            <h3 style={{ color: '#1e293b', marginBottom: '10px' }}>{title}</h3>
-            <p style={{ color: '#64748b', maxWidth: '400px', margin: '0 auto' }}>{message}</p>
-        </div>
-    );
-}
+

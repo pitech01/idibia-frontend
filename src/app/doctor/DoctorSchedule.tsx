@@ -51,15 +51,11 @@ export default function DoctorSchedule() {
     const [consultationDuration, setConsultationDuration] = useState<number>(30); // Default 30 mins
     const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
-    const [availabilityForm, setAvailabilityForm] = useState([
-        { day: 'Monday', start_time: '09:00', end_time: '17:00', is_available: true },
-        { day: 'Tuesday', start_time: '09:00', end_time: '17:00', is_available: true },
-        { day: 'Wednesday', start_time: '09:00', end_time: '17:00', is_available: true },
-        { day: 'Thursday', start_time: '09:00', end_time: '17:00', is_available: true },
-        { day: 'Friday', start_time: '09:00', end_time: '17:00', is_available: true },
-        { day: 'Saturday', start_time: '10:00', end_time: '14:00', is_available: false },
-        { day: 'Sunday', start_time: '00:00', end_time: '00:00', is_available: false },
-    ]);
+    const [availabilityForm, setAvailabilityForm] = useState<any[]>([]);
+
+    useEffect(() => {
+        // Initialize fetch immediately
+    }, []);
 
     useEffect(() => {
         fetchScheduleAndAvailability();
@@ -86,20 +82,25 @@ export default function DoctorSchedule() {
 
             // Populate form if data exists
             if (fetchedAvailability.length > 0) {
-                // Map fetched availability to form state, preserving structure
-                const newForm = availabilityForm.map(daySlot => {
-                    const found = fetchedAvailability.find((f: any) => f.day === daySlot.day);
-                    if (found) {
-                        return {
-                            ...daySlot,
-                            start_time: found.start_time.substring(0, 5),
-                            end_time: found.end_time.substring(0, 5),
-                            is_available: Boolean(found.is_available)
-                        };
-                    }
-                    return daySlot;
-                });
-                setAvailabilityForm(newForm);
+                const formatted = fetchedAvailability.map((f: any) => ({
+                    day: f.day,
+                    start_time: f.start_time.substring(0, 5),
+                    end_time: f.end_time.substring(0, 5),
+                    is_available: Boolean(f.is_available)
+                }));
+                // Sort by Day then Start Time
+                // Note: sorting logic to be added if needed, for now trusting DB/input order or raw map
+                setAvailabilityForm(formatted);
+            } else {
+                setAvailabilityForm([
+                    { day: 'Monday', start_time: '09:00', end_time: '17:00', is_available: true },
+                    { day: 'Tuesday', start_time: '09:00', end_time: '17:00', is_available: true },
+                    { day: 'Wednesday', start_time: '09:00', end_time: '17:00', is_available: true },
+                    { day: 'Thursday', start_time: '09:00', end_time: '17:00', is_available: true },
+                    { day: 'Friday', start_time: '09:00', end_time: '17:00', is_available: true },
+                    { day: 'Saturday', start_time: '10:00', end_time: '14:00', is_available: false },
+                    { day: 'Sunday', start_time: '00:00', end_time: '00:00', is_available: false },
+                ]);
             }
 
             // Construct Timeline
@@ -123,33 +124,32 @@ export default function DoctorSchedule() {
             const dateObj = new Date(y, m - 1, d); // Local date
             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
 
-            const dayAvailability = fetchedAvailability.find((a: any) => a.day === dayName);
+            const daySlots = fetchedAvailability.filter((a: any) => a.day === dayName && a.is_available);
 
-            if (dayAvailability && dayAvailability.is_available) {
+            if (daySlots.length > 0) {
                 const duration = availabilityRes.data.doctor?.consultation_duration || 30;
 
-                // Parse start time (HH:MM)
-                let [startHour, startMinute] = dayAvailability.start_time.split(':').map(Number);
-                const [endHour, endMinute] = dayAvailability.end_time.split(':').map(Number);
+                daySlots.forEach((slot: any) => {
+                    let [startHour, startMinute] = slot.start_time.split(':').map(Number);
+                    const [endHour, endMinute] = slot.end_time.split(':').map(Number);
 
-                let currentMinutes = startHour * 60 + startMinute;
-                const endMinutes = endHour * 60 + endMinute;
+                    let currentMinutes = startHour * 60 + startMinute;
+                    const endMinutes = endHour * 60 + endMinute;
 
-                while (currentMinutes + duration <= endMinutes) {
-                    const h = Math.floor(currentMinutes / 60);
-                    const m = currentMinutes % 60;
-                    const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; // HH:MM
+                    while (currentMinutes + duration <= endMinutes) {
+                        const h = Math.floor(currentMinutes / 60);
+                        const m = currentMinutes % 60;
+                        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; // HH:MM
 
-                    // Check conflict
-                    const isBooked = timeline.some(t => t.time === timeStr);
-                    if (!isBooked) {
-                        timeline.push({ time: timeStr, status: 'available' });
+                        // Check conflict
+                        const isBooked = timeline.some(t => t.time === timeStr);
+                        if (!isBooked) {
+                            timeline.push({ time: timeStr, status: 'available' });
+                        }
+
+                        currentMinutes += duration;
                     }
-
-                    currentMinutes += duration;
-                }
-            } else if (timeline.length === 0 && (!dayAvailability || !dayAvailability.is_available)) {
-                // No availability set or unavailable
+                });
             }
 
             // Sort by time
@@ -176,6 +176,23 @@ export default function DoctorSchedule() {
         } catch (error) {
             toast.error('Failed to update availability');
         }
+    };
+
+    // Helper functions for multiple slots
+    const updateSlot = (index: number, field: string, value: any) => {
+        const newForm = [...availabilityForm];
+        newForm[index] = { ...newForm[index], [field]: value };
+        setAvailabilityForm(newForm);
+    };
+
+    const addSlot = (day: string) => {
+        setAvailabilityForm([...availabilityForm, { day, start_time: '09:00', end_time: '17:00', is_available: true }]);
+    };
+
+    const removeSlot = (index: number) => {
+        const newForm = [...availabilityForm];
+        newForm.splice(index, 1);
+        setAvailabilityForm(newForm);
     };
 
     // Mock Calendar Data
@@ -359,6 +376,103 @@ export default function DoctorSchedule() {
                             <div style={{ fontSize: '13px', color: '#64748b' }}>{new Date(selectedDate).toDateString()}</div>
                         </div>
 
+                        {/* Inline Availability Editor */}
+                        <div style={{ padding: '16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>
+                                    Edit Availability for {(() => {
+                                        if (!selectedDate) return '';
+                                        const [y, m, d] = selectedDate.split('-').map(Number);
+                                        return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long' });
+                                    })()}
+                                </span>
+                                {selectedDate && (
+                                    <button
+                                        onClick={handleSaveAvailability}
+                                        className="doc-btn doc-btn-primary"
+                                        style={{ padding: '4px 12px', fontSize: '12px', height: 'auto' }}
+                                    >
+                                        Update
+                                    </button>
+                                )}
+                            </div>
+
+                            {(() => {
+                                if (!selectedDate) return null;
+                                const [y, m, d] = selectedDate.split('-').map(Number);
+                                const dayName = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long' });
+
+                                // Find ALL slots in the form which match this day
+                                const daySlotIndices = availabilityForm
+                                    .map((slot, idx) => ({ ...slot, originalIndex: idx }))
+                                    .filter(slot => slot.day === dayName);
+
+                                if (daySlotIndices.length === 0) {
+                                    return (
+                                        <div style={{ padding: '12px', textAlign: 'center' }}>
+                                            <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>No active shifts for this day.</p>
+                                            <button
+                                                onClick={() => addSlot(dayName)}
+                                                style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                                            >
+                                                + Add Shift
+                                            </button>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {daySlotIndices.map((slot, localIdx) => (
+                                            <div key={localIdx} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#334155' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={slot.is_available}
+                                                        onChange={(e) => updateSlot(slot.originalIndex, 'is_available', e.target.checked)}
+                                                    />
+                                                    Shift {localIdx + 1}
+                                                </label>
+
+                                                {slot.is_available && (
+                                                    <>
+                                                        <input
+                                                            type="time"
+                                                            value={slot.start_time}
+                                                            onChange={(e) => updateSlot(slot.originalIndex, 'start_time', e.target.value)}
+                                                            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                                                        />
+                                                        <span style={{ fontSize: '13px', color: '#64748b' }}>-</span>
+                                                        <input
+                                                            type="time"
+                                                            value={slot.end_time}
+                                                            onChange={(e) => updateSlot(slot.originalIndex, 'end_time', e.target.value)}
+                                                            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                                                        />
+                                                    </>
+                                                )}
+
+                                                <button
+                                                    onClick={() => removeSlot(slot.originalIndex)}
+                                                    style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}
+                                                    title="Remove Slot"
+                                                >
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            onClick={() => addSlot(dayName)}
+                                            style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', marginTop: '4px' }}
+                                        >
+                                            + Add Another Slot
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
                         <div style={{ paddingLeft: '8px' }}>
                             {schedule.length > 0 ? schedule.map((slot, index) => (
                                 <div key={index} className="timeline-item">
@@ -431,49 +545,70 @@ export default function DoctorSchedule() {
                                 <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>This will determine the length of each appointment slot.</p>
                             </div>
 
-                            {availabilityForm.map((slot, index) => (
-                                <div key={slot.day} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                                    <div style={{ width: '100px', fontWeight: '600' }}>{slot.day}</div>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', marginRight: '12px' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={slot.is_available}
-                                            onChange={e => {
-                                                const newForm = [...availabilityForm];
-                                                newForm[index].is_available = e.target.checked;
-                                                setAvailabilityForm(newForm);
-                                            }}
-                                        />
-                                        Available
-                                    </label>
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                                const daySlots = availabilityForm
+                                    .map((slot, idx) => ({ ...slot, originalIndex: idx }))
+                                    .filter(s => s.day === day);
 
-                                    {slot.is_available && (
-                                        <>
-                                            <input
-                                                type="time"
-                                                value={slot.start_time}
-                                                onChange={e => {
-                                                    const newForm = [...availabilityForm];
-                                                    newForm[index].start_time = e.target.value;
-                                                    setAvailabilityForm(newForm);
-                                                }}
-                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                                            />
-                                            <span>to</span>
-                                            <input
-                                                type="time"
-                                                value={slot.end_time}
-                                                onChange={e => {
-                                                    const newForm = [...availabilityForm];
-                                                    newForm[index].end_time = e.target.value;
-                                                    setAvailabilityForm(newForm);
-                                                }}
-                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                                            />
-                                        </>
-                                    )}
-                                </div>
-                            ))}
+                                return (
+                                    <div key={day} style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <div style={{ fontWeight: '600', width: '100px' }}>{day}</div>
+                                            <button
+                                                onClick={() => addSlot(day)}
+                                                style={{ fontSize: '12px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}
+                                            >
+                                                + Add Slot
+                                            </button>
+                                        </div>
+
+                                        {daySlots.length === 0 && (
+                                            <div style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>Not Available</div>
+                                        )}
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {daySlots.map((slot, localIdx) => (
+                                                <div key={localIdx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', marginRight: '12px' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={slot.is_available}
+                                                            onChange={e => updateSlot(slot.originalIndex, 'is_available', e.target.checked)}
+                                                        />
+                                                        Active
+                                                    </label>
+
+                                                    {slot.is_available && (
+                                                        <>
+                                                            <input
+                                                                type="time"
+                                                                value={slot.start_time}
+                                                                onChange={e => updateSlot(slot.originalIndex, 'start_time', e.target.value)}
+                                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                                            />
+                                                            <span>to</span>
+                                                            <input
+                                                                type="time"
+                                                                value={slot.end_time}
+                                                                onChange={e => updateSlot(slot.originalIndex, 'end_time', e.target.value)}
+                                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                                            />
+                                                        </>
+                                                    )}
+
+                                                    <button
+                                                        onClick={() => removeSlot(slot.originalIndex)}
+                                                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0 4px', lineHeight: 1 }}
+                                                        title="Remove Slot"
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
 
                         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>

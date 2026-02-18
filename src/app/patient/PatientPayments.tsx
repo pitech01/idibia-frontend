@@ -86,10 +86,107 @@ export default function PatientPayments() {
             // Clear URL param
             window.history.replaceState({}, document.title, window.location.pathname);
             fetchData(); // Refresh balance
-        } catch (error) {
+        } catch {
             toast.error("Payment verification failed", { id: toastId });
         }
     };
+
+
+
+    const downloadReceipt = (transaction: any) => {
+        // Create a canvas to generate the receipt image
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 800;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 600, 800);
+
+        // Header Blue Bar
+        ctx.fillStyle = '#2E37A4';
+        ctx.fillRect(0, 0, 600, 100);
+
+        // Header Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('IDIBIA HEALTH', 300, 60);
+
+        // Receipt Title
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('TRANSACTION RECEIPT', 300, 150);
+
+        // Date
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText(new Date(transaction.created_at || transaction.date).toLocaleString(), 300, 180);
+
+        // Amount Box
+        ctx.fillStyle = transaction.type === 'credit' ? '#f0fdf4' : '#fef2f2';
+        ctx.fillRect(100, 220, 400, 100);
+
+        ctx.fillStyle = transaction.type === 'credit' ? '#166534' : '#991b1b';
+        ctx.font = 'bold 40px Arial';
+        ctx.fillText(`₦${parseFloat(transaction.amount).toLocaleString()}`, 300, 285);
+
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText(transaction.status.toUpperCase(), 300, 350);
+
+        // Details Section
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#334155';
+
+        const startY = 400;
+        const lineHeight = 40;
+
+        // Reference
+        ctx.fillText('Reference:', 100, startY);
+        ctx.font = '16px Arial';
+        ctx.fillText(transaction.reference || `TXN-${transaction.id}`, 300, startY);
+
+        // Type
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('Transaction Type:', 100, startY + lineHeight);
+        ctx.font = '16px Arial';
+        ctx.fillText(transaction.type === 'credit' ? 'Wallet Credit' : 'Payment', 300, startY + lineHeight);
+
+        // Description
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('Description:', 100, startY + lineHeight * 2);
+        ctx.font = '16px Arial';
+        ctx.fillText(transaction.desc || 'N/A', 300, startY + lineHeight * 2);
+
+        // Method
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('Payment Method:', 100, startY + lineHeight * 3);
+        ctx.font = '16px Arial';
+        ctx.fillText(transaction.method || 'Card', 300, startY + lineHeight * 3);
+
+        // Footer
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 700, 600, 100);
+        ctx.fillStyle = '#94a3b8';
+        ctx.textAlign = 'center';
+        ctx.font = '14px Arial';
+        ctx.fillText('Thank you for using Idibia Health', 300, 740);
+        ctx.fillText('support@idibia.health', 300, 765);
+
+        // Convert to image and download
+        const link = document.createElement('a');
+        link.download = `Receipt-${transaction.reference || transaction.id}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        toast.success("Receipt downloaded successfully");
+        setActiveActionId(null);
+    };
+
 
     const handleTopUp = async () => {
         if (!topUpAmount) return;
@@ -104,7 +201,7 @@ export default function PatientPayments() {
 
             // Redirect to Paystack
             window.location.href = data.authorization_url;
-        } catch (error) {
+        } catch {
             toast.error("Failed to initialize payment");
             setProcessing(false);
         }
@@ -226,8 +323,8 @@ export default function PatientPayments() {
                     <table className="trans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                             <tr>
-                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Date</th>
-                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Description</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Transaction Date</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Details & Description</th>
                                 <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Method</th>
                                 <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Status</th>
                                 <th style={{ padding: '16px 32px', textAlign: 'right', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Amount</th>
@@ -237,13 +334,19 @@ export default function PatientPayments() {
                         <tbody>
                             {transactions.map(t => (
                                 <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9', position: 'relative' }}>
-                                    <td style={{ padding: '20px 32px', color: '#94a3b8', fontSize: '14px' }}>{t.date}</td>
+                                    <td style={{ padding: '20px 32px', color: '#94a3b8', fontSize: '14px' }}>
+                                        <div>{new Date(t.created_at || t.date).toLocaleDateString()}</div>
+                                        <div style={{ fontSize: '12px' }}>{new Date(t.created_at || t.date).toLocaleTimeString()}</div>
+                                    </td>
                                     <td style={{ padding: '20px 32px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#334155', fontWeight: '500', fontSize: '14px' }}>
                                             <span style={{ color: '#94a3b8' }}>
                                                 {t.type === 'debit' ? <Icons.ArrowUpRight /> : <Icons.ArrowDownLeft />}
                                             </span>
-                                            {t.desc}
+                                            <div>
+                                                <div>{t.desc || 'Transaction'}</div>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>Ref: {t.reference || t.id}</div>
+                                            </div>
                                         </div>
                                     </td>
                                     <td style={{ padding: '20px 32px', color: '#64748b', fontSize: '14px' }}>{t.method}</td>
@@ -283,12 +386,14 @@ export default function PatientPayments() {
                                                         textAlign: 'left'
                                                     }}
                                                 >
-                                                    <button style={{
-                                                        display: 'flex', alignItems: 'center', gap: '10px',
-                                                        width: '100%', padding: '12px 16px', background: 'white',
-                                                        border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
-                                                        color: '#334155', fontSize: '14px', fontWeight: '500'
-                                                    }}>
+                                                    <button
+                                                        onClick={() => downloadReceipt(t)}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: '10px',
+                                                            width: '100%', padding: '12px 16px', background: 'white',
+                                                            border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                                                            color: '#334155', fontSize: '14px', fontWeight: '500'
+                                                        }}>
                                                         <Icons.Download /> Download Receipt
                                                     </button>
                                                     <button style={{

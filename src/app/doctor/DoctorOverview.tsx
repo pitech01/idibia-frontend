@@ -16,6 +16,7 @@ const Icons = {
     Edit: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
     Message: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
     Beaker: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>,
+    CheckCircle: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
 };
 
 interface DoctorOverviewProps {
@@ -25,43 +26,114 @@ interface DoctorOverviewProps {
 export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [actionProcessing, setActionProcessing] = useState<number | null>(null);
+
+    const fetchDashboard = async () => {
+        try {
+            const response = await api.get('/doctor/dashboard');
+            setDashboardData(response.data);
+        } catch (error) {
+            console.error("Failed to fetch dashboard", error);
+            toast.error("Failed to load dashboard data");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchDashboard = async () => {
-            try {
-                const response = await api.get('/doctor/dashboard');
-                setDashboardData(response.data);
-            } catch (error) {
-                console.error("Failed to fetch dashboard", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchDashboard();
     }, []);
 
+    const handleStartConsultation = async (id: number) => {
+        setActionProcessing(id);
+        const toastId = toast.loading("Starting consultation...");
+        try {
+            await api.post(`/appointments/${id}/start`);
+            toast.success("Consultation Started! Patient notified.", { id: toastId });
+            fetchDashboard(); // Refresh to update status
+        } catch (error: any) {
+            console.error("Start Error:", error);
+            toast.error(error.response?.data?.message || "Failed to start consultation", { id: toastId });
+        } finally {
+            setActionProcessing(null);
+        }
+    };
+
+    const handleCompleteConsultation = async (id: number) => {
+        setActionProcessing(id);
+        const toastId = toast.loading("Completing consultation & processing earnings...");
+        try {
+            await api.post(`/appointments/${id}/complete`);
+            toast.success("Consultation Completed! Earnings added to your wallet.", { id: toastId });
+            fetchDashboard(); // Refresh to update status
+        } catch (error: any) {
+            console.error("Completion Error:", error);
+            toast.error(error.response?.data?.message || "Failed to complete consultation", { id: toastId });
+        } finally {
+            setActionProcessing(null);
+        }
+    };
+
     if (loading) return <Preloader />;
 
-    const { stats, today_schedule, recent_patient, user } = dashboardData || {};
+    const { stats, today_schedule, recent_appointment, user } = dashboardData || {};
+    const recentPatient = recent_appointment?.patient;
+
+    // Helper to calculate end time
+    const getEndTime = (startTime: string, duration: number) => {
+        if (!startTime) return '';
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const date = new Date();
+        date.setHours(hours, minutes, 0);
+        date.setMinutes(date.getMinutes() + (duration || 30));
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    };
 
     return (
         <div className="doc-content animate-fade-in">
             {/* Greeting Banner */}
             <div className="doc-banner">
                 <div className="doc-banner-text">
-                    <h1>Good Morning, Dr. {user?.last_name || 'Doctor'}</h1>
+                    <h1>Good Morning, Dr. {user?.name || 'Doctor'}</h1>
                     <p>Have a nice day at work</p>
                 </div>
-                {/* ... (illustration code unchanged) ... */}
                 <div style={{ position: 'relative', width: '300px', height: '140px' }}>
-                    <svg width="300" height="140" viewBox="0 0 300 140" fill="none">
-                        <path d="M220 140V60C220 60 230 40 250 40C270 40 280 60 280 60V140H220Z" fill="#e2e8f0" />
-                        <rect x="230" y="70" width="40" height="50" fill="#cbd5e1" rx="2" />
-                        <circle cx="250" cy="30" r="15" fill="#1e293b" />
-                        <path d="M250 45C235 45 225 60 225 80H275C275 60 265 45 250 45Z" fill="#3b82f6" />
-                        <circle cx="50" cy="20" r="4" fill="#cbd5e1" />
-                        <circle cx="70" cy="40" r="4" fill="#cbd5e1" />
-                        <circle cx="30" cy="60" r="4" fill="#cbd5e1" />
+                    <svg width="300" height="150" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Background Elements */}
+                        <circle cx="280" cy="20" r="50" fill="#e0f2fe" fillOpacity="0.5" />
+                        <circle cx="10" cy="120" r="30" fill="#f0f9ff" fillOpacity="0.6" />
+
+                        {/* Abstract Medical Cross/Shape */}
+                        <path d="M250 40H270V60H290V80H270V100H250V80H230V60H250V40Z" fill="#bae6fd" fillOpacity="0.3" />
+
+                        {/* Doctor Figure Illustration */}
+                        <g transform="translate(180, 20)">
+                            {/* Torso/Coat */}
+                            <path d="M30 130V60C30 50 40 45 60 45C80 45 90 50 90 60V130H30Z" fill="white" stroke="#e2e8f0" strokeWidth="2" />
+                            <path d="M60 45V130" stroke="#f1f5f9" strokeWidth="2" />
+                            {/* Stethoscope */}
+                            <path d="M45 60C45 60 45 90 60 90C75 90 75 60 75 60" stroke="#374151" strokeWidth="2" strokeLinecap="round" />
+                            <circle cx="60" cy="95" r="4" fill="#94a3b8" />
+                            {/* Head */}
+                            <circle cx="60" cy="25" r="18" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
+                            <path d="M50 30Q60 35 70 30" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+                        </g>
+
+                        {/* Floating Icons */}
+                        <g transform="translate(60, 40)">
+                            <circle cx="0" cy="0" r="15" fill="white" filter="drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.05))" />
+                            <path d="M-5 0H5M0 -5V5" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
+                        </g>
+
+                        <g transform="translate(100, 100)">
+                            <circle cx="0" cy="0" r="12" fill="white" filter="drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.05))" />
+                            <path d="M-4 -2L0 4L5 -4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </g>
+
+                        {/* Sparkles/Decorations */}
+                        <path d="M40 80L42 75L44 80L49 82L44 84L42 89L40 84L35 82L40 80Z" fill="#facc15" />
+                        <circle cx="140" cy="30" r="3" fill="#cbd5e1" />
+                        <circle cx="160" cy="110" r="2" fill="#cbd5e1" />
                     </svg>
                 </div>
             </div>
@@ -114,19 +186,19 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
             <div className="doc-grid-split">
                 {/* Left Column */}
                 <div>
-                    {/* Patient Card */}
-                    {recent_patient ? (
+                    {/* Patient Card - Active Appointment */}
+                    {recent_appointment ? (
                         <div className="doc-card">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div style={{ display: 'flex', gap: '16px' }}>
                                     <img
-                                        src={recent_patient.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"}
+                                        src={recentPatient?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=2574&auto=format&fit=crop"}
                                         style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
                                         alt="Patient"
                                     />
                                     <div>
                                         <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>
-                                            {recent_patient.name || 'Patient'}
+                                            {recentPatient?.name || 'Patient'}
                                         </h3>
                                         <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                                             <span
@@ -135,56 +207,72 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
                                             >
                                                 Review Patient
                                             </span>
-                                            <span style={{ fontSize: '12px', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>Recent</span>
+                                            <span style={{
+                                                fontSize: '12px',
+                                                background: recent_appointment.status === 'ongoing' ? '#dcfce7' : '#f1f5f9',
+                                                color: recent_appointment.status === 'ongoing' ? '#166534' : '#475569',
+                                                padding: '2px 8px', borderRadius: '4px', fontWeight: '700', textTransform: 'uppercase'
+                                            }}>
+                                                {recent_appointment.status}
+                                            </span>
                                         </div>
                                         <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Icons.VideoSmall /> Last interaction recently
+                                            <Icons.VideoSmall /> {recent_appointment.type} • {recent_appointment.start_time} - {getEndTime(recent_appointment.start_time, recent_appointment.duration)} ({recent_appointment.duration || 30} mins)
                                         </div>
                                     </div>
                                 </div>
 
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-                                    <button
-                                        onClick={() => toast.success('Starting secure video consultation...')}
-                                        style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-                                    >
-                                        <Icons.Video /> Start Video Consult
-                                    </button>
-                                    <button
-                                        onClick={() => toast('Voice call feature coming soon', { icon: '📞' })}
-                                        style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
-                                    >
-                                        <Icons.Phone /> Call Patient
-                                    </button>
+                                    {recent_appointment.status === 'confirmed' && (
+                                        <button
+                                            onClick={() => handleStartConsultation(recent_appointment.id)}
+                                            disabled={actionProcessing === recent_appointment.id}
+                                            style={{
+                                                background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px',
+                                                borderRadius: 8, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                                                opacity: actionProcessing === recent_appointment.id ? 0.7 : 1
+                                            }}
+                                        >
+                                            <Icons.Video /> Start Consult
+                                        </button>
+                                    )}
+
+                                    {recent_appointment.status === 'ongoing' && (
+                                        <button
+                                            onClick={() => handleCompleteConsultation(recent_appointment.id)}
+                                            disabled={actionProcessing === recent_appointment.id}
+                                            style={{
+                                                background: '#16a34a', color: 'white', border: 'none', padding: '10px 20px',
+                                                borderRadius: 8, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                                                opacity: actionProcessing === recent_appointment.id ? 0.7 : 1
+                                            }}
+                                        >
+                                            <Icons.CheckCircle /> Complete & Finish
+                                        </button>
+                                    )}
+
+                                    {recent_appointment.status === 'completed' && (
+                                        <button
+                                            disabled
+                                            style={{
+                                                background: '#94a3b8', color: 'white', border: 'none', padding: '10px 20px',
+                                                borderRadius: 8, fontWeight: 600, cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: 8
+                                            }}
+                                        >
+                                            <Icons.CheckCircle /> Completed
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     ) : (
                         <div className="doc-card">
-                            <p style={{ textAlign: 'center', color: '#64748b' }}>No recent patient activity.</p>
+                            <p style={{ textAlign: 'center', color: '#64748b' }}>No active appointments.</p>
                         </div>
                     )}
 
-                    {/* Unread Messages */}
-                    <div className="doc-card">
-                        <div className="doc-card-header">
-                            <span className="doc-card-title">Unread Messages <span style={{ background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: 6, fontSize: 12, marginLeft: 6 }}>1</span></span>
-                            <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('messages'); }} style={{ fontSize: 13, color: '#64748b', textDecoration: 'none' }}>View All</a>
-                        </div>
-                        <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, display: 'flex', gap: 12 }}>
-                            <div style={{ width: 40, height: 40, background: '#e2e8f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Icons.Message />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>System</span>
-                                    <span style={{ fontSize: 12, color: '#94a3b8' }}>Now</span>
-                                </div>
-                                <p style={{ fontSize: 13, color: '#64748b' }}>Welcome to your new dashboard.</p>
-                            </div>
-                        </div>
-                    </div>
+
 
                     {/* Quick Actions */}
                     <div className="doc-card" style={{ marginBottom: 0 }}>
@@ -221,14 +309,19 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
 
                     <div className="timeline-list">
                         {today_schedule && today_schedule.length > 0 ? (
-                            today_schedule.map((appt: any, idx: number) => (
+                            today_schedule.map((appt: any) => (
                                 <div className="timeline-item" key={appt.id}>
                                     <div className="timeline-line"></div>
-                                    <div className="timeline-icon" style={{ background: '#dbeafe', color: '#2563eb' }}><Icons.VideoSmall /></div>
+                                    <div className="timeline-icon" style={{
+                                        background: appt.status === 'ongoing' ? '#dcfce7' : '#dbeafe',
+                                        color: appt.status === 'ongoing' ? '#166534' : '#2563eb'
+                                    }}>
+                                        <Icons.VideoSmall />
+                                    </div>
                                     <div className="timeline-content">
                                         <div className="timeline-time">
                                             {appt.start_time.substring(0, 5)}
-                                            {idx === 0 && <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10, marginLeft: 4 }}>Next</span>}
+                                            {appt.status === 'ongoing' && <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10, marginLeft: 4 }}>LIVE</span>}
                                         </div>
                                         <h4>{appt.patient?.name || 'Unknown Patient'}</h4>
                                         <p>{appt.reason || 'General Consultation'}</p>

@@ -21,8 +21,10 @@ export default function DoctorSettings() {
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [formData, setFormData] = useState<any>({
         name: '',
+        avatar: '',
         email: '',
         specialty: '',
         experience_years: '',
@@ -52,12 +54,15 @@ export default function DoctorSettings() {
             const { user, doctor } = response.data;
             setFormData({
                 name: user.name || '',
+                avatar: user.avatar || '',
                 email: user.email || '',
                 specialty: doctor?.specialty || '',
                 experience_years: doctor?.experience_years || '',
                 bio: doctor?.bio || '',
                 city: doctor?.city || '',
                 state: doctor?.state || '',
+                practice_name: doctor?.workplace_name || '',
+                practice_address: '', // Assuming not in DB yet, or use city/state
                 consultation_type: doctor?.consultation_type || 'both',
                 consultation_duration: doctor?.consultation_duration || 30
             });
@@ -84,6 +89,35 @@ export default function DoctorSettings() {
         new_password: '',
         new_password_confirmation: ''
     });
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("File size must be less than 2MB");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        setUploading(true);
+        try {
+            const response = await api.post('/profile/avatar', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setFormData((prev: any) => ({ ...prev, avatar: response.data.avatar }));
+            toast.success("Profile photo updated successfully");
+            // Optionally refresh user context if you have one
+            window.location.reload(); // Simple reload to update header instantly
+        } catch (error: any) {
+            console.error("Failed to upload avatar", error);
+            toast.error(error.response?.data?.message || "Failed to upload photo");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handlePasswordUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -238,14 +272,27 @@ export default function DoctorSettings() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                                     <div style={{ position: 'relative' }}>
                                         <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                            <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=2070&auto=format&fit=crop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
+                                            <img
+                                                src={formData.avatar || "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=2070&auto=format&fit=crop"}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                alt="Avatar"
+                                            />
                                         </div>
-                                        <button type="button" style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: '#2563eb', color: 'white', border: '2px solid white', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                        <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: '#2563eb', color: 'white', border: '2px solid white', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                                             <div style={{ transform: 'scale(0.7)' }}><Icons.Camera /></div>
-                                        </button>
+                                        </label>
+                                        <input
+                                            type="file"
+                                            id="avatar-upload"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            onChange={handleFileChange}
+                                        />
                                     </div>
                                     <div>
-                                        <button type="button" className="btn-secondary-light" style={{ padding: '8px 16px', fontSize: '13px', marginBottom: '6px' }}>Change Photo</button>
+                                        <label htmlFor="avatar-upload" className="btn-secondary-light" style={{ padding: '8px 16px', fontSize: '13px', marginBottom: '6px', cursor: 'pointer', display: 'inline-block' }}>
+                                            {uploading ? 'Uploading...' : 'Change Photo'}
+                                        </label>
                                         <div style={{ fontSize: '12px', color: '#94a3b8' }}>JPG, PNG or GIF. Max 2MB.</div>
                                     </div>
                                 </div>
@@ -322,6 +369,14 @@ export default function DoctorSettings() {
                                     <div className="settings-input-group">
                                         <label className="settings-label">Session Duration (minutes)</label>
                                         <input type="number" name="consultation_duration" value={formData.consultation_duration} onChange={handleInputChange} className="settings-input" />
+                                    </div>
+                                    <div className="settings-input-group">
+                                        <label className="settings-label">Practice Name</label>
+                                        <input type="text" name="practice_name" value={formData.practice_name} onChange={handleInputChange} className="settings-input" placeholder="e.g. City General Hospital" />
+                                    </div>
+                                    <div className="settings-input-group">
+                                        <label className="settings-label">Practice Address</label>
+                                        <input type="text" name="practice_address" value={formData.practice_address} onChange={handleInputChange} className="settings-input" placeholder="Full address" />
                                     </div>
                                 </div>
                             </div>

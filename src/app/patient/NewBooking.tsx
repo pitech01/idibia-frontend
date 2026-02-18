@@ -175,25 +175,57 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
 
     const dateOptions = generateDates();
     const [timeSlots, setTimeSlots] = useState<string[]>([]);
+    const [consultationDuration, setConsultationDuration] = useState<number>(30); // Default to 30 mins
+    const [hasFetchedSlots, setHasFetchedSlots] = useState(false);
 
     useEffect(() => {
+        let interval: any;
         if (selectedDoctor && selectedDate) {
             fetchSlots();
+            // Poll for slots every 30 seconds to keep availability fresh
+            interval = setInterval(fetchSlots, 30000);
         } else {
             setTimeSlots([]);
+            setHasFetchedSlots(false);
         }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, [selectedDoctor, selectedDate]);
 
     const fetchSlots = async () => {
         setSelectedTime('');
+        setHasFetchedSlots(false);
         try {
             const { data } = await api.get(`/doctors/${selectedDoctor?.id}/slots?date=${selectedDate}`);
-            setTimeSlots(data);
+            setTimeSlots(data.slots || []);
+            // Update duration if provided by backend, else keep default/previous
+            if (data.duration) {
+                setConsultationDuration(data.duration);
+            }
         } catch (error) {
             console.error("Fetch Slots Error:", error);
             toast.error("Failed to load available slots");
             setTimeSlots([]);
+        } finally {
+            setHasFetchedSlots(true);
         }
+    };
+
+    // Format Slot Time (UTC -> Local Display)
+    const formatSlotTime = (time: string) => {
+        if (!time) return '';
+        // Append dummy date and Z to treat it as UTC time
+        const date = new Date(`2000-01-01T${time}:00Z`);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    };
+
+    // Calculate End Time (UTC Start -> Add Duration -> Local Display)
+    const getEndTime = (startTime: string) => {
+        if (!startTime) return '';
+        const date = new Date(`2000-01-01T${startTime}:00Z`);
+        date.setMinutes(date.getMinutes() + consultationDuration);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
     };
 
     // Wallet & Fee Calculation (Explicitly as Numbers)
@@ -301,7 +333,9 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#EEF2FF', color: '#2E37A4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>{selectedDoctor?.name.charAt(0)}</div>
                                 <div>
                                     <div style={{ fontWeight: '700', color: '#0f172a' }}>Dr. {selectedDoctor?.name}</div>
-                                    <div style={{ fontSize: '13px', color: '#64748b' }}>{selectedDoctor?.doctor?.specialty} • ₦{selectedDoctor?.doctor?.consultation_fee?.toLocaleString()}</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                        {selectedDoctor?.doctor?.specialty} • ₦{selectedDoctor?.doctor?.consultation_fee?.toLocaleString()} • {consultationDuration} min session
+                                    </div>
                                 </div>
                             </div>
 
@@ -335,13 +369,18 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                             border: selectedTime === slot ? '2px solid #2E37A4' : '1px solid #e2e8f0',
                                             background: selectedTime === slot ? '#f0f4ff' : 'white',
                                             color: selectedTime === slot ? '#2E37A4' : '#0f172a',
-                                            fontWeight: '600', fontSize: '14px', cursor: 'pointer'
+                                            fontWeight: '600', fontSize: '14px', cursor: 'pointer',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
                                         }}
                                     >
-                                        {slot}
+                                        <span>{formatSlotTime(slot)}</span>
+                                        {selectedTime === slot && (
+                                            <span style={{ fontSize: '10px', fontWeight: '500', opacity: 0.8 }}>Ends {getEndTime(slot)}</span>
+                                        )}
                                     </button>
                                 ))}
-                                {timeSlots.length === 0 && <p style={{ gridColumn: '1 / -1', color: '#64748b', fontSize: '14px' }}>Please select a date to see slots.</p>}
+                                {timeSlots.length === 0 && !hasFetchedSlots && <p style={{ gridColumn: '1 / -1', color: '#64748b', fontSize: '14px' }}>Please select a date to see slots.</p>}
+                                {timeSlots.length === 0 && hasFetchedSlots && <p style={{ gridColumn: '1 / -1', color: '#ef4444', fontSize: '14px', fontWeight: '500' }}>No available slots for this date.</p>}
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>

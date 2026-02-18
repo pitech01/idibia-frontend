@@ -135,7 +135,12 @@ function App() {
 
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster
+        position="top-right"
+        containerStyle={{
+          zIndex: 99999,
+        }}
+      />
       {view === 'home' && (
         <Homepage
           user={currentUser}
