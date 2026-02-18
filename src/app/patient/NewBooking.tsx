@@ -131,7 +131,8 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
 
                 // Refresh dashboard and exit
                 if (onRefresh) onRefresh();
-                setTimeout(() => onBack(), 1500);
+                toast.success('Your chat room is now ready!');
+                setTimeout(() => onBack(), 2000);
             } else {
                 // PAYSTACK FLOW
                 console.log("Initializing Paystack... Hybrid:", useWalletForHybrid);

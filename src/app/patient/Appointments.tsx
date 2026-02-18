@@ -33,6 +33,7 @@ interface Appointment {
     type: 'video' | 'in-person';
     meeting_link?: string;
     reason?: string;
+    iso_start_time: string;
 }
 
 interface AppointmentsProps {
@@ -132,17 +133,17 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
     // Filter Logic
     const now = new Date();
     const upcomingAppointments = appointments.filter(appt =>
-        appt.status !== 'cancelled' &&
+        !appt.status.startsWith('cancelled') &&
         appt.status !== 'completed' &&
-        new Date(appt.appointment_date + ' ' + appt.start_time) >= now
+        new Date(appt.iso_start_time) >= now
     );
 
     const pastAppointments = appointments.filter(appt =>
         appt.status === 'completed' ||
-        (appt.status !== 'cancelled' && new Date(appt.appointment_date + ' ' + appt.start_time) < now)
+        (!appt.status.startsWith('cancelled') && new Date(appt.iso_start_time) < now)
     );
 
-    const cancelledAppointments = appointments.filter(appt => appt.status === 'cancelled');
+    const cancelledAppointments = appointments.filter(appt => appt.status.startsWith('cancelled'));
 
     const heroAppointment = upcomingAppointments[0];
     const otherUpcoming = upcomingAppointments.slice(1);
@@ -218,10 +219,10 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                 {/* Left: Time & Date */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '120px' }}>
                                     <span style={{ fontSize: '36px', fontWeight: '800', color: '#0f172a', lineHeight: '1' }}>
-                                        {heroAppointment.start_time.substring(0, 5)}
+                                        {new Date(heroAppointment.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Icons.Calendar /> {new Date(heroAppointment.appointment_date).toDateString()}
+                                        <Icons.Calendar /> {new Date(heroAppointment.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </span>
                                 </div>
 
@@ -283,7 +284,9 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                             </div>
                                             <div>
                                                 <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px' }}>{appt.doctor?.name}</h4>
-                                                <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                                <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
+                                                    {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -324,7 +327,9 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     </div>
                                     <div>
                                         <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px' }}>{appt.doctor?.name}</h4>
-                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
+                                            {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
                                     </div>
                                 </div>
                                 <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>Completed</span>
@@ -350,7 +355,9 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     </div>
                                     <div>
                                         <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px', textDecoration: 'line-through' }}>{appt.doctor?.name}</h4>
-                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
+                                            {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
                                     </div>
                                 </div>
                                 <span style={{ background: '#fef2f2', color: '#dc2626', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>Cancelled</span>

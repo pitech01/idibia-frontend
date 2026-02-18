@@ -176,8 +176,12 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                             </div>
                                             <div style={{ height: '1px', background: 'rgba(59, 130, 246, 0.15)', marginBottom: '24px' }}></div>
                                             <div style={{ display: 'flex', gap: '20px', color: '#1e2894', fontWeight: '600', fontSize: '14px' }}>
-                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><WidgetIcons.Book /> {upcoming.start_time}</span>
-                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><WidgetIcons.Calendar /> {upcoming.appointment_date}</span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <WidgetIcons.Book /> {new Date(upcoming.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <WidgetIcons.Calendar /> {new Date(upcoming.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                </span>
                                             </div>
                                         </div>
                                     ) : (
@@ -264,7 +268,9 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <span className={`status-badge ${item.status === 'confirmed' || item.status === 'success' ? 'status-confirmed' : 'status-pending'}`}>{item.status}</span>
+                                                <span className={`status-badge ${item.status === 'confirmed' || item.status === 'success' ? 'status-confirmed' : 'status-pending'}`}>
+                                                    {item.status.replace(/_/g, ' ')}
+                                                </span>
                                             </div>
                                         </div>
                                     )) : <p style={{ color: '#64748b' }}>No recent activity.</p>
