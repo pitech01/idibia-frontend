@@ -105,24 +105,26 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
 
             {/* Floating Action Button - Emergency Call */}
             {activeTab !== 'messages' && (
-                <button style={{
-                    position: 'fixed',
-                    bottom: '40px',
-                    right: '40px',
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    background: '#dc2626',
-                    color: 'white',
-                    border: 'none',
-                    boxShadow: '0 10px 25px -5px rgba(220, 38, 38, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 50,
-                    transition: 'transform 0.2s'
-                }}
+                <button
+                    className="floating-emergency-btn"
+                    style={{
+                        position: 'fixed',
+                        bottom: '40px',
+                        right: '40px',
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        background: '#dc2626',
+                        color: 'white',
+                        border: 'none',
+                        boxShadow: '0 10px 25px -5px rgba(220, 38, 38, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        zIndex: 50,
+                        transition: 'transform 0.2s'
+                    }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     onClick={() => {

@@ -91,15 +91,15 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
             {/* Greeting Banner */}
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', overflow: 'hidden', height: '180px', position: 'relative' }}>
-                <div style={{ padding: '40px', zIndex: 10 }}>
+            <div className="greeting-banner">
+                <div className="greeting-banner-content">
                     <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#1e2894', marginBottom: '8px' }}>
                         {loading ? <Skeleton width={300} /> : `${greetingData.text}, ${user?.name?.split(' ')[0] || 'User'}`}
                     </h1>
                     <p style={{ color: '#64748b', fontSize: '16px' }}>{loading ? <Skeleton width={200} /> : 'Welcome back to your health dashboard.'}</p>
                 </div>
-                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, height: '100%' }}>
-                    <img src="/dashboard-illustration.png" alt="Illustration" style={{ height: '100%', objectFit: 'contain' }} />
+                <div className="greeting-banner-img">
+                    <img src="/dashboard-illustration.png" alt="Illustration" />
                 </div>
             </div>
 
@@ -175,7 +175,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                                 </div>
                                             </div>
                                             <div style={{ height: '1px', background: 'rgba(59, 130, 246, 0.15)', marginBottom: '24px' }}></div>
-                                            <div style={{ display: 'flex', gap: '20px', color: '#1e2894', fontWeight: '600', fontSize: '14px' }}>
+                                            <div className="appointment-info-grid">
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     <WidgetIcons.Book /> {new Date(upcoming.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
@@ -287,24 +287,26 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                     <h3 className="card-title" style={{ margin: 0, color: '#0f172a', fontSize: '18px' }}>Latest Vitals</h3>
                                     <span style={{ fontSize: '12px', color: '#64748b' }}>Recent</span>
                                 </div>
-                                {dataLoading ? <Skeleton count={3} height={50} /> : (
-                                    vitals.length > 0 ? vitals.map((vital: any, idx: number) => (
-                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#eef2ff', color: '#2E37A4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <WidgetIcons.Heart />
+                                <div className="vitals-list">
+                                    {dataLoading ? <Skeleton count={3} height={50} /> : (
+                                        vitals.length > 0 ? vitals.map((vital: any, idx: number) => (
+                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#eef2ff', color: '#2E37A4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <WidgetIcons.Heart />
+                                                    </div>
+                                                    <div>
+                                                        <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>{vital.type}</span>
+                                                        <span style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{vital.value} <small style={{ color: '#94a3b8', fontWeight: '500', fontSize: '12px' }}>{vital.unit}</small></span>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>{vital.type}</span>
-                                                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{vital.value} <small style={{ color: '#94a3b8', fontWeight: '500', fontSize: '12px' }}>{vital.unit}</small></span>
-                                                </div>
+                                                <span style={{ fontSize: '13px', fontWeight: '600', color: vital.status === 'High' ? '#dc2626' : '#16a34a' }}>
+                                                    {vital.status}
+                                                </span>
                                             </div>
-                                            <span style={{ fontSize: '13px', fontWeight: '600', color: vital.status === 'High' ? '#dc2626' : '#16a34a' }}>
-                                                {vital.status}
-                                            </span>
-                                        </div>
-                                    )) : <p style={{ color: '#64748b' }}>No records yet.</p>
-                                )}
+                                        )) : <p style={{ color: '#64748b' }}>No records yet.</p>
+                                    )}
+                                </div>
                             </div>
                             <button style={{ width: '100%', marginTop: '12px', padding: '12px', background: 'transparent', color: '#2E37A4', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Update Vitals</button>
                         </div>
@@ -319,11 +321,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                     background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 99999,
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }} onClick={() => setComingSoonOpen(false)}>
-                    <div className="animate-fade-in" style={{
-                        background: 'white', borderRadius: '24px', padding: '40px',
-                        width: '400px', maxWidth: '90%', textAlign: 'center',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                    }} onClick={e => e.stopPropagation()}>
+                    <div className="animate-fade-in responsive-modal" onClick={e => e.stopPropagation()}>
                         <div style={{
                             width: '80px', height: '80px', borderRadius: '50%', background: '#dcfce7', color: '#10b981',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto'

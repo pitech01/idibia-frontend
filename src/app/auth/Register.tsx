@@ -87,10 +87,12 @@ const INITIAL_DATA: RegistrationData = {
 interface RegisterProps {
     onBack: () => void;
     onLoginClick: () => void;
-    onRegisterSuccess: (role: 'patient' | 'doctor' | 'nurse', isCompleted?: boolean, isVerified?: boolean, userData?: any) => void;
+    onPrivacyClick?: () => void;
+    onTermsClick?: () => void;
+    onRegisterSuccess: (role: 'patient' | 'doctor' | 'nurse' | 'admin', isCompleted?: boolean, isVerified?: boolean, userData?: any) => void;
 }
 
-export default function Register({ onBack, onLoginClick, onRegisterSuccess }: RegisterProps) {
+export default function Register({ onBack, onLoginClick, onPrivacyClick, onTermsClick, onRegisterSuccess }: RegisterProps) {
     // --- STATE ---
     const [step, setStep] = useState(1);
     const [role, setRole] = useState<Role>('patient');
@@ -440,7 +442,9 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                     <label className="checkbox-container">
                         <input type="checkbox" required checked={data.termsAccepted} onChange={e => updateData({ termsAccepted: e.target.checked })} />
                         <span className="checkmark"><Icons.Check /></span>
-                        <span style={{ fontSize: '13px', color: '#64748b' }}>I agree to the Terms & Privacy Policy</span>
+                        <span style={{ fontSize: '13px', color: '#64748b' }}>
+                            I agree to the <a href="#" onClick={(e) => { e.preventDefault(); onTermsClick?.(); }} style={{ color: 'var(--primary-color)', fontWeight: '600' }}>Terms</a> & <a href="#" onClick={(e) => { e.preventDefault(); onPrivacyClick?.(); }} style={{ color: 'var(--primary-color)', fontWeight: '600' }}>Privacy Policy</a>
+                        </span>
                     </label>
                 </div>
 

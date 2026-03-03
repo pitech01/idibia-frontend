@@ -13,6 +13,7 @@ import DoctorDashboard from './app/doctor/DoctorDashboard'
 import PendingDashboard from './app/shared/PendingDashboard'
 import DoctorVerification from './app/doctor/DoctorVerification.tsx'
 import AdminLogin from './app/admin/AdminLogin'
+import Legal from './app/Legal'
 import AdminDashboard from './app/admin/AdminDashboard'
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './services';
@@ -20,11 +21,18 @@ import { api } from './services';
 function App() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [view, setView] = useState<'home' | 'login' | 'register' | 'forgot-password' | 'change-password' | 'patient-dashboard' | 'doctor-dashboard' | 'pending-dashboard' | 'doctor-verification' | 'admin-login' | 'admin-dashboard'>(() => {
-    // Simple URL check for initial load
-    if (window.location.pathname === '/admin-login') return 'admin-login';
+  const [view, setView] = useState<'home' | 'login' | 'register' | 'forgot-password' | 'change-password' | 'patient-dashboard' | 'doctor-dashboard' | 'pending-dashboard' | 'doctor-verification' | 'admin-login' | 'admin-dashboard' | 'legal-privacy' | 'legal-terms'>(() => {
+    const path = window.location.pathname;
+    console.log('App Initializing with path:', path);
+    if (path === '/admin-login') return 'admin-login';
+    if (path === '/privacy') return 'legal-privacy';
+    if (path === '/terms') return 'legal-terms';
+    if (path === '/login') return 'login';
+    if (path === '/register') return 'register';
     return 'home';
   });
+
+  console.log('App Rendering View:', view);
   const [userRole, setUserRole] = useState<'patient' | 'doctor' | 'nurse' | 'admin'>(() => {
     const savedRole = localStorage.getItem('userRole');
     return (savedRole as any) || 'patient';
@@ -81,6 +89,14 @@ function App() {
     if (window.location.pathname === '/admin-login') {
       setView('admin-login');
     }
+
+    // Check for legal paths
+    if (window.location.pathname === '/privacy') {
+      setView('legal-privacy');
+    }
+    if (window.location.pathname === '/terms') {
+      setView('legal-terms');
+    }
   }, []);
 
   const handleLoginSuccess = (role: 'patient' | 'doctor' | 'nurse' | 'admin', isCompleted: boolean = true, isVerified: boolean = true, userData?: any) => {
@@ -116,6 +132,26 @@ function App() {
     }
   };
 
+  const setAppView = (newView: typeof view, path: string = '/') => {
+    setView(newView);
+    window.history.pushState({}, '', path);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path === '/privacy') setView('legal-privacy');
+      else if (path === '/terms') setView('legal-terms');
+      else if (path === '/login') setView('login');
+      else if (path === '/register') setView('register');
+      else if (path === '/admin-login') setView('admin-login');
+      else setView('home');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const handleLogout = async () => {
     try {
       await api.post('/logout');
@@ -126,7 +162,7 @@ function App() {
     localStorage.removeItem('appView');
     localStorage.removeItem('userRole');
     setCurrentUser(null);
-    setView('login');
+    setAppView('login', '/login');
   };
 
   if (loading) {
@@ -144,7 +180,9 @@ function App() {
       {view === 'home' && (
         <Homepage
           user={currentUser}
-          onLoginClick={() => setView('login')}
+          onLoginClick={() => setAppView('login', '/login')}
+          onPrivacyClick={() => setAppView('legal-privacy', '/privacy')}
+          onTermsClick={() => setAppView('legal-terms', '/terms')}
           onDashboardClick={() => {
             if (userRole === 'patient') setView('patient-dashboard');
             else if (userRole === 'doctor') {
@@ -160,29 +198,37 @@ function App() {
       )}
       {view === 'login' && (
         <Login
-          onBack={() => setView('home')}
-          onRegisterClick={() => setView('register')}
+          onBack={() => setAppView('home')}
+          onRegisterClick={() => setAppView('register', '/register')}
           onForgotPasswordClick={() => setView('forgot-password')}
           onLoginSuccess={handleLoginSuccess}
         />
       )}
       {view === 'register' && (
         <Register
-          onBack={() => setView('home')}
-          onLoginClick={() => setView('login')}
+          onBack={() => setAppView('home')}
+          onLoginClick={() => setAppView('login', '/login')}
+          onPrivacyClick={() => setAppView('legal-privacy', '/privacy')}
+          onTermsClick={() => setAppView('legal-terms', '/terms')}
           onRegisterSuccess={handleLoginSuccess}
         />
       )}
+      {view === 'legal-privacy' && (
+        <Legal initialTab="privacy" onBack={() => setAppView('home')} />
+      )}
+      {view === 'legal-terms' && (
+        <Legal initialTab="terms" onBack={() => setAppView('home')} />
+      )}
       {view === 'forgot-password' && (
         <ForgotPassword
-          onBack={() => setView('home')}
-          onLoginClick={() => setView('login')}
+          onBack={() => setAppView('home')}
+          onLoginClick={() => setAppView('login', '/login')}
         />
       )}
       {view === 'change-password' && (
         <ChangePassword
-          onBack={() => setView('login')} // Or 'forgot-password' if preferred
-          onLoginClick={() => setView('login')}
+          onBack={() => setAppView('login', '/login')} // Or 'forgot-password' if preferred
+          onLoginClick={() => setAppView('login', '/login')}
         />
       )}
       {view === 'patient-dashboard' && <PatientDashboard onLogout={handleLogout} />}
@@ -196,7 +242,7 @@ function App() {
       )}
       {view === 'admin-login' && (
         <AdminLogin
-          onBack={() => setView('home')}
+          onBack={() => setAppView('home')}
           onLoginSuccess={handleLoginSuccess}
         />
       )}

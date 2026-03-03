@@ -16,6 +16,9 @@ interface User {
     name: string;
     email: string;
     role: string;
+    doctor?: {
+        specialty: string;
+    };
 }
 
 interface Appointment {
@@ -27,7 +30,7 @@ interface Appointment {
     appointment_date: string;
     start_time: string;
     end_time: string;
-    status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+    status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment';
     payment_status: 'unpaid' | 'paid';
     amount: number;
     type: 'video' | 'in-person';
@@ -272,36 +275,32 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                     {otherUpcoming.length > 0 && (
                         <div>
                             <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>Future Appointments</h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {otherUpcoming.map(appt => (
-                                    <div key={appt.id} style={{
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px',
-                                        background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0'
-                                    }}>
-                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                            <div style={{ width: '48px', height: '48px', background: appt.type === 'video' ? '#EEF2FF' : '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: appt.type === 'video' ? '#2E37A4' : '#64748b', border: '1px solid #f1f5f9' }}>
-                                                {appt.type === 'video' ? <Icons.Video /> : <Icons.MapPin />}
+                            <div className="appointments-grid">
+                                {upcomingAppointments.slice(1).map(appt => (
+                                    <div key={appt.id} className="dash-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2E37A4' }}>
+                                                    <Icons.Calendar />
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>{appt.doctor?.name}</h4>
+                                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{appt.doctor?.doctor?.specialty}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px' }}>{appt.doctor?.name}</h4>
-                                                <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
-                                                    {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </p>
-                                            </div>
+                                            <span className={`status-badge status-${appt.status}`}>{appt.status.replace(/_/g, ' ')}</span>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                            {appt.payment_status === 'unpaid' && (
-                                                <button
-                                                    onClick={() => handlePay(appt.id)}
-                                                    style={{ background: '#dcfce7', color: '#166534', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
-                                                >
-                                                    Pay ₦{appt.amount.toLocaleString()}
-                                                </button>
+                                        <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontWeight: '600', color: '#1e2894' }}>
+                                                {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                            <span>{appt.type === 'video' ? '💻 Video Consultation' : '🏥 In-person Visit'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                                            <button onClick={() => handleStartChat(appt.id)} className="btn-secondary-light" style={{ flex: 1, padding: '8px' }}>Chat</button>
+                                            {appt.status === 'pending_payment' && (
+                                                <button onClick={() => handlePay(appt.id)} className="btn-primary-dark" style={{ flex: 1, padding: '8px' }}>Pay ₦{appt.amount.toLocaleString()}</button>
                                             )}
-                                            {appt.payment_status === 'paid' && (
-                                                <span style={{ color: '#16a34a', fontSize: '13px', fontWeight: '600' }}>Paid</span>
-                                            )}
-                                            <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Cancel</button>
                                         </div>
                                     </div>
                                 ))}
