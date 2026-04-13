@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import heroImg from '../assets/hero-doctor.jpeg';
+import heroImg from '../assets/hero-doctor.png';
 import aboutImg from '../assets/about-team.png';
 import blogNurse from '../assets/blog-nurse.png';
 import blogDoctor from '../assets/blog-doctor.png';
@@ -25,12 +25,10 @@ const Icons = {
 interface HomepageProps {
     onLoginClick?: () => void;
     onDashboardClick?: () => void;
-    onPrivacyClick?: () => void;
-    onTermsClick?: () => void;
     user?: any;
 }
 
-export default function Homepage({ onLoginClick, onDashboardClick, onPrivacyClick, onTermsClick, user }: HomepageProps) {
+export default function Homepage({ onLoginClick, onDashboardClick, user }: HomepageProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
@@ -40,7 +38,7 @@ export default function Homepage({ onLoginClick, onDashboardClick, onPrivacyClic
             <div className="top-bar">
                 <div className="container flex-between">
                     <div className="flex-start" style={{ gap: '25px' }}>
-                        <div className="flex-start"><Icons.Mail /> <span>support@dibia.med</span></div>
+                        <div className="flex-start"><Icons.Mail /> <span>contact@dibia.med</span></div>
                         <div className="flex-start"><Icons.Phone /> <span>+234 800 DIBIA MED</span></div>
                         <div className="flex-start"><Icons.Phone /> <span>Emergency: 112</span></div>
                     </div>
@@ -415,32 +413,8 @@ export default function Homepage({ onLoginClick, onDashboardClick, onPrivacyClic
                         <div>
                             <h3>Useful Links</h3>
                             <ul style={{ lineHeight: '2.2', fontSize: '14px' }}>
-                                <li>
-                                    <a
-                                        href="/privacy"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            console.log('Privacy link clicked');
-                                            if (onPrivacyClick) onPrivacyClick();
-                                            else window.location.href = '/privacy'; // Fallback
-                                        }}
-                                    >
-                                        Privacy Policy
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href="/terms"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            console.log('Terms link clicked');
-                                            if (onTermsClick) onTermsClick();
-                                            else window.location.href = '/terms'; // Fallback
-                                        }}
-                                    >
-                                        Terms of Service
-                                    </a>
-                                </li>
+                                <li><a href="#">Privacy Policy</a></li>
+                                <li><a href="#">Terms & Conditions</a></li>
                                 <li><a href="#">Contact Us</a></li>
                                 <li><a href="#">Latest News</a></li>
                             </ul>
@@ -469,34 +443,7 @@ export default function Homepage({ onLoginClick, onDashboardClick, onPrivacyClic
                     </div>
 
                     <div className="footer-bottom">
-                        <p>&copy; 2026 IDIBIA Med. All Rights Reserved.
-                            <span style={{ marginLeft: '15px' }}>
-                                <a
-                                    href="/privacy"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        console.log('Privacy bottom link clicked');
-                                        if (onPrivacyClick) onPrivacyClick();
-                                        else window.location.href = '/privacy';
-                                    }}
-                                    style={{ color: 'inherit', margin: '0 10px' }}
-                                >
-                                    Privacy Policy
-                                </a> |
-                                <a
-                                    href="/terms"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        console.log('Terms bottom link clicked');
-                                        if (onTermsClick) onTermsClick();
-                                        else window.location.href = '/terms';
-                                    }}
-                                    style={{ color: 'inherit', margin: '0 10px' }}
-                                >
-                                    Terms of Service
-                                </a>
-                            </span>
-                        </p>
+                        <p>&copy; 2026 IDIBIA Med. All Rights Reserved.</p>
                     </div>
                 </div>
             </footer>

@@ -79,61 +79,23 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
     const { stats, today_schedule, recent_appointment, user } = dashboardData || {};
     const recentPatient = recent_appointment?.patient;
 
-    // Helper to calculate end time
-    const getEndTime = (startTime: string, duration: number) => {
-        if (!startTime) return '';
-        const [hours, minutes] = startTime.split(':').map(Number);
-        const date = new Date();
-        date.setHours(hours, minutes, 0);
-        date.setMinutes(date.getMinutes() + (duration || 30));
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-    };
-
     return (
         <div className="doc-content animate-fade-in">
             {/* Greeting Banner */}
             <div className="doc-banner">
                 <div className="doc-banner-text">
-                    <h1>Good Morning, Dr. {user?.name || 'Doctor'}</h1>
+                    <h1>Good Morning, Dr. {user?.last_name || 'Doctor'}</h1>
                     <p>Have a nice day at work</p>
                 </div>
                 <div style={{ position: 'relative', width: '300px', height: '140px' }}>
-                    <svg width="300" height="150" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        {/* Background Elements */}
-                        <circle cx="280" cy="20" r="50" fill="#e0f2fe" fillOpacity="0.5" />
-                        <circle cx="10" cy="120" r="30" fill="#f0f9ff" fillOpacity="0.6" />
-
-                        {/* Abstract Medical Cross/Shape */}
-                        <path d="M250 40H270V60H290V80H270V100H250V80H230V60H250V40Z" fill="#bae6fd" fillOpacity="0.3" />
-
-                        {/* Doctor Figure Illustration */}
-                        <g transform="translate(180, 20)">
-                            {/* Torso/Coat */}
-                            <path d="M30 130V60C30 50 40 45 60 45C80 45 90 50 90 60V130H30Z" fill="white" stroke="#e2e8f0" strokeWidth="2" />
-                            <path d="M60 45V130" stroke="#f1f5f9" strokeWidth="2" />
-                            {/* Stethoscope */}
-                            <path d="M45 60C45 60 45 90 60 90C75 90 75 60 75 60" stroke="#374151" strokeWidth="2" strokeLinecap="round" />
-                            <circle cx="60" cy="95" r="4" fill="#94a3b8" />
-                            {/* Head */}
-                            <circle cx="60" cy="25" r="18" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
-                            <path d="M50 30Q60 35 70 30" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-                        </g>
-
-                        {/* Floating Icons */}
-                        <g transform="translate(60, 40)">
-                            <circle cx="0" cy="0" r="15" fill="white" filter="drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.05))" />
-                            <path d="M-5 0H5M0 -5V5" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
-                        </g>
-
-                        <g transform="translate(100, 100)">
-                            <circle cx="0" cy="0" r="12" fill="white" filter="drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.05))" />
-                            <path d="M-4 -2L0 4L5 -4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </g>
-
-                        {/* Sparkles/Decorations */}
-                        <path d="M40 80L42 75L44 80L49 82L44 84L42 89L40 84L35 82L40 80Z" fill="#facc15" />
-                        <circle cx="140" cy="30" r="3" fill="#cbd5e1" />
-                        <circle cx="160" cy="110" r="2" fill="#cbd5e1" />
+                    <svg width="300" height="140" viewBox="0 0 300 140" fill="none">
+                        <path d="M220 140V60C220 60 230 40 250 40C270 40 280 60 280 60V140H220Z" fill="#e2e8f0" />
+                        <rect x="230" y="70" width="40" height="50" fill="#cbd5e1" rx="2" />
+                        <circle cx="250" cy="30" r="15" fill="#1e293b" />
+                        <path d="M250 45C235 45 225 60 225 80H275C275 60 265 45 250 45Z" fill="#3b82f6" />
+                        <circle cx="50" cy="20" r="4" fill="#cbd5e1" />
+                        <circle cx="70" cy="40" r="4" fill="#cbd5e1" />
+                        <circle cx="30" cy="60" r="4" fill="#cbd5e1" />
                     </svg>
                 </div>
             </div>
@@ -217,26 +179,35 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
                                             </span>
                                         </div>
                                         <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Icons.VideoSmall /> {recent_appointment.type} • {recent_appointment.start_time} - {getEndTime(recent_appointment.start_time, recent_appointment.duration)} ({recent_appointment.duration || 30} mins)
+                                            <Icons.VideoSmall /> {recent_appointment.type} • {recent_appointment.start_time}
                                         </div>
                                     </div>
                                 </div>
 
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
-                                    {recent_appointment.status === 'confirmed' && (
-                                        <button
-                                            onClick={() => handleStartConsultation(recent_appointment.id)}
-                                            disabled={actionProcessing === recent_appointment.id}
-                                            style={{
-                                                background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px',
-                                                borderRadius: 8, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-                                                opacity: actionProcessing === recent_appointment.id ? 0.7 : 1
-                                            }}
-                                        >
-                                            <Icons.Video /> Start Consult
-                                        </button>
-                                    )}
+                                    {recent_appointment.status === 'confirmed' && (() => {
+                                        const apptTime = new Date(recent_appointment.iso_start_time);
+                                        const isTooEarly = new Date() < apptTime;
+                                        return (
+                                            <button
+                                                onClick={() => handleStartConsultation(recent_appointment.id)}
+                                                disabled={actionProcessing === recent_appointment.id || isTooEarly}
+                                                style={{
+                                                    background: isTooEarly ? '#94a3b8' : '#2563eb', 
+                                                    color: 'white', border: 'none', padding: '10px 20px',
+                                                    borderRadius: 8, fontWeight: 600, 
+                                                    cursor: isTooEarly ? 'not-allowed' : 'pointer',
+                                                    display: 'flex', alignItems: 'center', gap: 8,
+                                                    opacity: actionProcessing === recent_appointment.id ? 0.7 : 1,
+                                                    boxShadow: isTooEarly ? 'none' : '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+                                                }}
+                                                title={isTooEarly ? `Available at ${recent_appointment.start_time}` : ""}
+                                            >
+                                                <Icons.Video /> {isTooEarly ? `Starts at ${recent_appointment.start_time.substring(0, 5)}` : 'Start Consult'}
+                                            </button>
+                                        );
+                                    })()}
 
                                     {recent_appointment.status === 'ongoing' && (
                                         <button
@@ -272,7 +243,25 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
                         </div>
                     )}
 
-
+                    {/* Unread Messages */}
+                    <div className="doc-card">
+                        <div className="doc-card-header">
+                            <span className="doc-card-title">Unread Messages <span style={{ background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: 6, fontSize: 12, marginLeft: 6 }}>1</span></span>
+                            <a href="#" onClick={(e) => { e.preventDefault(); setActiveTab('messages'); }} style={{ fontSize: 13, color: '#64748b', textDecoration: 'none' }}>View All</a>
+                        </div>
+                        <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, display: 'flex', gap: 12 }}>
+                            <div style={{ width: 40, height: 40, background: '#e2e8f0', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Icons.Message />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>System</span>
+                                    <span style={{ fontSize: 12, color: '#94a3b8' }}>Now</span>
+                                </div>
+                                <p style={{ fontSize: 13, color: '#64748b' }}>Welcome to your new dashboard.</p>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Quick Actions */}
                     <div className="doc-card" style={{ marginBottom: 0 }}>

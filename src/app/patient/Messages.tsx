@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { api } from '../../services';
-import VideoCall from '../../components/VideoCall';
+import WebRTCCall from '../../components/WebRTCCall';
 
 const Icons = {
     Edit: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
@@ -196,10 +196,13 @@ export default function Messages({ user }: { user: any }) {
             border: '1px solid #e2e8f0',
             overflow: 'hidden'
         }}>
-            {showVideoCall && selectedChatId && (
-                <VideoCall
-                    roomName={`idibia_video_${selectedChatId}`}
+            {showVideoCall && selectedChatId && activeChat && (
+                <WebRTCCall
+                    appointmentId={activeChat.appointment_id}
+                    userId={user?.id}
                     userName={user?.name || 'Patient'}
+                    receiverId={activeChat.doctor_id}
+                    isDoctor={false}
                     onClose={() => setShowVideoCall(false)}
                 />
             )}

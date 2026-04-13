@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import DoctorSidebar from './DoctorSidebar.tsx';
 import DoctorHeader from './DoctorHeader.tsx';
 import DoctorOverview from './DoctorOverview.tsx';
@@ -17,7 +18,22 @@ interface DoctorDashboardProps {
 }
 
 export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
-    const [activeTab, setActiveTab] = useState('overview');
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determine active tab from URL path
+    const getActiveTab = () => {
+        const path = location.pathname;
+        if (path.includes('/doctor/dashboard/schedule')) return 'schedule';
+        if (path.includes('/doctor/dashboard/patients')) return 'patients';
+        if (path.includes('/doctor/dashboard/messages')) return 'messages';
+        if (path.includes('/doctor/dashboard/support')) return 'support';
+        if (path.includes('/doctor/dashboard/settings')) return 'settings';
+        if (path.includes('/doctor/dashboard/earnings')) return 'earnings';
+        return 'overview';
+    };
+
+    const activeTab = getActiveTab();
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
 
@@ -35,32 +51,40 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
         fetchUser();
     }, []);
 
+    const handleTabChange = (tab: string) => {
+        const routeMap: Record<string, string> = {
+            'overview': '/doctor/dashboard',
+            'schedule': '/doctor/dashboard/schedule',
+            'patients': '/doctor/dashboard/patients',
+            'messages': '/doctor/dashboard/messages',
+            'support': '/doctor/dashboard/support',
+            'settings': '/doctor/dashboard/settings',
+            'earnings': '/doctor/dashboard/earnings'
+        };
+        navigate(routeMap[tab] || '/doctor/dashboard');
+    };
+
     if (loading) {
         return <Preloader />;
     }
 
     return (
         <div className="doc-layout">
-            <DoctorSidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} />
+            <DoctorSidebar activeTab={activeTab} setActiveTab={handleTabChange} onLogout={onLogout} />
 
             <main className="doc-main">
-                <DoctorHeader user={user} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} />
+                <DoctorHeader user={user} activeTab={activeTab} setActiveTab={handleTabChange} />
 
-                {activeTab === 'overview' && <DoctorOverview setActiveTab={setActiveTab} />}
-                {activeTab === 'schedule' && <DoctorSchedule />}
-                {activeTab === 'patients' && <DoctorPatients setActiveTab={setActiveTab} />}
-                {activeTab === 'messages' && <DoctorMessages />}
-                {activeTab === 'support' && <DoctorSupport />}
-                {activeTab === 'settings' && <DoctorSettings />}
-                {activeTab === 'earnings' && <DoctorEarnings />}
-
-                {activeTab !== 'overview' && activeTab !== 'schedule' && activeTab !== 'patients' && activeTab !== 'messages' && activeTab !== 'support' && activeTab !== 'settings' && activeTab !== 'earnings' && (
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#94a3b8' }}>
-                        <svg width="64" height="64" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                        <h2 style={{ marginTop: 16 }}>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Module</h2>
-                        <p>Coming Soon</p>
-                    </div>
-                )}
+                <Routes>
+                    <Route path="/" element={<DoctorOverview setActiveTab={handleTabChange} />} />
+                    <Route path="/schedule" element={<DoctorSchedule />} />
+                    <Route path="/patients" element={<DoctorPatients setActiveTab={handleTabChange} />} />
+                    <Route path="/messages" element={<DoctorMessages />} />
+                    <Route path="/support" element={<DoctorSupport />} />
+                    <Route path="/settings" element={<DoctorSettings />} />
+                    <Route path="/earnings" element={<DoctorEarnings />} />
+                    <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
+                </Routes>
             </main>
         </div>
     );

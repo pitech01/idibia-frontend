@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../services';
 import Preloader from '../../components/Preloader';
-import VideoCall from '../../components/VideoCall';
+import WebRTCCall from '../../components/WebRTCCall';
 
 const Icons = {
     // ... icons don't change here
@@ -64,7 +64,10 @@ export default function DoctorMessages() {
                         online: false, // Mock
                         img: otherUser?.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1888&auto=format&fit=crop',
                         encrypted: true,
-                        otherUserId: otherUser?.id
+                        otherUserId: otherUser?.id,
+                        appointment_id: chat.appointment_id,
+                        patient_id: chat.patient_id,
+                        doctor_id: chat.doctor_id
                     };
                 });
                 setChats(mappedChats);
@@ -191,10 +194,13 @@ export default function DoctorMessages() {
             margin: '0', // Reset margin if doc-content-area has it
             padding: '0' // Reset padding if doc-content-area has it
         }}>
-            {showVideoCall && selectedChatId && (
-                <VideoCall
-                    roomName={`idibia_video_${selectedChatId}`}
+            {showVideoCall && selectedChatId && activeChat && (
+                <WebRTCCall
+                    appointmentId={activeChat.appointment_id}
+                    userId={currentUser?.id}
                     userName={currentUser?.name || 'Doctor'}
+                    receiverId={activeChat.patient_id}
+                    isDoctor={true}
                     onClose={() => setShowVideoCall(false)}
                 />
             )}

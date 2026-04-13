@@ -1,42 +1,35 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
+import * as Toasts from 'react-hot-toast';
+const { Toaster, toast } = Toasts as any;
+
 import Homepage from './app/index'
 import Login from './app/auth/Login'
 import Register from './app/auth/Register'
-import './index.css'
 import Preloader from './components/Preloader'
-
 import ForgotPassword from './app/auth/ForgotPassword'
-
 import ChangePassword from './app/auth/ChangePassword'
 import PatientDashboard from './app/patient/PatientDashboard'
 import DoctorDashboard from './app/doctor/DoctorDashboard'
 import PendingDashboard from './app/shared/PendingDashboard'
-import DoctorVerification from './app/doctor/DoctorVerification.tsx'
+import DoctorVerification from './app/doctor/DoctorVerification'
 import AdminLogin from './app/admin/AdminLogin'
-import Legal from './app/Legal'
 import AdminDashboard from './app/admin/AdminDashboard'
-import { Toaster, toast } from 'react-hot-toast';
-import { api } from './services';
+import SuperAdminLogin from './app/admin/SuperAdminLogin'
+import SuperAdminDashboard from './app/admin/SuperAdminDashboard'
+import { api } from './services'
+import './index.css'
 
 function App() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [view, setView] = useState<'home' | 'login' | 'register' | 'forgot-password' | 'change-password' | 'patient-dashboard' | 'doctor-dashboard' | 'pending-dashboard' | 'doctor-verification' | 'admin-login' | 'admin-dashboard' | 'legal-privacy' | 'legal-terms'>(() => {
-    const path = window.location.pathname;
-    console.log('App Initializing with path:', path);
-    if (path === '/admin-login') return 'admin-login';
-    if (path === '/privacy') return 'legal-privacy';
-    if (path === '/terms') return 'legal-terms';
-    if (path === '/login') return 'login';
-    if (path === '/register') return 'register';
-    return 'home';
-  });
-
-  console.log('App Rendering View:', view);
-  const [userRole, setUserRole] = useState<'patient' | 'doctor' | 'nurse' | 'admin'>(() => {
+  const [userRole, setUserRole] = useState<'patient' | 'doctor' | 'nurse' | 'admin' | 'super-admin'>(() => {
     const savedRole = localStorage.getItem('userRole');
     return (savedRole as any) || 'patient';
   });
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -50,14 +43,11 @@ function App() {
         const response = await api.get('/user');
         setCurrentUser(response.data);
         setUserRole(response.data.role);
-        // We stay at 'home' as per user request: "starts from the homepage"
       } catch (error) {
         console.error('Session check failed:', error);
         localStorage.removeItem('token');
-        localStorage.removeItem('appView');
         localStorage.removeItem('userRole');
       } finally {
-        // Enforce a minimum loading time for better UX if it's too fast
         setTimeout(() => setLoading(false), 1000);
       }
     };
@@ -66,91 +56,53 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Only save the role, don't force-restore the view on reload anymore
     localStorage.setItem('userRole', userRole);
-  }, [view, userRole]);
+  }, [userRole]);
 
   useEffect(() => {
-    // Check for password reset token
+    // Handle password reset token
     const params = new URLSearchParams(window.location.search);
-    if (params.get('token') && window.location.pathname.includes('reset-password')) {
-      setView('change-password');
+    if (params.get('token') && location.pathname.includes('reset-password')) {
+      navigate('/reset-password' + window.location.search);
     }
 
-    // Check for email verification
+    // Handle email verification
     if (params.get('verified') === '1') {
       toast.success('Email verified successfully! Please login.');
-      setView('login');
-      // Clean URL
-      window.history.replaceState({}, document.title, '/login');
+      navigate('/login');
     }
+  }, [location, navigate]);
 
-    // Check for admin path
-    if (window.location.pathname === '/admin-login') {
-      setView('admin-login');
-    }
-
-    // Check for legal paths
-    if (window.location.pathname === '/privacy') {
-      setView('legal-privacy');
-    }
-    if (window.location.pathname === '/terms') {
-      setView('legal-terms');
-    }
-  }, []);
-
-  const handleLoginSuccess = (role: 'patient' | 'doctor' | 'nurse' | 'admin', isCompleted: boolean = true, isVerified: boolean = true, userData?: any) => {
+  const handleLoginSuccess = (role: 'patient' | 'doctor' | 'nurse' | 'admin' | 'super-admin', isCompleted: boolean = true, isVerified: boolean = true, userData?: any) => {
     setUserRole(role);
     if (userData) {
       setCurrentUser(userData);
     } else {
-      // Fetch user data if not provided (fallback)
       api.get('/user').then(res => setCurrentUser(res.data));
     }
 
-
-    // Check for incomplete profiles (Patient or Doctor who hasn't finished step 7)
-    // For Doctor, if !isCompleted, it means they have a User account but no Doctor record -> Send to Register
     if (!isCompleted) {
-      setView('register');
+      navigate('/register');
       toast('Please complete your profile registration.', { icon: '📝' });
       return;
     }
 
     if (role === 'patient') {
-      setView('patient-dashboard');
+      navigate('/patient/dashboard');
     } else if (role === 'doctor') {
       if (isVerified) {
-        setView('doctor-dashboard');
+        navigate('/doctor/dashboard');
       } else {
-        setView('pending-dashboard');
+        navigate('/pending-dashboard');
       }
     } else if (role === 'admin') {
-      setView('admin-dashboard');
+      navigate('/admin/dashboard');
+    } else if (role === 'super-admin') {
+      navigate('/super-admin/dashboard');
     } else {
-      setView('pending-dashboard');
+      navigate('/pending-dashboard');
     }
   };
-
-  const setAppView = (newView: typeof view, path: string = '/') => {
-    setView(newView);
-    window.history.pushState({}, '', path);
-  };
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname;
-      if (path === '/privacy') setView('legal-privacy');
-      else if (path === '/terms') setView('legal-terms');
-      else if (path === '/login') setView('login');
-      else if (path === '/register') setView('register');
-      else if (path === '/admin-login') setView('admin-login');
-      else setView('home');
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -159,10 +111,9 @@ function App() {
       console.error('Logout error:', error);
     }
     localStorage.removeItem('token');
-    localStorage.removeItem('appView');
     localStorage.removeItem('userRole');
     setCurrentUser(null);
-    setAppView('login', '/login');
+    navigate('/login');
   };
 
   if (loading) {
@@ -177,76 +128,82 @@ function App() {
           zIndex: 99999,
         }}
       />
-      {view === 'home' && (
-        <Homepage
-          user={currentUser}
-          onLoginClick={() => setAppView('login', '/login')}
-          onPrivacyClick={() => setAppView('legal-privacy', '/privacy')}
-          onTermsClick={() => setAppView('legal-terms', '/terms')}
-          onDashboardClick={() => {
-            if (userRole === 'patient') setView('patient-dashboard');
-            else if (userRole === 'doctor') {
-              // Check if verified/completed 
-              const isVerified = currentUser?.doctor?.is_verified; // Adjust based on API structure
-              if (isVerified === false) setView('pending-dashboard');
-              else setView('doctor-dashboard');
-            }
-            else if (userRole === 'admin') setView('admin-dashboard');
-            else setView('pending-dashboard');
-          }}
-        />
-      )}
-      {view === 'login' && (
-        <Login
-          onBack={() => setAppView('home')}
-          onRegisterClick={() => setAppView('register', '/register')}
-          onForgotPasswordClick={() => setView('forgot-password')}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      )}
-      {view === 'register' && (
-        <Register
-          onBack={() => setAppView('home')}
-          onLoginClick={() => setAppView('login', '/login')}
-          onPrivacyClick={() => setAppView('legal-privacy', '/privacy')}
-          onTermsClick={() => setAppView('legal-terms', '/terms')}
-          onRegisterSuccess={handleLoginSuccess}
-        />
-      )}
-      {view === 'legal-privacy' && (
-        <Legal initialTab="privacy" onBack={() => setAppView('home')} />
-      )}
-      {view === 'legal-terms' && (
-        <Legal initialTab="terms" onBack={() => setAppView('home')} />
-      )}
-      {view === 'forgot-password' && (
-        <ForgotPassword
-          onBack={() => setAppView('home')}
-          onLoginClick={() => setAppView('login', '/login')}
-        />
-      )}
-      {view === 'change-password' && (
-        <ChangePassword
-          onBack={() => setAppView('login', '/login')} // Or 'forgot-password' if preferred
-          onLoginClick={() => setAppView('login', '/login')}
-        />
-      )}
-      {view === 'patient-dashboard' && <PatientDashboard onLogout={handleLogout} />}
-      {view === 'doctor-dashboard' && <DoctorDashboard onLogout={handleLogout} />}
-      {view === 'doctor-verification' && <DoctorVerification onComplete={() => setView('pending-dashboard')} />}
-      {view === 'pending-dashboard' && (
-        <PendingDashboard
-          role={userRole as 'doctor' | 'nurse'}
-          onLogout={handleLogout}
-        />
-      )}
-      {view === 'admin-login' && (
-        <AdminLogin
-          onBack={() => setAppView('home')}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      )}
-      {view === 'admin-dashboard' && <AdminDashboard onLogout={handleLogout} />}
+      <Routes>
+        <Route path="/" element={
+          <Homepage
+            user={currentUser}
+            onLoginClick={() => navigate('/login')}
+            onDashboardClick={() => {
+              if (userRole === 'patient') navigate('/patient/dashboard');
+              else if (userRole === 'doctor') {
+                const isVerified = currentUser?.doctor?.is_verified;
+                if (isVerified === false) navigate('/pending-dashboard');
+                else navigate('/doctor/dashboard');
+              }
+              else if (userRole === 'admin') navigate('/admin/dashboard');
+              else if (userRole === 'super-admin') navigate('/super-admin/dashboard');
+              else navigate('/pending-dashboard');
+            }}
+          />
+        } />
+        <Route path="/login" element={
+          <Login
+            onBack={() => navigate('/')}
+            onRegisterClick={() => navigate('/register')}
+            onForgotPasswordClick={() => navigate('/forgot-password')}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        } />
+        <Route path="/register" element={
+          <Register
+            onBack={() => navigate('/')}
+            onLoginClick={() => navigate('/login')}
+            onRegisterSuccess={handleLoginSuccess}
+          />
+        } />
+        <Route path="/forgot-password" element={
+          <ForgotPassword
+            onBack={() => navigate('/')}
+            onLoginClick={() => navigate('/login')}
+          />
+        } />
+        <Route path="/reset-password" element={
+          <ChangePassword
+            onBack={() => navigate('/login')}
+            onLoginClick={() => navigate('/login')}
+          />
+        } />
+        
+        {/* Dashboards */}
+        <Route path="/patient/dashboard/*" element={<PatientDashboard onLogout={handleLogout} />} />
+        <Route path="/doctor/dashboard/*" element={<DoctorDashboard onLogout={handleLogout} />} />
+        <Route path="/doctor/verification" element={<DoctorVerification onComplete={() => navigate('/pending-dashboard')} />} />
+        <Route path="/pending-dashboard" element={
+          <PendingDashboard
+            role={(userRole === 'nurse' || userRole === 'doctor') ? userRole : 'doctor'}
+            onLogout={handleLogout}
+          />
+        } />
+        
+        <Route path="/admin-login" element={
+          <AdminLogin
+            onBack={() => navigate('/')}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        } />
+        <Route path="/admin/dashboard/*" element={<AdminDashboard onLogout={handleLogout} />} />
+        
+        <Route path="/super-admin-login" element={
+          <SuperAdminLogin
+            onBack={() => navigate('/')}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        } />
+        <Route path="/super-admin/dashboard/*" element={<SuperAdminDashboard onLogout={handleLogout} />} />
+        
+        {/* Catch all - Redirect to home or 404 */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   )
 }

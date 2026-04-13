@@ -48,21 +48,19 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, sidebarCollapsed,
                     paddingRight: '0'
                 }}
             >
-                <img src="/logo.png" alt="IDIBIA Med" style={{ height: sidebarCollapsed ? '32px' : '50px', objectFit: 'contain' }} />
+                <img src="/logo.png" alt="IDIBIA Med" style={{ height: '50px', objectFit: 'contain' }} />
 
                 <button
                     onClick={() => {
                         if (window.innerWidth >= 1024) {
                             if (setSidebarCollapsed) setSidebarCollapsed(!sidebarCollapsed);
                         } else {
-                            if (setSidebarOpen) setSidebarOpen(false);
+                            if (setSidebarOpen) setSidebarOpen(!sidebarOpen);
                         }
                     }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}
                 >
-                    {window.innerWidth < 1024 && sidebarOpen ? (
-                        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    ) : <Icons.Menu />}
+                    <Icons.Menu />
                 </button>
             </div>
 

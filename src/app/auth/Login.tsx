@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, WEB_URL } from '../../services';
-import { toast } from 'react-hot-toast';
+import { toast as _toast } from 'react-hot-toast';
+const toast: any = _toast;
 
 
 // Reusing Icons from index.tsx or defining locally for portability
@@ -57,12 +58,15 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
         const toastId = toast.loading('Logging in...');
 
         try {
+            console.log('Fetching CSRF cookie from:', WEB_URL);
             await api.get('/sanctum/csrf-cookie', { baseURL: WEB_URL });
+            console.log('CSRF cookie fetched. Attempting login for:', formData.email);
 
             const response = await api.post('/login', {
                 email: formData.email,
                 password: formData.password
             });
+            console.log('Login response received:', response.status);
 
             if (response.data.token) {
                 const userRole = response.data.user?.role;
@@ -241,6 +245,9 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
                             </button>
                         </form>
 
+                        <div style={{ marginTop: 'auto', paddingTop: '40px', textAlign: 'center' }}>
+                            <a href="/super-admin-login" style={{ fontSize: '10px', color: '#f1f5f9', opacity: 0.1, textDecoration: 'none' }}>.</a>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { api, WEB_URL } from '../../services';
 import { toast } from 'react-hot-toast';
 import FilePreview from '../../components/FilePreview';
@@ -8,22 +9,64 @@ import {
     LayoutDashboard, Users, UserRound, Calendar, CreditCard,
     Megaphone, MessageSquare, Settings, LogOut, Search,
     Eye, Trash2, Edit, AlertCircle, CheckCircle, XCircle,
-    MapPin, Droplet, FileText, UserCircle,
-    ChevronLeft, ChevronRight, Download
+    MapPin, Droplet, FileText, UserCircle, Download
 } from 'lucide-react';
+
+function StatCard({ title, value, sub, color, icon }: any) {
+    return (
+        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: `4px solid ${color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+                <h4 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</h4>
+                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b' }}>{value}</div>
+                {sub && <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '5px' }}>{sub}</div>}
+            </div>
+            <div style={{ background: `${color}15`, color: color, padding: '10px', borderRadius: '10px', display: 'flex' }}>
+                {icon}
+            </div>
+        </div>
+    );
+}
+
+function EmptyState({ title, message }: any) {
+    return (
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ color: '#cbd5e1', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                <AlertCircle size={48} />
+            </div>
+            <h3 style={{ color: '#1e293b', marginBottom: '10px' }}>{title}</h3>
+            <p style={{ color: '#64748b', maxWidth: '400px', margin: '0 auto' }}>{message}</p>
+        </div>
+    );
+}
 
 interface AdminDashboardProps {
     onLogout: () => void;
 }
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'doctors' | 'patients' | 'consultations' | 'payments' | 'updates' | 'settings' | 'support'>('overview');
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determine active tab from URL path
+    const getActiveTab = () => {
+        const path = location.pathname;
+        if (path.includes('/admin/dashboard/doctors')) return 'doctors';
+        if (path.includes('/admin/dashboard/patients')) return 'patients';
+        if (path.includes('/admin/dashboard/consultations')) return 'consultations';
+        if (path.includes('/admin/dashboard/payments')) return 'payments';
+        if (path.includes('/admin/dashboard/updates')) return 'updates';
+        if (path.includes('/admin/dashboard/support')) return 'support';
+        if (path.includes('/admin/dashboard/settings')) return 'settings';
+        return 'overview';
+    };
+
+    const activeTab = getActiveTab();
     const [stats, setStats] = useState({
         doctors: 0, updates: 0, tickets: 0, patients: 0,
         financials: { total_commissions: 0, wallet_balance: 0, recent_earnings: [] as any[] }
     });
+    // ... rest of previous state variables (maintained for logic) ...
     const [doctors, setDoctors] = useState<any[]>([]);
-    // ... rest of states ...
     const [patients, setPatients] = useState<any[]>([]);
     const [appointments, setAppointments] = useState<any[]>([]);
     const [updates, setUpdates] = useState<any[]>([]);
@@ -38,20 +81,23 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const [patientBloodFilter, setPatientBloodFilter] = useState('');
     const [patientCurrentPage, setPatientCurrentPage] = useState(1);
     const [patientItemsPerPage] = useState(10);
+    const [consultationSearch, setConsultationSearch] = useState('');
+    const [consultationStatusFilter, setConsultationStatusFilter] = useState('');
+    const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
     const [previewFile, setPreviewFile] = useState<{ url: string, name: string } | null>(null);
     const [showPostModal, setShowPostModal] = useState(false);
     const [managePost, setManagePost] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchData();
-    }, []);
-
-    useEffect(() => {
         if (selectedDoctor && selectedDoctor.doctor) {
             setPricingFee(selectedDoctor.doctor.consultation_fee || '0');
         }
     }, [selectedDoctor]);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const fetchData = async () => {
         try {
@@ -106,16 +152,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         }
     };
 
-    // Helper to construct file URL
     const getFileUrl = (path: string) => {
         if (!path) return '';
-        // If path is already a full URL, return it
         if (path.startsWith('http')) return path;
-
-        // Remove 'public/' prefix if present in the stored path (common in Laravel)
         const cleanPath = path.replace(/^public\//, '');
-
-        // Ensure no double slashes when joining
         const baseUrl = WEB_URL.endsWith('/') ? WEB_URL.slice(0, -1) : WEB_URL;
         return `${baseUrl}/storage/${cleanPath}`;
     };
@@ -149,10 +189,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             await api.post(`/support/${selectedTicket.id}/reply`, { message: replyMessage });
             toast.success('Reply sent', { id: toastId });
             setReplyMessage('');
-            // Refresh detailed view
             const res = await api.get(`/support/${selectedTicket.id}`);
             setSelectedTicket(res.data);
-            fetchData(); // Update list count
+            fetchData();
         } catch (e) {
             toast.error('Failed to send reply', { id: toastId });
         }
@@ -171,22 +210,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             toast.error('Failed to update status');
         }
     };
-
-    const SidebarItem = ({ id, icon, label }: { id: string, icon: any, label: string }) => (
-        <button
-            className={`admin-nav-item ${activeTab === id ? 'active' : ''}`}
-            onClick={() => setActiveTab(id as any)}
-            style={{
-                display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 15px',
-                background: activeTab === id ? 'rgba(255,255,255,0.1)' : 'transparent',
-                border: 'none', color: activeTab === id ? '#fff' : '#94a3b8',
-                cursor: 'pointer', borderRadius: '8px', marginBottom: '5px',
-                textAlign: 'left', fontSize: '0.95rem', transition: 'all 0.2s'
-            }}
-        >
-            {icon} {label}
-        </button>
-    );
 
     const exportPatientsToCSV = () => {
         if (patients.length === 0) return;
@@ -217,6 +240,456 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         a.click();
         document.body.removeChild(a);
     };
+
+    const handleTabChange = (tab: string) => {
+        const routeMap: Record<string, string> = {
+            'overview': '/admin/dashboard',
+            'doctors': '/admin/dashboard/doctors',
+            'patients': '/admin/dashboard/patients',
+            'consultations': '/admin/dashboard/consultations',
+            'payments': '/admin/dashboard/payments',
+            'updates': '/admin/dashboard/updates',
+            'support': '/admin/dashboard/support',
+            'settings': '/admin/dashboard/settings'
+        };
+        navigate(routeMap[tab] || '/admin/dashboard');
+    };
+
+    const SidebarItem = ({ id, icon, label }: { id: string, icon: any, label: string }) => (
+        <button
+            className={`admin-nav-item ${activeTab === id ? 'active' : ''}`}
+            onClick={() => handleTabChange(id)}
+            style={{
+                display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 15px',
+                background: activeTab === id ? 'rgba(255,255,255,0.1)' : 'transparent',
+                border: 'none', color: activeTab === id ? '#fff' : '#94a3b8',
+                cursor: 'pointer', borderRadius: '8px', marginBottom: '5px',
+                textAlign: 'left', fontSize: '0.95rem', transition: 'all 0.2s'
+            }}
+        >
+            {icon} {label}
+        </button>
+    );
+
+    // Filtered Views (extracted from original state-based logic)
+
+
+    const OverviewView = () => (
+        <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+            <StatCard title="Total Doctors" value={stats.doctors} color="#3b82f6" icon={<Users size={24} />} />
+            <StatCard title="Total Patients" value={stats.patients} color="#8b5cf6" icon={<UserRound size={24} />} />
+            <StatCard title="Platform Earnings" value={`₦${stats.financials.total_commissions.toLocaleString()}`} color="#f59e0b" icon={<CreditCard size={24} />} />
+            <StatCard title="Admin Wallet" value={`₦${stats.financials.wallet_balance.toLocaleString()}`} color="#10b981" icon={<Droplet size={24} />} />
+            <StatCard title="Open Tickets" value={stats.tickets} color="#e11d48" icon={<MessageSquare size={24} />} />
+        </div>
+    );
+    const AdminDoctorsView = ({ doctors, setSelectedDoctor }: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            {/* Pending Approvals */}
+            <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ color: '#d97706', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <AlertCircle size={20} /> Pending Approvals
+                </h3>
+                {doctors.filter((d: any) => d.doctor && d.doctor.status === 'pending_approval').length === 0 ? (
+                    <p style={{ color: '#94a3b8', marginTop: '10px' }}>No pending applications.</p>
+                ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+                        <thead>
+                            <tr style={{ background: '#fff7ed', textAlign: 'left' }}>
+                                <th style={{ padding: '12px', color: '#9a3412' }}>Name</th>
+                                <th style={{ padding: '12px', color: '#9a3412' }}>Details</th>
+                                <th style={{ padding: '12px', color: '#9a3412' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {doctors.filter((d: any) => d.doctor && d.doctor.status === 'pending_approval').map((doc: any) => (
+                                <tr key={doc.id} style={{ borderBottom: '1px solid #fed7aa' }}>
+                                    <td style={{ padding: '12px', color: '#334155' }}>
+                                        <div>{doc.name}</div>
+                                        <div style={{ fontSize: '12px', color: '#64748b' }}>{doc.email}</div>
+                                    </td>
+                                    <td style={{ padding: '12px', color: '#334155' }}>
+                                        <div>{doc.doctor?.specialty || 'General'}</div>
+                                        <div style={{ fontSize: '12px' }}>{doc.doctor?.license_number}</div>
+                                    </td>
+                                    <td style={{ padding: '12px', display: 'flex', gap: '10px' }}>
+                                        <button onClick={() => setSelectedDoctor(doc)} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}>
+                                            View Application
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            {/* Doctors Directory */}
+            <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <h3>Medical Professionals Directory</h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+                    <thead>
+                        <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Name</th>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Specialty</th>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Status</th>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {doctors.map((doc: any) => {
+                            const status = doc.doctor?.status || doc.status || 'Active';
+                            const isVerified = doc.doctor?.is_verified || doc.is_verified;
+                            return (
+                                <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '12px', color: '#334155' }}>
+                                        {doc.name || doc.user?.name}
+                                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{doc.email || doc.user?.email}</div>
+                                    </td>
+                                    <td style={{ padding: '12px', color: '#64748b' }}>{doc.specialty || doc.doctor?.specialty || 'N/A'}</td>
+                                    <td style={{ padding: '12px' }}>
+                                        <span style={{
+                                            background: status === 'active' || isVerified ? '#dcfce7' : status === 'pending_approval' ? '#fff7ed' : '#fee2e2',
+                                            color: status === 'active' || isVerified ? '#166534' : status === 'pending_approval' ? '#c2410c' : '#991b1b',
+                                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', textTransform: 'capitalize'
+                                        }}>{status === 'pending_approval' ? 'Pending' : status}</span>
+                                    </td>
+                                    <td style={{ padding: '12px' }}>
+                                        <button onClick={() => setSelectedDoctor(doc)} style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Eye size={14} /> View
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    const AdminPatientsView = ({ patients, setSelectedPatient }: any) => {
+        const filteredPatients = patients.filter((p: any) => {
+            const matchesSearch = !patientSearch || (p.name?.toLowerCase().includes(patientSearch.toLowerCase()) || p.email?.toLowerCase().includes(patientSearch.toLowerCase()) || p.patient?.phone?.includes(patientSearch));
+            const matchesGender = !patientGenderFilter || p.patient?.gender === patientGenderFilter;
+            const matchesBlood = !patientBloodFilter || p.patient?.blood_group === patientBloodFilter;
+            return matchesSearch && matchesGender && matchesBlood;
+        });
+        const totalPages = Math.ceil(filteredPatients.length / patientItemsPerPage);
+        const startIndex = (patientCurrentPage - 1) * patientItemsPerPage;
+        const paginatedPatients = filteredPatients.slice(startIndex, startIndex + patientItemsPerPage);
+
+        return (
+            <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+                    <h3 style={{ margin: 0 }}>Patient Directory <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>({filteredPatients.length} total)</span></h3>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button onClick={exportPatientsToCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', fontSize: '14px' }}>
+                            <Download size={16} /> Export CSV
+                        </button>
+                        <div style={{ position: 'relative' }}>
+                            <input type="text" placeholder="Search..." value={patientSearch} onChange={(e) => { setPatientSearch(e.target.value); setPatientCurrentPage(1); }} style={{ padding: '8px 12px 8px 35px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', width: '180px' }} />
+                            <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }} />
+                        </div>
+                        <select
+                            value={patientGenderFilter}
+                            onChange={(e) => { setPatientGenderFilter(e.target.value); setPatientCurrentPage(1); }}
+                            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#64748b' }}
+                        >
+                            <option value="">All Genders</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <select
+                            value={patientBloodFilter}
+                            onChange={(e) => { setPatientBloodFilter(e.target.value); setPatientCurrentPage(1); }}
+                            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#64748b' }}
+                        >
+                            <option value="">All Blood Types</option>
+                            {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(type => (
+                                <option key={type} value={type}>{type}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ padding: '12px', color: '#64748b' }}>Patient</th>
+                            <th style={{ padding: '12px', color: '#64748b' }}>Contact</th>
+                            <th style={{ padding: '12px', color: '#64748b' }}>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {paginatedPatients.map((p: any) => (
+                            <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '12px' }}>
+                                    <div style={{ fontWeight: '600' }}>{p.name}</div>
+                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{p.patient?.gender} • {p.patient?.blood_group}</div>
+                                </td>
+                                <td style={{ padding: '12px' }}>{p.email}</td>
+                                <td style={{ padding: '12px' }}>
+                                    <button onClick={() => setSelectedPatient(p)} style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                                        Details
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {/* Pagination Simplified For Component Cleanliness */}
+                {totalPages > 1 && (
+                    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                        <button disabled={patientCurrentPage === 1} onClick={() => setPatientCurrentPage(p => p - 1)} style={{ padding: '5px 10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>Prev</button>
+                        <span style={{ padding: '5px' }}>Page {patientCurrentPage} of {totalPages}</span>
+                        <button disabled={patientCurrentPage === totalPages} onClick={() => setPatientCurrentPage(p => p + 1)} style={{ padding: '5px 10px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>Next</button>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const AdminConsultationsView = ({ appointments }: any) => {
+        const filtered = appointments.filter((appt: any) => {
+            const matchesSearch = !consultationSearch || 
+                appt.doctor_name.toLowerCase().includes(consultationSearch.toLowerCase()) || 
+                appt.patient_name.toLowerCase().includes(consultationSearch.toLowerCase());
+            const matchesStatus = !consultationStatusFilter || appt.status === consultationStatusFilter;
+            return matchesSearch && matchesStatus;
+        });
+
+        const stats = {
+            total: appointments.length,
+            completed: appointments.filter((a: any) => a.status === 'completed').length,
+            pending: appointments.filter((a: any) => a.status === 'pending' || a.status === 'scheduled').length,
+            canceled: appointments.filter((a: any) => a.status === 'canceled').length,
+        };
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {/* Summary Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #3b82f6' }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Total Appointments</div>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '5px' }}>{stats.total}</div>
+                    </div>
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #10b981' }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Completed</div>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '5px' }}>{stats.completed}</div>
+                    </div>
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #f59e0b' }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Upcoming / Pending</div>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '5px' }}>{stats.pending}</div>
+                    </div>
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #ef4444' }}>
+                        <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Canceled</div>
+                        <div style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '5px' }}>{stats.canceled}</div>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', flex: 1, minWidth: '250px' }}>
+                        <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search by doctor or patient name..."
+                            value={consultationSearch}
+                            onChange={(e) => setConsultationSearch(e.target.value)}
+                            style={{ width: '100%', padding: '10px 10px 10px 40px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
+                        />
+                    </div>
+                    <select
+                        value={consultationStatusFilter}
+                        onChange={(e) => setConsultationStatusFilter(e.target.value)}
+                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '150px' }}
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="completed">Completed</option>
+                        <option value="canceled">Canceled</option>
+                    </select>
+                </div>
+
+                {/* Table */}
+                <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Date & Time</th>
+                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Doctor</th>
+                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Patient</th>
+                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Amount</th>
+                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Status</th>
+                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                        No consultations found matching your filters.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtered.map((appt: any) => (
+                                    <tr key={appt.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+                                        <td style={{ padding: '15px' }}>
+                                            <div style={{ fontWeight: '600', color: '#1e293b' }}>{new Date(appt.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                            <div style={{ fontSize: '12px', color: '#64748b' }}>{appt.time}</div>
+                                        </td>
+                                        <td style={{ padding: '15px' }}>
+                                            <div style={{ fontWeight: '500' }}>Dr. {appt.doctor_name}</div>
+                                        </td>
+                                        <td style={{ padding: '15px' }}>
+                                            <div>{appt.patient_name}</div>
+                                        </td>
+                                        <td style={{ padding: '15px' }}>
+                                            <div style={{ fontWeight: '600' }}>₦{appt.amount.toLocaleString()}</div>
+                                            <div style={{ fontSize: '10px', textTransform: 'uppercase', color: appt.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>{appt.payment_status}</div>
+                                        </td>
+                                        <td style={{ padding: '15px' }}>
+                                            <span style={{
+                                                padding: '5px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                                                background: 
+                                                    appt.status === 'completed' ? '#dcfce7' : 
+                                                    appt.status === 'canceled' ? '#fee2e2' : 
+                                                    appt.status === 'scheduled' ? '#e0f2fe' : '#fff7ed',
+                                                color: 
+                                                    appt.status === 'completed' ? '#166534' : 
+                                                    appt.status === 'canceled' ? '#991b1b' : 
+                                                    appt.status === 'scheduled' ? '#0369a1' : '#c2410c'
+                                            }}>{appt.status}</span>
+                                        </td>
+                                        <td style={{ padding: '15px' }}>
+                                            <button 
+                                                onClick={() => setSelectedAppointment(appt)}
+                                                style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                                            >
+                                                Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    const AdminPaymentsView = ({ stats }: any) => (
+        <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3>Platform Transactions</h3>
+                <div style={{ background: '#f0fdf4', color: '#166534', padding: '10px 20px', borderRadius: '10px', fontWeight: 'bold' }}>
+                    Total: ₦{stats.financials.total_commissions.toLocaleString()}
+                </div>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                    <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                        <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Date</th>
+                        <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Description</th>
+                        <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {stats.financials.recent_earnings.map((tx: any) => (
+                        <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '12px' }}>{tx.date}</td>
+                            <td style={{ padding: '12px' }}>{tx.description}</td>
+                            <td style={{ padding: '12px', fontWeight: '700', color: '#16a34a' }}>+₦{tx.amount.toLocaleString()}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+
+    const AdminUpdatesView = ({ updates, handleEdit, handleDelete, setShowModal }: any) => (
+        <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3>Health Updates</h3>
+                <button onClick={() => { handleEdit(null); setShowModal(true); }} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>
+                    Create Update
+                </button>
+            </div>
+            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {updates.map((post: any) => (
+                    <div key={post.id} style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h4 style={{ margin: 0 }}>{post.title}</h4>
+                            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>{post.category} • {post.author_name}</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => { handleEdit(post); setShowModal(true); }} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Edit size={14} /> Edit
+                            </button>
+                            <button onClick={() => handleDelete(post.id)} style={{ padding: '6px 12px', borderRadius: '6px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Trash2 size={14} /> Delete
+                            </button>
+                        </div>
+                    </div>
+                ))}
+                {updates.length === 0 && <EmptyState title="No Updates" message="Health updates and articles will appear here." />}
+            </div>
+        </div>
+    );
+
+    const AdminSupportView = ({ tickets, setSelectedTicket }: any) => (
+        <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <h3>Support Tickets</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+                <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                        <th style={{ padding: '12px', color: '#64748b' }}>User</th>
+                        <th style={{ padding: '12px', color: '#64748b' }}>Subject</th>
+                        <th style={{ padding: '12px', color: '#64748b' }}>Status</th>
+                        <th style={{ padding: '12px', color: '#64748b' }}>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {tickets.map((ticket: any) => (
+                        <tr key={ticket.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '12px' }}>{ticket.user?.name}</td>
+                            <td style={{ padding: '12px' }}>{ticket.subject}</td>
+                            <td style={{ padding: '12px' }}>
+                                <span style={{
+                                    padding: '4px 8px', borderRadius: '4px', fontSize: '11px',
+                                    background: ticket.status === 'open' ? '#dbeafe' : '#f1f5f9',
+                                    color: ticket.status === 'open' ? '#1e40af' : '#64748b'
+                                }}>{ticket.status}</span>
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                                <button onClick={async () => { const res = await api.get(`/support/${ticket.id}`); setSelectedTicket(res.data); }} style={{ color: '#3b82f6', background: 'none', border: '1px solid #3b82f6', padding: '4px 8px', borderRadius: '4px' }}>Open</button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+
+    const AdminSettingsView = () => (
+        <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '30px', maxWidth: '600px' }}>
+            <h3>System Settings</h3>
+            <div style={{ marginTop: '20px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px' }}>Support Email</label>
+                    <input type="email" value="support@dibia.com" disabled style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc' }} />
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#ef4444' }}>Settings are read-only in this version.</p>
+            </div>
+        </div>
+    );
+
+    if (loading) {
+        return <div style={{ textAlign: 'center', padding: '100px', color: '#64748b' }}>Loading Administrative Portal...</div>;
+    }
 
     return (
         <div className="admin-layout" style={{ display: 'flex', height: '100vh', background: '#f1f5f9' }}>
@@ -256,529 +729,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </header>
 
                 <div className="content-area" style={{ padding: '40px' }}>
-                    {loading ? (
-                        <div style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>Loading data...</div>
-                    ) : (
-                        <>
-                            {activeTab === 'overview' && (
-                                <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                                    <StatCard title="Total Doctors" value={stats.doctors} color="#3b82f6" icon={<Users size={24} />} />
-                                    <StatCard title="Total Patients" value={stats.patients} color="#8b5cf6" icon={<UserRound size={24} />} />
-                                    <StatCard title="Platform Earnings" value={`₦${stats.financials.total_commissions.toLocaleString()}`} color="#f59e0b" icon={<CreditCard size={24} />} />
-                                    <StatCard title="Admin Wallet" value={`₦${stats.financials.wallet_balance.toLocaleString()}`} color="#10b981" icon={<Droplet size={24} />} />
-                                    <StatCard title="Open Tickets" value={stats.tickets} color="#e11d48" icon={<MessageSquare size={24} />} />
-                                </div>
-                            )}
-
-                            {activeTab === 'doctors' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                                    {/* Pending Approvals Section */}
-                                    <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                        <h3 style={{ color: '#d97706', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <AlertCircle size={20} /> Pending Approvals
-                                        </h3>
-                                        {doctors.filter(d => d.status === 'pending_approval' || (d.doctor && d.doctor.status === 'pending_approval')).length === 0 ? (
-                                            <p style={{ color: '#94a3b8', marginTop: '10px' }}>No pending applications.</p>
-                                        ) : (
-                                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-                                                <thead>
-                                                    <tr style={{ background: '#fff7ed', textAlign: 'left' }}>
-                                                        <th style={{ padding: '12px', color: '#9a3412' }}>Name</th>
-                                                        <th style={{ padding: '12px', color: '#9a3412' }}>Details</th>
-                                                        <th style={{ padding: '12px', color: '#9a3412' }}>Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {doctors.filter(d => d.doctor && d.doctor.status === 'pending_approval').map(doc => (
-                                                        <tr key={doc.id} style={{ borderBottom: '1px solid #fed7aa' }}>
-                                                            <td style={{ padding: '12px', color: '#334155' }}>
-                                                                <div>{doc.name}</div>
-                                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{doc.email}</div>
-                                                            </td>
-                                                            <td style={{ padding: '12px', color: '#334155' }}>
-                                                                <div>{doc.doctor?.specialty || 'General'}</div>
-                                                                <div style={{ fontSize: '12px' }}>{doc.doctor?.license_number}</div>
-                                                            </td>
-                                                            <td style={{ padding: '12px', display: 'flex', gap: '10px' }}>
-                                                                <button
-                                                                    onClick={() => setSelectedDoctor(doc)}
-                                                                    style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}
-                                                                >
-                                                                    View Application
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        )}
-                                    </div>
-
-                                    {/* All Doctors List */}
-                                    <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                        <h3>Medical Professionals Directory</h3>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-                                            <thead>
-                                                <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Name</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Specialty</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Status</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {doctors.map(doc => {
-                                                    // Handle mixed response types (from Users table or Doctors table)
-                                                    const status = doc.doctor?.status || doc.status || 'Active';
-                                                    const isVerified = doc.doctor?.is_verified || doc.is_verified;
-
-                                                    return (
-                                                        <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                            <td style={{ padding: '12px', color: '#334155' }}>
-                                                                {doc.name || doc.user?.name}
-                                                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>{doc.email || doc.user?.email}</div>
-                                                            </td>
-                                                            <td style={{ padding: '12px', color: '#64748b' }}>{doc.specialty || doc.doctor?.specialty || 'N/A'}</td>
-                                                            <td style={{ padding: '12px' }}>
-                                                                <span style={{
-                                                                    background: status === 'active' || isVerified ? '#dcfce7' : status === 'pending_approval' ? '#fff7ed' : '#fee2e2',
-                                                                    color: status === 'active' || isVerified ? '#166534' : status === 'pending_approval' ? '#c2410c' : '#991b1b',
-                                                                    padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', textTransform: 'capitalize'
-                                                                }}>
-                                                                    {status === 'pending_approval' ? 'Pending' : status}
-                                                                </span>
-                                                            </td>
-                                                            <td style={{ padding: '12px' }}>
-                                                                <button
-                                                                    onClick={() => setSelectedDoctor(doc)}
-                                                                    style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                                                >
-                                                                    <Eye size={14} /> View
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                })}
-                                                {doctors.length === 0 && <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>No doctors found.</td></tr>}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'updates' && (
-                                <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3>Health Updates & Articles</h3>
-                                        <button
-                                            onClick={() => {
-                                                setManagePost(null);
-                                                setShowPostModal(true);
-                                            }}
-                                            style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Megaphone size={18} /> Create Health Update
-                                        </button>
-                                    </div>
-                                    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                        {updates.map(post => (
-                                            <div key={post.id} style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div>
-                                                    <h4 style={{ margin: '0 0 5px 0', color: '#1e293b' }}>{post.title} {post.is_featured ? '⭐' : ''}</h4>
-                                                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
-                                                        {new Date(post.created_at).toLocaleDateString()} • {post.category} • {post.author_name}
-                                                    </p>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button
-                                                        onClick={() => {
-                                                            setManagePost(post);
-                                                            setShowPostModal(true);
-                                                        }}
-                                                        style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                        <Edit size={14} /> Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeletePost(post.id)}
-                                                        style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                        <Trash2 size={14} /> Delete
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {updates.length === 0 && <p style={{ color: '#94a3b8', textAlign: 'center' }}>No updates available.</p>}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'support' && (
-                                <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                    <h3>Support Inquiries</h3>
-                                    <div style={{ marginTop: '20px' }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                            <thead>
-                                                <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
-                                                    <th style={{ padding: '12px', color: '#64748b' }}>User</th>
-                                                    <th style={{ padding: '12px', color: '#64748b' }}>Subject</th>
-                                                    <th style={{ padding: '12px', color: '#64748b' }}>Priority</th>
-                                                    <th style={{ padding: '12px', color: '#64748b' }}>Status</th>
-                                                    <th style={{ padding: '12px', color: '#64748b' }}>Date</th>
-                                                    <th style={{ padding: '12px', color: '#64748b' }}>Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {tickets.map(ticket => (
-                                                    <tr key={ticket.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                        <td style={{ padding: '12px', fontWeight: '500' }}>{ticket.user?.name}</td>
-                                                        <td style={{ padding: '12px' }}>{ticket.subject}</td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <span style={{
-                                                                padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize',
-                                                                background: ticket.priority === 'high' ? '#fecaca' : ticket.priority === 'medium' ? '#fed7aa' : '#e2e8f0',
-                                                                color: ticket.priority === 'high' ? '#991b1b' : ticket.priority === 'medium' ? '#9a3412' : '#475569'
-                                                            }}>{ticket.priority}</span>
-                                                        </td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <span style={{
-                                                                padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600', textTransform: 'capitalize',
-                                                                background: ticket.status === 'open' ? '#dbeafe' : ticket.status === 'resolved' ? '#dcfce7' : '#f1f5f9',
-                                                                color: ticket.status === 'open' ? '#1e40af' : ticket.status === 'resolved' ? '#166534' : '#64748b'
-                                                            }}>{ticket.status}</span>
-                                                        </td>
-                                                        <td style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>{new Date(ticket.created_at).toLocaleDateString()}</td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <button
-                                                                onClick={async () => {
-                                                                    const res = await api.get(`/support/${ticket.id}`);
-                                                                    setSelectedTicket(res.data);
-                                                                }}
-                                                                style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                                            >
-                                                                <MessageSquare size={14} /> Open
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {tickets.length === 0 && <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>No support tickets found.</td></tr>}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'patients' && (() => {
-                                // Filtering logic
-                                const filteredPatients = patients.filter(p => {
-                                    const matchesSearch = !patientSearch || (
-                                        p.name?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-                                        p.email?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-                                        p.patient?.phone?.includes(patientSearch)
-                                    );
-                                    const matchesGender = !patientGenderFilter || p.patient?.gender === patientGenderFilter;
-                                    const matchesBlood = !patientBloodFilter || p.patient?.blood_group === patientBloodFilter;
-                                    return matchesSearch && matchesGender && matchesBlood;
-                                });
-
-                                // Pagination logic
-                                const totalPages = Math.ceil(filteredPatients.length / patientItemsPerPage);
-                                const startIndex = (patientCurrentPage - 1) * patientItemsPerPage;
-                                const paginatedPatients = filteredPatients.slice(startIndex, startIndex + patientItemsPerPage);
-
-                                return (
-                                    <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-                                            <h3 style={{ margin: 0 }}>Patient Directory <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'normal' }}>({filteredPatients.length} total)</span></h3>
-                                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                                <button
-                                                    onClick={exportPatientsToCSV}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', fontSize: '14px' }}
-                                                >
-                                                    <Download size={16} /> Export CSV
-                                                </button>
-                                                <div style={{ position: 'relative' }}>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Search patients..."
-                                                        value={patientSearch}
-                                                        onChange={(e) => {
-                                                            setPatientSearch(e.target.value);
-                                                            setPatientCurrentPage(1);
-                                                        }}
-                                                        style={{
-                                                            padding: '8px 12px 8px 35px',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid #e2e8f0',
-                                                            fontSize: '14px',
-                                                            width: '200px',
-                                                            outline: 'none'
-                                                        }}
-                                                    />
-                                                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', display: 'flex' }}>
-                                                        <Search size={16} />
-                                                    </span>
-                                                </div>
-                                                <select
-                                                    value={patientGenderFilter}
-                                                    onChange={(e) => { setPatientGenderFilter(e.target.value); setPatientCurrentPage(1); }}
-                                                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#64748b' }}
-                                                >
-                                                    <option value="">All Genders</option>
-                                                    <option value="Male">Male</option>
-                                                    <option value="Female">Female</option>
-                                                    <option value="Other">Other</option>
-                                                </select>
-                                                <select
-                                                    value={patientBloodFilter}
-                                                    onChange={(e) => { setPatientBloodFilter(e.target.value); setPatientCurrentPage(1); }}
-                                                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', color: '#64748b' }}
-                                                >
-                                                    <option value="">All Blood Types</option>
-                                                    {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(type => (
-                                                        <option key={type} value={type}>{type}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div style={{ overflowX: 'auto' }}>
-                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                                <thead>
-                                                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
-                                                        <th style={{ padding: '12px', color: '#64748b' }}>Patient</th>
-                                                        <th style={{ padding: '12px', color: '#64748b' }}>Contact</th>
-                                                        <th style={{ padding: '12px', color: '#64748b' }}>Location</th>
-                                                        <th style={{ padding: '12px', color: '#64748b' }}>Health Profile</th>
-                                                        <th style={{ padding: '12px', color: '#64748b' }}>Joined</th>
-                                                        <th style={{ padding: '12px', color: '#64748b' }}>Action</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {paginatedPatients.map(p => (
-                                                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                            <td style={{ padding: '12px' }}>
-                                                                <div style={{ fontWeight: '600', color: '#1e293b' }}>{p.name}</div>
-                                                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>Gender: {p.patient?.gender || 'N/A'} • DOB: {p.patient?.dob || 'N/A'}</div>
-                                                            </td>
-                                                            <td style={{ padding: '12px' }}>
-                                                                <div style={{ fontSize: '14px' }}>{p.email}</div>
-                                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{p.patient?.phone || 'No phone'}</div>
-                                                            </td>
-                                                            <td style={{ padding: '12px' }}>
-                                                                <div style={{ fontSize: '13px' }}>{p.patient?.city || 'N/A'}, {p.patient?.state || 'N/A'}</div>
-                                                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>{p.patient?.country || 'Nigeria'}</div>
-                                                            </td>
-                                                            <td style={{ padding: '12px' }}>
-                                                                <div style={{ fontSize: '12px' }}>
-                                                                    <span style={{ fontWeight: '500' }}>Blood:</span> {p.patient?.blood_group || 'N/A'}
-                                                                </div>
-                                                                <div style={{ fontSize: '11px', color: '#ef4444' }}>
-                                                                    {p.patient?.conditions ? `Cond: ${p.patient.conditions}` : ''}
-                                                                </div>
-                                                            </td>
-                                                            <td style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>
-                                                                {new Date(p.created_at).toLocaleDateString()}
-                                                            </td>
-                                                            <td style={{ padding: '12px' }}>
-                                                                <button
-                                                                    onClick={() => setSelectedPatient(p)}
-                                                                    style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                                                >
-                                                                    <Eye size={14} /> Details
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {paginatedPatients.length === 0 && (
-                                                        <tr>
-                                                            <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                                                                No patients found matching your criteria.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        {/* Pagination Controls */}
-                                        {totalPages > 1 && (
-                                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
-                                                <div style={{ fontSize: '14px', color: '#64748b' }}>
-                                                    Showing {startIndex + 1} to {Math.min(startIndex + patientItemsPerPage, filteredPatients.length)} of {filteredPatients.length} entries
-                                                </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <button
-                                                        disabled={patientCurrentPage === 1}
-                                                        onClick={() => setPatientCurrentPage(p => p - 1)}
-                                                        style={{
-                                                            padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white',
-                                                            cursor: patientCurrentPage === 1 ? 'not-allowed' : 'pointer', opacity: patientCurrentPage === 1 ? 0.5 : 1,
-                                                            display: 'flex', alignItems: 'center'
-                                                        }}
-                                                    >
-                                                        <ChevronLeft size={16} />
-                                                    </button>
-                                                    {[...Array(totalPages)].map((_, i) => {
-                                                        const page = i + 1;
-                                                        // Show limited page numbers if too many
-                                                        if (totalPages > 7 && Math.abs(page - patientCurrentPage) > 2 && page !== 1 && page !== totalPages) return null;
-                                                        return (
-                                                            <button
-                                                                key={page}
-                                                                onClick={() => setPatientCurrentPage(page)}
-                                                                style={{
-                                                                    padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0',
-                                                                    background: patientCurrentPage === page ? '#3b82f6' : 'white',
-                                                                    color: patientCurrentPage === page ? 'white' : '#1e293b',
-                                                                    cursor: 'pointer', fontSize: '14px', fontWeight: patientCurrentPage === page ? '600' : 'normal'
-                                                                }}
-                                                            >
-                                                                {page}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                    <button
-                                                        disabled={patientCurrentPage === totalPages}
-                                                        onClick={() => setPatientCurrentPage(p => p + 1)}
-                                                        style={{
-                                                            padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white',
-                                                            cursor: patientCurrentPage === totalPages ? 'not-allowed' : 'pointer', opacity: patientCurrentPage === totalPages ? 0.5 : 1,
-                                                            display: 'flex', alignItems: 'center'
-                                                        }}
-                                                    >
-                                                        <ChevronRight size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })()}
-
-                            {activeTab === 'consultations' && (
-                                <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                    <h3>All Consultations</h3>
-                                    <div style={{ overflowX: 'auto', marginTop: '20px' }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                            <thead>
-                                                <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Date & Duration</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Doctor</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Patient</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Status</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Payment</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Earnings</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {appointments.map(appt => (
-                                                    <tr key={appt.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <div style={{ fontWeight: '500' }}>{appt.date}</div>
-                                                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>{appt.time} ({appt.duration || 30} mins)</div>
-                                                        </td>
-                                                        <td style={{ padding: '12px' }}>Dr. {appt.doctor_name}</td>
-                                                        <td style={{ padding: '12px' }}>{appt.patient_name}</td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <span style={{
-                                                                padding: '4px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600',
-                                                                background: appt.status === 'completed' ? '#dcfce7' : appt.status === 'ongoing' ? '#dbeafe' : appt.status === 'confirmed' ? '#e0e7ff' : '#f1f5f9',
-                                                                color: appt.status === 'completed' ? '#166534' : appt.status === 'ongoing' ? '#1e40af' : appt.status === 'confirmed' ? '#3730a3' : '#64748b'
-                                                            }}>
-                                                                {appt.status}
-                                                            </span>
-                                                        </td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            <span style={{
-                                                                color: appt.payment_status === 'paid' ? '#16a34a' : '#ea580c',
-                                                                fontWeight: '600', fontSize: '13px'
-                                                            }}>
-                                                                {appt.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
-                                                            </span>
-                                                            <div style={{ fontSize: '11px', color: '#64748b' }}>₦{appt.amount}</div>
-                                                        </td>
-                                                        <td style={{ padding: '12px' }}>
-                                                            {appt.earnings_distributed ? (
-                                                                <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
-                                                                    <CheckCircle size={14} /> Distributed
-                                                                </span>
-                                                            ) : (
-                                                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>Pending</span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {appointments.length === 0 && (
-                                                    <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>No consultations found.</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'payments' && (
-                                <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                        <h3 style={{ margin: 0 }}>Platform Transaction History</h3>
-                                        <div style={{ background: '#f0fdf4', color: '#166534', padding: '10px 20px', borderRadius: '10px', fontWeight: 'bold' }}>
-                                            Total Commissions: ₦{stats.financials.total_commissions.toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div style={{ overflowX: 'auto' }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                            <thead>
-                                                <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Date</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Reference</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Description</th>
-                                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Amount</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {stats.financials.recent_earnings.map((tx: any) => (
-                                                    <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                        <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>{tx.date}</td>
-                                                        <td style={{ padding: '12px', fontSize: '12px', color: '#64748b' }}>{tx.id}</td>
-                                                        <td style={{ padding: '12px', fontSize: '13px' }}>{tx.description}</td>
-                                                        <td style={{ padding: '12px', fontWeight: '700', color: '#16a34a' }}>+₦{tx.amount.toLocaleString()}</td>
-                                                    </tr>
-                                                ))}
-                                                {stats.financials.recent_earnings.length === 0 && (
-                                                    <tr>
-                                                        <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                                                            No transactions found. Earnings will appear here as consultations are paid.
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'settings' && (
-                                <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '30px', maxWidth: '600px' }}>
-                                    <h3>System Settings</h3>
-                                    <div style={{ marginTop: '20px' }}>
-                                        <div style={{ marginBottom: '20px' }}>
-                                            <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px' }}>Maintenance Mode</label>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{ width: '40px', height: '20px', background: '#e2e8f0', borderRadius: '10px', position: 'relative' }}>
-                                                    <div style={{ width: '18px', height: '18px', background: 'white', borderRadius: '50%', position: 'absolute', top: '1px', left: '1px', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }}></div>
-                                                </div>
-                                                <span style={{ color: '#64748b' }}>Disabled</span>
-                                            </div>
-                                        </div>
-                                        <div style={{ marginBottom: '20px' }}>
-                                            <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px' }}>Support Contact Email</label>
-                                            <input type="email" value="support@dibia.com" disabled style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc' }} />
-                                        </div>
-                                        <p style={{ fontSize: '0.8rem', color: '#ef4444', marginTop: '30px' }}>Note: Settings are read-only in this version.</p>
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
+                    <Routes>
+                        <Route path="/" element={<OverviewView />} />
+                        <Route path="/doctors" element={<AdminDoctorsView doctors={doctors} setSelectedDoctor={setSelectedDoctor} />} />
+                        <Route path="/patients" element={<AdminPatientsView patients={patients} setSelectedPatient={setSelectedPatient} />} />
+                        <Route path="/consultations" element={<AdminConsultationsView appointments={appointments} />} />
+                        <Route path="/payments" element={<AdminPaymentsView stats={stats} />} />
+                        <Route path="/updates" element={<AdminUpdatesView updates={updates} handleEdit={setManagePost} handleDelete={handleDeletePost} setShowModal={setShowPostModal} />} />
+                        <Route path="/support" element={<AdminSupportView tickets={tickets} setSelectedTicket={setSelectedTicket} />} />
+                        <Route path="/settings" element={<AdminSettingsView />} />
+                        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                    </Routes>
                 </div>
+
+                </main>
+
+                {/* Modals outside main for cleaner stacking */}
 
                 {/* Doctor Details Modal */}
                 {selectedDoctor && (
@@ -1035,6 +1001,90 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )
                 }
 
+                {/* Appointment Details Modal */}
+                {selectedAppointment && (
+                    <div style={{
+                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+                    }}>
+                        <div style={{
+                            background: 'white', width: '90%', maxWidth: '500px', borderRadius: '16px', padding: '30px', position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
+                        }}>
+                            <button
+                                onClick={() => setSelectedAppointment(null)}
+                                style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#94a3b8' }}
+                            >
+                                &times;
+                            </button>
+
+                            <h2 style={{ fontSize: '22px', fontWeight: 'bold', marginBottom: '25px', color: '#1e293b' }}>
+                                Consultation Details
+                            </h2>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '15px', borderBottom: '1px solid #f1f5f9' }}>
+                                    <span style={{ color: '#64748b' }}>Status</span>
+                                    <span style={{
+                                        padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase',
+                                        background: selectedAppointment.status === 'completed' ? '#dcfce7' : '#fef2f2',
+                                        color: selectedAppointment.status === 'completed' ? '#166534' : '#ef4444'
+                                    }}>{selectedAppointment.status}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>Date</span>
+                                    <span style={{ fontWeight: '600' }}>{new Date(selectedAppointment.date).toLocaleDateString()}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>Time</span>
+                                    <span style={{ fontWeight: '600' }}>{selectedAppointment.time} ({selectedAppointment.duration} mins)</span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>Doctor</span>
+                                    <span style={{ fontWeight: '600' }}>Dr. {selectedAppointment.doctor_name}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>Patient</span>
+                                    <span style={{ fontWeight: '600' }}>{selectedAppointment.patient_name}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
+                                    <span style={{ color: '#64748b' }}>Amount Paid</span>
+                                    <span style={{ fontWeight: '700', fontSize: '18px' }}>₦{selectedAppointment.amount.toLocaleString()}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748b' }}>Payment Status</span>
+                                    <span style={{ fontWeight: '600', color: selectedAppointment.payment_status === 'paid' ? '#10b981' : '#f59e0b', textTransform: 'capitalize' }}>{selectedAppointment.payment_status}</span>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
+                                <button
+                                    onClick={() => setSelectedAppointment(null)}
+                                    style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontWeight: '600', cursor: 'pointer' }}
+                                >
+                                    Close
+                                </button>
+                                {selectedAppointment.status !== 'completed' && selectedAppointment.status !== 'canceled' && (
+                                    <button
+                                        onClick={() => {
+                                            if(confirm('Are you sure you want to cancel this appointment?')) {
+                                                toast.error("Cancellation feature for admins is not yet linked to backend.");
+                                            }
+                                        }}
+                                        style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#991b1b', fontWeight: '600', cursor: 'pointer' }}
+                                    >
+                                        Cancel Appt
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Ticket Details Modal */}
                 {selectedTicket && createPortal(
                     <div style={{
@@ -1139,45 +1189,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     document.body
                 )}
 
-                {/* File Preview Modal */}
-                {
-                    previewFile && (
-                        <FilePreview
-                            fileUrl={previewFile.url}
-                            fileName={previewFile.name}
-                            onClose={() => setPreviewFile(null)}
-                        />
-                    )
-                }
+            {/* File Preview Modal */}
+            {previewFile && (
+                <FilePreview
+                    fileUrl={previewFile.url || ''}
+                    fileName={previewFile.name || 'document'}
+                    onClose={() => setPreviewFile(null)}
+                />
+            )}
 
-                {/* Create/Edit Post Modal */}
-                {showPostModal && (
-                    <CreatePostModal
-                        post={managePost}
-                        onClose={() => setShowPostModal(false)}
-                        onSuccess={() => {
-                            fetchData();
-                        }}
-                    />
-                )}
-            </main >
-        </div >
-    );
-}
-
-function StatCard({ title, value, sub, color, icon }: any) {
-    return (
-        <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: `4px solid ${color}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-                <h4 style={{ margin: '0 0 10px 0', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{title}</h4>
-                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b' }}>{value}</div>
-                {sub && <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '5px' }}>{sub}</div>}
-            </div>
-            <div style={{ background: `${color}15`, color: color, padding: '10px', borderRadius: '10px', display: 'flex' }}>
-                {icon}
-            </div>
+            {/* Create/Edit Post Modal */}
+            {showPostModal && (
+                <CreatePostModal
+                    post={managePost}
+                    onClose={() => setShowPostModal(false)}
+                    onSuccess={() => {
+                        fetchData();
+                    }}
+                />
+            )}
         </div>
     );
 }
-
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { toast as _toast } from 'react-hot-toast';
+const toast: any = _toast;
 import { api } from '../../services';
 
 // Icons

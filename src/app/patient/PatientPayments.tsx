@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { toast as _toast } from 'react-hot-toast';
+const toast: any = _toast;
 import { api } from '../../services';
 import Preloader from '../../components/Preloader';
 
@@ -207,6 +208,14 @@ export default function PatientPayments() {
         }
     };
 
+    const getStatusStyle = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'success': return { color: '#059669', border: '1px solid #059669', background: 'white' };
+            case 'pending': return { color: '#d97706', border: '1px solid #d97706', background: '#fffbeb' };
+            case 'failed': return { color: '#dc2626', border: '1px solid #dc2626', background: 'white' };
+            default: return {};
+        }
+    };
 
     if (loading) {
         return <Preloader />;
@@ -215,21 +224,21 @@ export default function PatientPayments() {
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
             {/* Header */}
-            <div className="payment-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', gap: '16px', flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Payments & Wallet</h2>
+            <div className="payment-header">
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a' }}>Payments & Wallet</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '14px', background: '#f8fafc', padding: '6px 12px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', background: '#e2e8f0', borderRadius: '50%' }}><Icons.Lock /></span> Secured by <strong style={{ color: '#0f172a' }}>Paystack</strong>
                 </div>
             </div>
 
             {/* Top Cards Row */}
-            <div className="payment-cards-row" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', marginBottom: '32px' }}>
+            <div className="payment-grid">
 
                 {/* Wallet Balance Card */}
                 <div style={{
-                    background: '#0ea5e9',
+                    background: '#0ea5e9', // Fallback
                     backgroundImage: 'linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%)',
-                    borderRadius: '24px',
+                    borderRadius: '16px',
                     padding: '32px',
                     color: 'white',
                     position: 'relative',
@@ -237,8 +246,7 @@ export default function PatientPayments() {
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    minHeight: '220px',
-                    boxShadow: '0 10px 15px -3px rgba(14, 165, 233, 0.2)'
+                    minHeight: '220px'
                 }}>
                     {/* Decor circles */}
                     <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '200px', height: '200px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '50%' }}></div>
@@ -261,27 +269,46 @@ export default function PatientPayments() {
                         </button>
                     </div>
 
-                    <div className="wallet-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', position: 'relative', zIndex: 10 }}>
+                    <div className="wallet-actions">
                         <button
                             onClick={() => setShowTopUpModal(true)}
-                            className="btn-wallet-primary"
+                            style={{
+                                background: 'white', color: '#0ea5e9',
+                                border: 'none', padding: '12px 24px', borderRadius: '8px',
+                                fontWeight: '600', fontSize: '15px', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '8px'
+                            }}
                         >
                             <Icons.Plus /> Top Up Wallet
                         </button>
-                        <button className="btn-wallet-outline">
+                        <button style={{
+                            background: 'rgba(255,255,255,0.15)', color: 'white',
+                            border: '1px solid rgba(255,255,255,0.3)', padding: '12px 24px', borderRadius: '8px',
+                            fontWeight: '500', fontSize: '15px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '8px'
+                        }}>
                             <Icons.ArrowUpRight /> Withdraw / Refund
                         </button>
                     </div>
                 </div>
 
                 {/* Insurance Card */}
-                <div className="insurance-card">
-                    <div className="insurance-icon-box">
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <div style={{ width: '48px', height: '48px', background: '#f1f5f9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', marginBottom: '16px' }}>
                         <Icons.Shield />
                     </div>
-                    <h3>Health Insurance</h3>
-                    <p>Link your HMO (AXA, Hygeia) to pay for consultations automatically.</p>
-                    <button className="btn-link-hmo">
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', marginBottom: '8px' }}>Health Insurance</h3>
+                    <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', marginBottom: '24px' }}>
+                        Link your HMO (AXA, Hygeia) to pay for consultations automatically.
+                    </p>
+                    <button style={{
+                        width: '100%',
+                        background: '#0284c7', color: 'white',
+                        border: 'none', padding: '12px', borderRadius: '8px',
+                        fontWeight: '600', fontSize: '15px', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        marginTop: 'auto'
+                    }}>
                         <Icons.Link /> Link Provider
                     </button>
                 </div>
@@ -293,53 +320,56 @@ export default function PatientPayments() {
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Transaction History</h3>
                 </div>
 
-                <div className="table-responsive-wrapper">
-                    <table className="trans-table">
-                        <thead>
+                <div className="table-responsive">
+                    <table className="trans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                             <tr>
-                                <th>Transaction Date</th>
-                                <th>Details & Description</th>
-                                <th>Method</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'right' }}>Amount</th>
-                                <th style={{ textAlign: 'right' }}>Action</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Transaction Date</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Details & Description</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Method</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Status</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'right', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Amount</th>
+                                <th style={{ padding: '16px 32px', textAlign: 'right', color: '#64748b', fontWeight: '600', fontSize: '14px' }}>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {transactions.map(t => (
-                                <tr key={t.id}>
-                                    <td style={{ color: '#94a3b8', fontSize: '13px' }}>
+                                <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9', position: 'relative' }}>
+                                    <td style={{ padding: '20px 32px', color: '#94a3b8', fontSize: '14px' }}>
                                         <div>{new Date(t.created_at || t.date).toLocaleDateString()}</div>
-                                        <div style={{ fontSize: '11px' }}>{new Date(t.created_at || t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div style={{ fontSize: '12px' }}>{new Date(t.created_at || t.date).toLocaleTimeString()}</div>
                                     </td>
-                                    <td>
-                                        <div className="trans-desc">
-                                            <div className={`trans-arrow ${t.type === 'debit' ? 'debit' : 'credit'}`}>
-                                                {t.type === 'debit' ? '↑' : '↓'}
-                                            </div>
+                                    <td style={{ padding: '20px 32px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#334155', fontWeight: '500', fontSize: '14px' }}>
+                                            <span style={{ color: '#94a3b8' }}>
+                                                {t.type === 'debit' ? <Icons.ArrowUpRight /> : <Icons.ArrowDownLeft />}
+                                            </span>
                                             <div>
-                                                <div style={{ fontWeight: '600' }}>{t.desc || 'Transaction'}</div>
+                                                <div>{t.desc || 'Transaction'}</div>
                                                 <div style={{ fontSize: '12px', color: '#64748b' }}>Ref: {t.reference || t.id}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td style={{ color: '#64748b', fontSize: '13px' }}>{t.method}</td>
-                                    <td>
-                                        <span className={`status-badge status-${t.status.toLowerCase()}`}>
+                                    <td style={{ padding: '20px 32px', color: '#64748b', fontSize: '14px' }}>{t.method}</td>
+                                    <td style={{ padding: '20px 32px' }}>
+                                        <span style={{
+                                            ...getStatusStyle(t.status),
+                                            padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600'
+                                        }}>
                                             {t.status}
                                         </span>
                                     </td>
-                                    <td style={{ textAlign: 'right', fontWeight: '700', fontSize: '14px' }}>
-                                        {t.type === 'credit' ? '+' : '-'} ₦{parseFloat(t.amount).toLocaleString()}
+                                    <td style={{ padding: '20px 32px', textAlign: 'right', fontWeight: '700', fontSize: '14px', color: t.type === 'credit' ? '#0f172a' : '#0f172a' }}>
+                                        {t.type === 'credit' ? '+' : '-'} ₦{t.amount}
                                     </td>
-                                    <td style={{ textAlign: 'right' }}>
+                                    <td style={{ padding: '20px 32px', textAlign: 'right' }}>
                                         <div style={{ position: 'relative' }}>
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setActiveActionId(activeActionId === t.id ? null : t.id);
                                                 }}
-                                                className="btn-icon-dots"
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
                                             >
                                                 <Icons.Dots />
                                             </button>
@@ -350,9 +380,9 @@ export default function PatientPayments() {
                                                     ref={actionMenuRef}
                                                     style={{
                                                         position: 'absolute', right: '0', top: '100%',
-                                                        background: 'white', borderRadius: '12px',
+                                                        background: 'white', borderRadius: '8px',
                                                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                                        border: '1px solid #e2e8f0', zIndex: 100,
+                                                        border: '1px solid #e2e8f0', zIndex: 50,
                                                         width: '180px', overflow: 'hidden',
                                                         textAlign: 'left'
                                                     }}
@@ -371,7 +401,7 @@ export default function PatientPayments() {
                                                         display: 'flex', alignItems: 'center', gap: '10px',
                                                         width: '100%', padding: '12px 16px', background: 'white',
                                                         border: 'none', cursor: 'pointer',
-                                                        color: '#dc2626', fontSize: '14px', fontWeight: '500'
+                                                        color: '#94a3b8', fontSize: '14px', fontWeight: '500'
                                                     }}>
                                                         <Icons.Flag /> Report Issue
                                                     </button>

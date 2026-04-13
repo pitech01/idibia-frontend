@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import { api } from '../../services';
+import WebRTCCall from '../../components/WebRTCCall';
 
 const Icons = {
     Video: () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
@@ -16,9 +17,6 @@ interface User {
     name: string;
     email: string;
     role: string;
-    doctor?: {
-        specialty: string;
-    };
 }
 
 interface Appointment {
@@ -30,13 +28,13 @@ interface Appointment {
     appointment_date: string;
     start_time: string;
     end_time: string;
-    status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'pending_payment';
+    status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
     payment_status: 'unpaid' | 'paid';
     amount: number;
     type: 'video' | 'in-person';
     meeting_link?: string;
     reason?: string;
-    iso_start_time: string;
+    iso_start_time?: string;
 }
 
 interface AppointmentsProps {
@@ -49,9 +47,13 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
     const [activeTab, setActiveTab] = useState('upcoming');
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<any>(null);
+    const [showWebRTCCall, setShowWebRTCCall] = useState(false);
+    const [activeCallAppointment, setActiveCallAppointment] = useState<any>(null);
 
     useEffect(() => {
         fetchAppointments();
+        fetchUser();
 
         // Handle Paystack Verification Redirect
         const params = new URLSearchParams(window.location.search);
@@ -60,6 +62,15 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
             handleVerifyPayment(verifyRef);
         }
     }, []);
+
+    const fetchUser = async () => {
+        try {
+            const { data } = await api.get('/user');
+            setUser(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const handleVerifyPayment = async (ref: string) => {
         const toastId = toast.loading('Verifying appointment payment...');
@@ -125,34 +136,58 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
         }
     };
 
-    const handleJoinRoom = (link?: string) => {
-        if (link) {
-            window.open(link, '_blank');
-        } else {
-            toast.error("No meeting link available yet.");
-        }
+    const handleJoinWaitRoom = (appt: any) => {
+        setActiveCallAppointment(appt);
+        setShowWebRTCCall(true);
     };
 
     // Filter Logic
     const now = new Date();
-    const upcomingAppointments = appointments.filter(appt =>
-        !appt.status.startsWith('cancelled') &&
-        appt.status !== 'completed' &&
-        new Date(appt.iso_start_time) >= now
-    );
+    const upcomingAppointments = appointments.filter(appt => {
+        const status = appt.status.toLowerCase();
+        if (status.includes('cancelled') || status === 'completed') return false;
+        
+        // If it's explicitly ongoing, it's upcoming
+        if (status === 'ongoing') return true;
 
-    const pastAppointments = appointments.filter(appt =>
-        appt.status === 'completed' ||
-        (!appt.status.startsWith('cancelled') && new Date(appt.iso_start_time) < now)
-    );
+        const apptTime = new Date(appt.iso_start_time || (appt.appointment_date.split(' ')[0] + ' ' + appt.start_time));
+        
+        // Keep in upcoming if it's in the future OR it started within the last 4 hours (grace period)
+        const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+        return apptTime >= fourHoursAgo;
+    });
 
-    const cancelledAppointments = appointments.filter(appt => appt.status.startsWith('cancelled'));
+    const pastAppointments = appointments.filter(appt => {
+        const status = appt.status.toLowerCase();
+        if (status === 'completed') return true;
+        if (status.includes('cancelled')) return false;
+
+        const apptTime = new Date(appt.iso_start_time || (appt.appointment_date.split(' ')[0] + ' ' + appt.start_time));
+        const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+        
+        return apptTime < fourHoursAgo;
+    });
+
+    const cancelledAppointments = appointments.filter(appt => appt.status.includes('cancelled'));
 
     const heroAppointment = upcomingAppointments[0];
     const otherUpcoming = upcomingAppointments.slice(1);
 
     return (
         <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px', position: 'relative', minHeight: '80vh' }}>
+            {showWebRTCCall && activeCallAppointment && (
+                <WebRTCCall
+                    appointmentId={activeCallAppointment.id}
+                    userId={user?.id}
+                    userName={user?.name || 'Patient'}
+                    receiverId={activeCallAppointment.doctor_id}
+                    isDoctor={false}
+                    onClose={() => {
+                        setShowWebRTCCall(false);
+                        setActiveCallAppointment(null);
+                    }}
+                />
+            )}
 
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -222,10 +257,10 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                 {/* Left: Time & Date */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '120px' }}>
                                     <span style={{ fontSize: '36px', fontWeight: '800', color: '#0f172a', lineHeight: '1' }}>
-                                        {new Date(heroAppointment.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {heroAppointment.start_time.substring(0, 5)}
                                     </span>
                                     <span style={{ fontSize: '14px', fontWeight: '500', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Icons.Calendar /> {new Date(heroAppointment.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        <Icons.Calendar /> {new Date(heroAppointment.appointment_date).toDateString()}
                                     </span>
                                 </div>
 
@@ -243,30 +278,67 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
 
                             {/* Right: Actions */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginTop: '20px' }}>
-                                <button
-                                    onClick={() => handleStartChat(heroAppointment.id)}
-                                    style={{ background: 'transparent', border: '1px solid #2E37A4', color: '#2E37A4', padding: '11px 24px', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-                                    Chat Doctor
-                                </button>
-                                <button
-                                    onClick={() => handleCancel(heroAppointment.id)}
-                                    style={{ background: 'transparent', border: 'none', color: '#ef4444', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-                                    Cancel
-                                </button>
-                                {heroAppointment.payment_status === 'unpaid' && (
-                                    <button
-                                        onClick={() => handlePay(heroAppointment.id)}
-                                        style={{ background: '#16a34a', color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                                        Pay Consultation Fee (₦{heroAppointment.amount.toLocaleString()})
-                                    </button>
-                                )}
-                                {heroAppointment.payment_status === 'paid' && heroAppointment.type === 'video' && (
-                                    <button
-                                        onClick={() => handleJoinRoom(heroAppointment.meeting_link)}
-                                        style={{ background: '#2E37A4', color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                                        Join Waiting Room
-                                    </button>
-                                )}
+                                {(() => {
+                                    const apptTime = new Date(heroAppointment.iso_start_time || "");
+                                    const isTooEarly = new Date() < apptTime;
+                                    const status = heroAppointment.status as any;
+                                    return (
+                                        <>
+                                            <button
+                                                onClick={() => handleStartChat(heroAppointment.id)}
+                                                disabled={isTooEarly}
+                                                style={{ 
+                                                    background: 'transparent', 
+                                                    border: isTooEarly ? '1px solid #cbd5e1' : '1px solid #2E37A4', 
+                                                    color: isTooEarly ? '#94a3b8' : '#2E37A4', 
+                                                    padding: '11px 24px', borderRadius: '12px', fontWeight: '600', 
+                                                    cursor: isTooEarly ? 'not-allowed' : 'pointer', fontSize: '14px' 
+                                                }}
+                                                title={isTooEarly ? `Chat available at ${heroAppointment.start_time}` : ""}
+                                            >
+                                                Chat Doctor
+                                            </button>
+                                            <button
+                                                onClick={() => handleCancel(heroAppointment.id)}
+                                                style={{ background: 'transparent', border: 'none', color: '#ef4444', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
+                                                Cancel
+                                            </button>
+                                            {heroAppointment.payment_status === 'unpaid' && (
+                                                <button
+                                                    onClick={() => handlePay(heroAppointment.id)}
+                                                    style={{ background: '#16a34a', color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                                    Pay (₦{heroAppointment.amount.toLocaleString()})
+                                                </button>
+                                            )}
+                                            {heroAppointment.payment_status === 'paid' && status === 'confirmed' && (
+                                                <button
+                                                    onClick={() => handleJoinWaitRoom(heroAppointment)}
+                                                    disabled={isTooEarly}
+                                                    style={{ 
+                                                        background: isTooEarly ? '#94a3b8' : '#2E37A4', 
+                                                        color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', 
+                                                        fontWeight: '600', cursor: isTooEarly ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' 
+                                                    }}
+                                                    title={isTooEarly ? `Available at ${heroAppointment.start_time}` : ""}
+                                                >
+                                                    {isTooEarly ? `Starts at ${heroAppointment.start_time.substring(0, 5)}` : (heroAppointment.type === 'video' ? 'Join Waiting Room' : 'Check-in')}
+                                                </button>
+                                            )}
+                                            {status === 'ongoing' && (
+                                                <button
+                                                    onClick={() => handleJoinWaitRoom(heroAppointment)}
+                                                    style={{ 
+                                                        background: '#16a34a', 
+                                                        color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', 
+                                                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' 
+                                                    }}
+                                                >
+                                                    {heroAppointment.type === 'video' ? 'Re-join Call' : 'Enter Consultation'}
+                                                </button>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
                     )}
@@ -275,32 +347,34 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                     {otherUpcoming.length > 0 && (
                         <div>
                             <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>Future Appointments</h3>
-                            <div className="appointments-grid">
-                                {upcomingAppointments.slice(1).map(appt => (
-                                    <div key={appt.id} className="dash-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2E37A4' }}>
-                                                    <Icons.Calendar />
-                                                </div>
-                                                <div>
-                                                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700' }}>{appt.doctor?.name}</h4>
-                                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{appt.doctor?.doctor?.specialty}</p>
-                                                </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {otherUpcoming.map(appt => (
+                                    <div key={appt.id} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px',
+                                        background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0'
+                                    }}>
+                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                            <div style={{ width: '48px', height: '48px', background: appt.type === 'video' ? '#EEF2FF' : '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: appt.type === 'video' ? '#2E37A4' : '#64748b', border: '1px solid #f1f5f9' }}>
+                                                {appt.type === 'video' ? <Icons.Video /> : <Icons.MapPin />}
                                             </div>
-                                            <span className={`status-badge status-${appt.status}`}>{appt.status.replace(/_/g, ' ')}</span>
+                                            <div>
+                                                <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px' }}>{appt.doctor?.name}</h4>
+                                                <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                            </div>
                                         </div>
-                                        <div style={{ fontSize: '13px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <span style={{ fontWeight: '600', color: '#1e2894' }}>
-                                                {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            <span>{appt.type === 'video' ? '💻 Video Consultation' : '🏥 In-person Visit'}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                                            <button onClick={() => handleStartChat(appt.id)} className="btn-secondary-light" style={{ flex: 1, padding: '8px' }}>Chat</button>
-                                            {appt.status === 'pending_payment' && (
-                                                <button onClick={() => handlePay(appt.id)} className="btn-primary-dark" style={{ flex: 1, padding: '8px' }}>Pay ₦{appt.amount.toLocaleString()}</button>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            {appt.payment_status === 'unpaid' && (
+                                                <button
+                                                    onClick={() => handlePay(appt.id)}
+                                                    style={{ background: '#dcfce7', color: '#166534', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
+                                                >
+                                                    Pay ₦{appt.amount.toLocaleString()}
+                                                </button>
                                             )}
+                                            {appt.payment_status === 'paid' && (
+                                                <span style={{ color: '#16a34a', fontSize: '13px', fontWeight: '600' }}>Paid</span>
+                                            )}
+                                            <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Cancel</button>
                                         </div>
                                     </div>
                                 ))}
@@ -326,9 +400,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     </div>
                                     <div>
                                         <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px' }}>{appt.doctor?.name}</h4>
-                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
-                                            {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
                                     </div>
                                 </div>
                                 <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>Completed</span>
@@ -354,9 +426,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     </div>
                                     <div>
                                         <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px', textDecoration: 'line-through' }}>{appt.doctor?.name}</h4>
-                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
-                                            {new Date(appt.iso_start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(appt.iso_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
                                     </div>
                                 </div>
                                 <span style={{ background: '#fef2f2', color: '#dc2626', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>Cancelled</span>
