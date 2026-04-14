@@ -33,10 +33,11 @@ interface DailySlot {
 
 interface CalendarDay {
     day: number;
-    weekDay: string; // Mon, Tue, etc
+    weekDay: string;
     status: 'full' | 'partial' | 'free' | 'past';
     isToday?: boolean;
     dateStr: string;
+    isCurrentMonth: boolean;
 }
 
 export default function DoctorSchedule() {
@@ -57,6 +58,7 @@ export default function DoctorSchedule() {
     const [showWebRTCCall, setShowWebRTCCall] = useState(false);
     const [activeCallAppointment, setActiveCallAppointment] = useState<any>(null);
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [viewDate, setViewDate] = useState<Date>(new Date());
 
     const [availabilityForm, setAvailabilityForm] = useState([
         { day: 'Monday', start_time: '09:00', end_time: '17:00', is_available: true },
@@ -187,22 +189,76 @@ export default function DoctorSchedule() {
         }
     };
 
-    // Mock Calendar Data
-    const today = new Date();
-    const calendarDays: CalendarDay[] = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - today.getDay() + 1 + i); // Start from Monday
+    // Full Calendar Grid Generation
+    const getDaysInMonth = (year: number, month: number) => {
+        const date = new Date(year, month, 1);
+        const days: CalendarDay[] = [];
+        const firstDayIndex = date.getDay(); // 0 for Sunday
+        
+        // Adjust standard firstDayIndex to Monday-start if preferred
+        // We'll stick to Sunday start (Standard)
+        
+        const prevMonthLastDay = new Date(year, month, 0).getDate();
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        
+        // 1. Padding from Previous Month
+        for (let i = firstDayIndex; i > 0; i--) {
+            const d = new Date(year, month - 1, prevMonthLastDay - i + 1);
+            days.push({
+                day: d.getDate(),
+                weekDay: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                status: 'past' as const,
+                dateStr: getLocalISOString(d),
+                isCurrentMonth: false
+            });
+        }
+        
+        // 2. Current Month days
+        for (let i = 1; i <= lastDay; i++) {
+            const d = new Date(year, month, i);
+            const isPast = d.setHours(0,0,0,0) < new Date().setHours(0,0,0,0);
+            days.push({
+                day: i,
+                weekDay: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                status: isPast ? 'past' as const : 'free' as const,
+                dateStr: getLocalISOString(d),
+                isToday: d.toDateString() === new Date().toDateString(),
+                isCurrentMonth: true
+            });
+        }
+        
+        // 3. Padding from Next Month to fill 42 cells (6 rows)
+        const totalSlots = 42; 
+        const nextMonthPadding = totalSlots - days.length;
+        for (let i = 1; i <= nextMonthPadding; i++) {
+            const d = new Date(year, month + 1, i);
+            days.push({
+                day: d.getDate(),
+                weekDay: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                status: 'free' as const,
+                dateStr: getLocalISOString(d),
+                isCurrentMonth: false
+            });
+        }
+        
+        return days;
+    };
 
-        let status: 'full' | 'partial' | 'free' | 'past' = d.setHours(0, 0, 0, 0) < today.setHours(0, 0, 0, 0) ? 'past' : 'free';
+    const calendarDays = getDaysInMonth(viewDate.getFullYear(), viewDate.getMonth());
 
-        return {
-            day: d.getDate(),
-            weekDay: d.toLocaleDateString('en-US', { weekday: 'short' }),
-            status: status,
-            isToday: d.getDate() === new Date().getDate(),
-            dateStr: getLocalISOString(d)
-        };
-    });
+    const handlePrevMonth = () => {
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+    };
+
+    const handleNextMonth = () => {
+        setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+    };
+
+    const handleGoToToday = () => {
+        const now = new Date();
+        setViewDate(now);
+        setSelectedDate(getLocalISOString(now));
+    };
 
     if (loading) return <Preloader />;
 
@@ -223,17 +279,17 @@ export default function DoctorSchedule() {
             )}
 
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <div>
+            <div className="doc-page-header">
+                <div className="doc-page-title">
                     <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>Schedule & Availability</h1>
                     <p style={{ color: '#64748b', marginTop: '4px' }}>Overview of your appointments and free time.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div className="doc-page-actions">
                     <button className="doc-btn doc-btn-secondary" style={{ fontSize: '13px' }}>
-                        <Icons.Filter /> Unresolved Requests
+                        <Icons.Filter /> <span className="desktop-only">Unresolved Requests</span><span className="mobile-only">Requests</span>
                     </button>
                     <button className="doc-btn doc-btn-primary" onClick={() => setShowAvailabilityModal(true)}>
-                        Manage Availability
+                        <span className="desktop-only">Manage Availability</span><span className="mobile-only">Manage</span>
                     </button>
                 </div>
             </div>
@@ -276,43 +332,50 @@ export default function DoctorSchedule() {
 
                     {/* Weekly Calendar */}
                     <div className="doc-card">
-                        <div className="doc-card-header">
-                            <h3 className="doc-card-title">Weekly Overview</h3>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', background: '#f0fdf4', color: '#16a34a' }}>Free</span>
-                                <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', background: '#eff6ff', color: '#2563eb' }}>Partial</span>
-                                <span style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', background: '#fff1f2', color: '#be123c' }}>Full</span>
+                        <div className="doc-card-header" style={{ marginBottom: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <h3 className="doc-card-title" style={{ margin: 0 }}>
+                                    {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                </h3>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button onClick={handlePrevMonth} className="icon-btn-sm" style={{ padding: '6px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white' }}>
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
+                                    <button onClick={handleNextMonth} className="icon-btn-sm" style={{ padding: '6px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white' }}>
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <button onClick={handleGoToToday} style={{ fontSize: '12px', fontWeight: '700', color: '#2E37A4', background: '#eff6ff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer' }}>Today</button>
+                                <div className="calendar-legends-grid" style={{ display: 'flex', gap: '8px' }}>
+                                    <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: '#f0fdf4', color: '#16a34a', fontWeight: 'bold' }}>Free</span>
+                                    <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: '#fff1f2', color: '#be123c', fontWeight: 'bold' }}>Full</span>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Calendar Grid Headers */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '8px', textAlign: 'center' }}>
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                <div key={d} style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase' }}>{d}</div>
+                            ))}
+                        </div>
+
                         {/* Calendar Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px', textAlign: 'center' }}>
-                            {calendarDays.map((day) => (
+                        <div className="full-calendar-grid">
+                            {calendarDays.map((day, idx) => (
                                 <div
-                                    key={day.dateStr}
+                                    key={idx}
                                     onClick={() => setSelectedDate(day.dateStr)}
-                                    style={{
-                                        padding: '16px 8px',
-                                        borderRadius: '12px',
-                                        background: selectedDate === day.dateStr ? '#eff6ff' : 'transparent',
-                                        border: selectedDate === day.dateStr ? '1px solid #2563eb' : '1px solid transparent',
-                                        cursor: 'pointer',
-                                        opacity: day.status === 'past' ? 0.5 : 1,
-                                        transition: 'all 0.2s'
-                                    }}
+                                    className={`calendar-cell ${selectedDate === day.dateStr ? 'active' : ''} ${!day.isCurrentMonth ? 'other-month' : ''} ${day.status === 'past' ? 'past' : ''}`}
                                 >
-                                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>{day.weekDay}</div>
-                                    <div style={{
-                                        width: '36px', height: '36px', borderRadius: '50%', background: day.isToday ? '#2563eb' : 'white',
-                                        color: day.isToday ? 'white' : '#0f172a', fontWeight: '700', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        boxShadow: day.isToday ? '0 4px 6px -1px rgba(37, 99, 235, 0.2)' : 'none', border: day.isToday ? 'none' : '1px solid #e2e8f0'
-                                    }}>
-                                        {day.day}
+                                    <div className="cell-content">
+                                        <span className="day-num">{day.day}</span>
+                                        {day.isToday && <div className="today-dot" />}
                                     </div>
-                                    <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
-                                        <div style={{
-                                            width: '8px', height: '8px', borderRadius: '50%',
-                                            background: day.status === 'full' ? '#ef4444' : day.status === 'partial' ? '#fbbf24' : day.status === 'free' ? '#22c55e' : '#cbd5e1'
-                                        }} />
+                                    <div className="status-indicator">
+                                        <div className={`status-dot ${day.status}`} />
                                     </div>
                                 </div>
                             ))}
@@ -324,32 +387,26 @@ export default function DoctorSchedule() {
                         <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>Upcoming Appointments</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {upcomingAppointments.length > 0 ? upcomingAppointments.map((apt) => (
-                                <div key={apt.id} className="doc-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                        <div style={{
-                                            width: '48px', height: '48px', borderRadius: '12px',
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                            background: '#eff6ff', color: '#2563eb', fontSize: '12px', fontWeight: 'bold'
-                                        }}>
-                                            <span>{new Date(apt.appointment_date).getDate()}</span>
-                                            <span style={{ fontSize: '10px', textTransform: 'uppercase' }}>{new Date(apt.appointment_date).toLocaleString('default', { month: 'short' })}</span>
+                                <div key={apt.id} className="doc-card appointment-card-compact">
+                                    <div className="appointment-header">
+                                        <div className="date-badge">
+                                            <span className="day">{new Date(apt.appointment_date).getDate()}</span>
+                                            <span className="month">{new Date(apt.appointment_date).toLocaleString('default', { month: 'short' })}</span>
                                         </div>
-                                        <div>
-                                            <div style={{ fontWeight: '600', color: '#0f172a' }}>{apt.patient?.name || 'Unknown Patient'}</div>
-                                            <div style={{ fontSize: '13px', color: '#64748b' }}>{apt.start_time.substring(0, 5)} • {apt.appointment_date}</div>
+                                        <div className="patient-basic-info">
+                                            <div className="name">{apt.patient?.name || 'Unknown Patient'}</div>
+                                            <div className="time">{apt.start_time.substring(0, 5)} • {apt.appointment_date}</div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                    <div className="appointment-actions">
                                         <button
                                             className="doc-btn doc-btn-secondary"
-                                            style={{ padding: '8px 16px', fontSize: '13px' }}
                                             onClick={() => setSelectedAppointment(apt)}
                                         >
                                             Details
                                         </button>
                                         <button 
                                             className="doc-btn doc-btn-primary" 
-                                            style={{ padding: '8px 16px', fontSize: '13px' }}
                                             onClick={() => {
                                                 setActiveCallAppointment(apt);
                                                 setShowWebRTCCall(true);
@@ -358,7 +415,7 @@ export default function DoctorSchedule() {
                                     </div>
                                 </div>
                             )) : (
-                                <p style={{ color: '#64748b' }}>No upcoming appointments found.</p>
+                                <p style={{ color: '#64748b', padding: '16px', textAlign: 'center' }}>No upcoming appointments found.</p>
                             )}
                         </div>
                     </div>
@@ -369,16 +426,46 @@ export default function DoctorSchedule() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                     {/* Insight Card */}
-                    <div className="doc-card" style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white', border: 'none', marginBottom: 0 }}>
-                        <div className="doc-card-header" style={{ marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
-                            <h3 className="doc-card-title" style={{ color: 'white', fontSize: '14px' }}>Schedule Insights</h3>
-                            <Icons.Info />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                    <div className="doc-card insight-premium-card">
+                        <div className="insight-header">
                             <div>
-                                <div style={{ fontSize: '24px', fontWeight: '700', lineHeight: 1 }}>{schedule.filter(s => s.status === 'available').length}h</div>
-                                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>Free Hours</div>
+                                <h3 className="insight-title">Schedule Insights</h3>
+                                <p className="insight-subtitle">Performance & Capacity</p>
                             </div>
+                            <div className="insight-icon-box">
+                                <Icons.Info />
+                            </div>
+                        </div>
+                        
+                        <div className="insight-grid">
+                            <div className="insight-stat-item">
+                                <label>Free Time</label>
+                                <div className="val">
+                                    {Math.floor((schedule.filter(s => s.status === 'available').length * (consultationDuration || 30)) / 60)}h 
+                                    <span>{(schedule.filter(s => s.status === 'available').length * (consultationDuration || 30)) % 60}m</span>
+                                </div>
+                                <div className="insight-progress-bg">
+                                    <div className="insight-progress-bar" style={{ width: '45%', background: '#10b981' }}></div>
+                                </div>
+                            </div>
+                            
+                            <div className="insight-stat-item">
+                                <label>Utilization</label>
+                                <div className="val">
+                                    {schedule.length > 0 ? Math.round((schedule.filter(s => s.status === 'booked').length / schedule.length) * 100) : 0}%
+                                </div>
+                                <div className="insight-progress-bg">
+                                    <div className="insight-progress-bar" style={{ 
+                                        width: `${schedule.length > 0 ? (schedule.filter(s => s.status === 'booked').length / schedule.length) * 100 : 0}%`, 
+                                        background: '#3b82f6' 
+                                    }}></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="insight-footer-note">
+                            <div className="pulse-dot"></div>
+                            <span>Most active hours: 09:00 AM - 12:00 PM</span>
                         </div>
                     </div>
 
@@ -389,47 +476,44 @@ export default function DoctorSchedule() {
                             <div style={{ fontSize: '13px', color: '#64748b' }}>{new Date(selectedDate).toDateString()}</div>
                         </div>
 
-                        <div style={{ paddingLeft: '8px' }}>
+                        <div className="timeline-container">
                             {schedule.length > 0 ? schedule.map((slot, index) => (
-                                <div key={index} className="timeline-item">
-                                    <div className="timeline-line"></div>
-                                    {/* Icon */}
-                                    <div className={`timeline-icon`} style={{
-                                        background: slot.status === 'booked' ? '#eff6ff' : slot.status === 'available' ? '#f0fdf4' : '#f1f5f9',
-                                        color: slot.status === 'booked' ? '#2563eb' : slot.status === 'available' ? '#16a34a' : '#94a3b8',
-                                        border: slot.status === 'booked' ? '1px solid #dbeafe' : 'none'
-                                    }}>
-                                        {slot.status === 'booked' ? <Icons.Users /> : slot.status === 'available' ? <Icons.CheckCircle /> : <div style={{ width: '8px', height: '8px', background: '#cbd5e1', borderRadius: '50%' }} />}
+                                <div key={index} className={`timeline-entry ${slot.status}`}>
+                                    <div className="entry-time">{slot.time}</div>
+                                    <div className="entry-indicator">
+                                        <div className="indicator-dot"></div>
+                                        {index < schedule.length - 1 && <div className="indicator-line"></div>}
                                     </div>
-
-                                    {/* Content */}
-                                    <div className="timeline-content" style={{ flex: 1 }}>
-                                        <div className="timeline-time">{slot.time}</div>
-
-                                        {slot.status === 'booked' ? (
-                                            <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '12px', marginTop: '4px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                    <h4 style={{ color: '#1e40af', margin: 0 }}>{slot.patientName}</h4>
-                                                    <span style={{ fontSize: '10px', background: 'white', padding: '2px 6px', borderRadius: '4px', color: '#2563eb', fontWeight: '600', textTransform: 'uppercase' }}>{slot.type}</span>
+                                    <div className={`entry-card ${slot.status}`}>
+                                        <div className="entry-card-header">
+                                            {slot.status === 'booked' ? (
+                                                <>
+                                                    <div className="patient-meta">
+                                                        <h4 className="patient-name">{slot.patientName}</h4>
+                                                        <span className="consultation-pill">{slot.type || 'Video'}</span>
+                                                    </div>
+                                                    <div className="entry-actions">
+                                                        <button className="entry-btn-icon"><Icons.ChevronRight /></button>
+                                                    </div>
+                                                </>
+                                            ) : slot.status === 'available' ? (
+                                                <div className="availability-meta">
+                                                    <span className="status-label">Available Slot</span>
+                                                    <p className="status-desc">{slot.duration || consultationDuration} min block</p>
                                                 </div>
-                                                <p style={{ margin: 0, fontSize: '12px', color: '#60a5fa' }}>{slot.duration} Appointment</p>
-                                            </div>
-                                        ) : slot.status === 'available' ? (
-                                            <div style={{
-                                                background: '#f0fdf4', border: '1px dashed #86efac', borderRadius: '8px', padding: '8px 12px', marginTop: '4px',
-                                                color: '#15803d', fontSize: '13px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'
-                                            }}>
-                                                Available
-                                            </div>
-                                        ) : (
-                                            <div style={{ marginTop: '4px', color: '#94a3b8', fontSize: '13px', fontStyle: 'italic' }}>
-                                                Blocked
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <div className="blocked-meta">
+                                                    <span className="status-label">Blocked Time</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )) : (
-                                <div style={{ padding: '20px', color: '#64748b' }}>No availability set for this day.</div>
+                                <div className="empty-timeline">
+                                    <div className="empty-icon"><Icons.Calendar /></div>
+                                    <p>No activity for this date</p>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -461,49 +545,68 @@ export default function DoctorSchedule() {
                                 <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>This will determine the length of each appointment slot.</p>
                             </div>
 
-                            {availabilityForm.map((slot, index) => (
-                                <div key={slot.day} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                                    <div style={{ width: '100px', fontWeight: '600' }}>{slot.day}</div>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', marginRight: '12px' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={slot.is_available}
-                                            onChange={e => {
-                                                const newForm = [...availabilityForm];
-                                                newForm[index].is_available = e.target.checked;
-                                                setAvailabilityForm(newForm);
-                                            }}
-                                        />
-                                        Available
-                                    </label>
+                            <div className="modal-section-header">
+                                <Icons.Clock />
+                                <h3>Weekly Work Hours</h3>
+                            </div>
 
-                                    {slot.is_available && (
-                                        <>
-                                            <input
-                                                type="time"
-                                                value={slot.start_time}
-                                                onChange={e => {
-                                                    const newForm = [...availabilityForm];
-                                                    newForm[index].start_time = e.target.value;
-                                                    setAvailabilityForm(newForm);
-                                                }}
-                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                                            />
-                                            <span>to</span>
-                                            <input
-                                                type="time"
-                                                value={slot.end_time}
-                                                onChange={e => {
-                                                    const newForm = [...availabilityForm];
-                                                    newForm[index].end_time = e.target.value;
-                                                    setAvailabilityForm(newForm);
-                                                }}
-                                                style={{ padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                                            />
-                                        </>
-                                    )}
-                                </div>
-                            ))}
+                            <div className="availability-list">
+                                {availabilityForm.map((slot, index) => (
+                                    <div key={slot.day} className={`availability-card ${slot.is_available ? 'active' : 'inactive'}`}>
+                                        <div className="availability-card-main">
+                                            <div className="day-info">
+                                                <span className="day-name">{slot.day}</span>
+                                                <span className="day-status">{slot.is_available ? 'Open for appointments' : 'No appointments'}</span>
+                                            </div>
+                                            
+                                            <div className="availability-actions">
+                                                <div 
+                                                    className={`doc-switch ${slot.is_available ? 'on' : 'off'}`}
+                                                    onClick={() => {
+                                                        const newForm = [...availabilityForm];
+                                                        newForm[index].is_available = !newForm[index].is_available;
+                                                        setAvailabilityForm(newForm);
+                                                    }}
+                                                >
+                                                    <div className="switch-knob"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {slot.is_available && (
+                                            <div className="availability-time-config animate-slide-up">
+                                                <div className="config-group">
+                                                    <label>Shift Start</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.start_time}
+                                                        onChange={e => {
+                                                            const newForm = [...availabilityForm];
+                                                            newForm[index].start_time = e.target.value;
+                                                            setAvailabilityForm(newForm);
+                                                        }}
+                                                        className="doc-time-input"
+                                                    />
+                                                </div>
+                                                <div className="time-divider">to</div>
+                                                <div className="config-group">
+                                                    <label>Shift End</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.end_time}
+                                                        onChange={e => {
+                                                            const newForm = [...availabilityForm];
+                                                            newForm[index].end_time = e.target.value;
+                                                            setAvailabilityForm(newForm);
+                                                        }}
+                                                        className="doc-time-input"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -530,80 +633,66 @@ export default function DoctorSchedule() {
 
                         <div style={{ padding: '24px', overflowY: 'auto' }}>
                             {/* Patient Info Section */}
-                            <div style={{ display: 'flex', gap: '24px', marginBottom: '32px' }}>
-                                <div style={{
-                                    width: '80px', height: '80px', borderRadius: '50%', background: '#f1f5f9',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', color: '#cbd5e1'
-                                }}>
+                            <div className="patient-info-modal-section">
+                                <div className="patient-avatar-large">
                                     <Icons.Users />
                                 </div>
-                                <div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: '0 0 8px 0' }}>
+                                <div className="patient-text-details">
+                                    <h3 className="patient-name-title">
                                         {selectedAppointment.patient?.name || 'Unknown Patient'}
                                     </h3>
-                                    <div style={{ display: 'flex', gap: '12px', fontSize: '14px', color: '#64748b' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div className="patient-contact-links">
+                                        <span className="contact-chip">
                                             📧 {selectedAppointment.patient?.email}
                                         </span>
-                                        {/* Placeholders for fields not yet in DB */}
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span className="contact-chip">
                                             📱 {selectedAppointment.patient?.phone || 'N/A'}
                                         </span>
                                     </div>
                                     <div style={{ marginTop: '12px' }}>
-                                        <span style={{
-                                            background: '#eff6ff', color: '#2563eb', padding: '4px 12px', borderRadius: '99px',
-                                            fontSize: '12px', fontWeight: '600', display: 'inline-block'
-                                        }}>
-                                            Patient
-                                        </span>
+                                        <span className="role-tag">Patient</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Appointment Details Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date & Time</label>
-                                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div className="appointment-details-modal-grid">
+                                <div className="detail-item-box">
+                                    <label>Date & Time</label>
+                                    <div className="val">
                                         <Icons.Calendar />
                                         {selectedAppointment.appointment_date}
-                                        <span style={{ color: '#cbd5e1' }}>|</span>
+                                        <span className="sep">|</span>
                                         {selectedAppointment.start_time.substring(0, 5)}
                                     </div>
                                 </div>
-                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
-                                    <div style={{ marginTop: '8px' }}>
-                                        <span style={{
-                                            background: selectedAppointment.status === 'confirmed' ? '#f0fdf4' : '#fff7ed',
-                                            color: selectedAppointment.status === 'confirmed' ? '#16a34a' : '#ea580c',
-                                            padding: '6px 12px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', textTransform: 'capitalize'
-                                        }}>
+                                <div className="detail-item-box">
+                                    <label>Status</label>
+                                    <div className="val">
+                                        <span className={`status-pill ${selectedAppointment.status}`}>
                                             {selectedAppointment.status}
                                         </span>
                                     </div>
                                 </div>
-                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visit Type</label>
-                                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div className="detail-item-box">
+                                    <label>Visit Type</label>
+                                    <div className="val">
                                         <Icons.VideoCamera />
                                         Video Consultation
                                     </div>
                                 </div>
-                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Complaint</label>
-                                    <div style={{ fontSize: '14px', color: '#334155', marginTop: '8px' }}>
+                                <div className="detail-item-box">
+                                    <label>Complaint</label>
+                                    <div className="val complaint-text">
                                         {selectedAppointment.reason || "No specific reason provided."}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Actions Footer */}
-                            <div style={{ display: 'flex', gap: '12px', paddingTop: '24px', borderTop: '1px solid #e2e8f0' }}>
+                            <div className="modal-actions-footer">
                                 <button 
-                                    className="doc-btn doc-btn-primary" 
-                                    style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+                                    className="doc-btn doc-btn-primary full-width-mobile" 
                                     onClick={() => {
                                         setActiveCallAppointment(selectedAppointment);
                                         setShowWebRTCCall(true);
@@ -612,12 +701,11 @@ export default function DoctorSchedule() {
                                     <Icons.VideoCamera />
                                     Join Meeting
                                 </button>
-                                <button className="doc-btn doc-btn-secondary" style={{ flex: 1 }}>
+                                <button className="doc-btn doc-btn-secondary full-width-mobile">
                                     Reschedule
                                 </button>
                                 <button
-                                    className="doc-btn"
-                                    style={{ flex: 1, background: '#fee2e2', color: '#dc2626', border: 'none' }}
+                                    className="doc-btn cancel-btn full-width-mobile"
                                     onClick={() => {
                                         toast.error('Cancel functionality coming soon');
                                     }}

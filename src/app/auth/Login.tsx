@@ -52,6 +52,9 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
         }
     };
 
+    const [showOTP, setShowOTP] = useState(false);
+    const [otpValue, setOtpValue] = useState('');
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoggingIn(true);
@@ -66,65 +69,90 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
                 email: formData.email,
                 password: formData.password
             });
-            console.log('Login response received:', response.status);
+            
+            if (response.data.two_factor_required) {
+                toast.success('Security check: OTP sent to your email', { id: toastId });
+                setShowOTP(true);
+                return;
+            }
 
             if (response.data.token) {
-                const userRole = response.data.user?.role;
-
-                // Role mismatch check
-                if (!userRole || userRole !== role) {
-                    toast.error(<b>Access Denied: Not a {role} account.</b>, { id: toastId });
-                    setIsLoggingIn(false);
-                    return; // Stop execution
-                }
-
-                const patient = response.data.user?.patient;
-                const doctor = response.data.user?.doctor;
-
-                // Determine status
-                let isProfileComplete = true; // Default true
-                let isVerified = true;        // Default true
-
-                if (userRole === 'patient') {
-                    isProfileComplete = patient?.is_completed ? !!patient.is_completed : false;
-                } else if (userRole === 'doctor') {
-                    // For doctor, "complete" means they finished the form. 
-                    // The form submission sets status='pending_approval'.
-                    // If we have a doctor record, they "completed" the form.
-                    // But are they verified?
-                    isProfileComplete = !!doctor; // If doctor record exists, they finished registration step 1-7
-                    isVerified = doctor?.status === 'active' || doctor?.is_verified;
-                }
-
-                localStorage.setItem('token', response.data.token);
-                toast.success(<b>Welcome back!</b>, { id: toastId });
-
-                setTimeout(() => {
-                    onLoginSuccess(role, isProfileComplete, isVerified, response.data.user);
-                }, 1000);
+                processLoginSuccess(response.data, toastId);
             }
         } catch (error: any) {
-            toast.dismiss(toastId); // Dismiss loading state
-
-            let message = 'An unexpected error occurred.';
-
-            if (error.response) {
-                if (error.response.status === 422) {
-                    const firstError = Object.values(error.response.data.errors || {})[0] as string[];
-                    message = firstError ? firstError[0] : error.response.data.message;
-                } else if (error.response.status === 401) {
-                    message = 'Incorrect email or password.';
-                } else {
-                    message = error.response.data?.message || 'Server error. Please try again.';
-                }
-            } else if (error.request) {
-                message = 'Cannot connect to server. Check your internet.';
-            }
-
-            toast.error(message); // Show error
+            handleLoginError(error, toastId);
         } finally {
             setIsLoggingIn(false);
         }
+    };
+
+    const handleVerify2FA = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoggingIn(true);
+        const toastId = toast.loading('Verifying security code...');
+
+        try {
+            const response = await api.post('/2fa/verify', {
+                email: formData.email,
+                code: otpValue
+            });
+            processLoginSuccess(response.data, toastId);
+        } catch (error: any) {
+            handleLoginError(error, toastId);
+        } finally {
+            setIsLoggingIn(false);
+        }
+    };
+
+    const processLoginSuccess = (data: any, toastId: string) => {
+        const userRole = data.user?.role;
+
+        // Role mismatch check
+        if (!userRole || userRole !== role) {
+            toast.error(<b>Access Denied: Not a {role} account.</b>, { id: toastId });
+            setIsLoggingIn(false);
+            return;
+        }
+
+        const patient = data.user?.patient;
+        const doctor = data.user?.doctor;
+
+        // Determine status
+        let isProfileComplete = true; 
+        let isVerified = true;        
+
+        if (userRole === 'patient') {
+            isProfileComplete = patient?.is_completed ? !!patient.is_completed : false;
+        } else if (userRole === 'doctor') {
+            isProfileComplete = !!doctor;
+            isVerified = doctor?.status === 'active' || doctor?.is_verified;
+        }
+
+        localStorage.setItem('token', data.token);
+        toast.success(<b>Welcome back!</b>, { id: toastId });
+
+        setTimeout(() => {
+            onLoginSuccess(role, isProfileComplete, isVerified, data.user);
+        }, 1000);
+    };
+
+    const handleLoginError = (error: any, toastId: string) => {
+        toast.dismiss(toastId);
+        let message = 'An unexpected error occurred.';
+
+        if (error.response) {
+            if (error.response.status === 422) {
+                const firstError = Object.values(error.response.data.errors || {})[0] as string[];
+                message = firstError ? firstError[0] : error.response.data.message;
+            } else if (error.response.status === 401) {
+                message = 'Incorrect email or password.';
+            } else {
+                message = error.response.data?.message || 'Server error. Please try again.';
+            }
+        } else if (error.request) {
+            message = 'Cannot connect to server. Check your internet.';
+        }
+        toast.error(message);
     };
 
     return (
@@ -193,57 +221,98 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
                         </div>
 
                         {/* Form */}
-                        {/* Form */}
-                        <form onSubmit={handleLogin}>
-                            {/* Email */}
-                            <div className="form-group">
-                                <div className="input-wrapper-dark">
-                                    <input
-                                        type="email"
-                                        placeholder="Email"
-                                        className="form-input-dark"
-                                        value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                        required
-                                    />
+                        {!showOTP ? (
+                            <form onSubmit={handleLogin}>
+                                {/* Email */}
+                                <div className="form-group">
+                                    <div className="input-wrapper-dark">
+                                        <input
+                                            type="email"
+                                            placeholder="Email"
+                                            className="form-input-dark"
+                                            value={formData.email}
+                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Password */}
-                            <div className="form-group">
-                                <div className="input-wrapper-dark">
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Enter your password"
-                                        className="form-input-dark"
-                                        value={formData.password}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        required
-                                    />
-                                    <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
-                                        {showPassword ? <Icons.EyeOff /> : <Icons.Eye />}
+                                {/* Password */}
+                                <div className="form-group">
+                                    <div className="input-wrapper-dark">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="Enter your password"
+                                            className="form-input-dark"
+                                            value={formData.password}
+                                            onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                            required
+                                        />
+                                        <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
+                                            {showPassword ? <Icons.EyeOff /> : <Icons.Eye />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="login-options">
+                                    <label className="checkbox-container">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.rememberMe}
+                                            onChange={e => setFormData({ ...formData, rememberMe: e.target.checked })}
+                                        />
+                                        <span className="checkmark"><Icons.Check /></span>
+                                        <span style={{ fontSize: '14px', color: '#64748b' }}>Remember me</span>
+                                    </label>
+                                    <a href="#" onClick={(e) => { e.preventDefault(); onForgotPasswordClick(); }} className="forgot-password">Forgot Password?</a>
+                                </div>
+
+                                {/* Submit */}
+                                <button type="submit" disabled={isLoggingIn} className={`btn-login-main ${role}`} style={{ opacity: isLoggingIn ? 0.7 : 1 }}>
+                                    {isLoggingIn ? 'Logging in...' : 'Login'}
+                                </button>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleVerify2FA}>
+                                <div className="login-header" style={{ textAlign: 'center', marginBottom: '32px' }}>
+                                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#2563eb' }}>
+                                        <Icons.Lock />
+                                    </div>
+                                    <h2 style={{ fontSize: '20px' }}>Two-Step Verification</h2>
+                                    <p className="sub-text">Enter the 6-digit code sent to your email.</p>
+                                </div>
+
+                                <div className="form-group">
+                                    <div className="input-wrapper-dark">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter 6-digit code"
+                                            className="form-input-dark"
+                                            style={{ textAlign: 'center', letterSpacing: '8px', fontSize: '24px', fontWeight: '800' }}
+                                            maxLength={6}
+                                            value={otpValue}
+                                            onChange={e => setOtpValue(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <button type="submit" disabled={isLoggingIn} className={`btn-login-main ${role}`} style={{ opacity: isLoggingIn ? 0.7 : 1 }}>
+                                    {isLoggingIn ? 'Verifying...' : 'Verify & Sign In'}
+                                </button>
+
+                                <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setShowOTP(false)}
+                                        className="btn-back-simple"
+                                        style={{ color: '#64748b', fontSize: '14px' }}
+                                    >
+                                        Use a different account
                                     </button>
                                 </div>
-                            </div>
-
-                            <div className="login-options">
-                                <label className="checkbox-container">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.rememberMe}
-                                        onChange={e => setFormData({ ...formData, rememberMe: e.target.checked })}
-                                    />
-                                    <span className="checkmark"><Icons.Check /></span>
-                                    <span style={{ fontSize: '14px', color: '#64748b' }}>Remember me</span>
-                                </label>
-                                <a href="#" onClick={(e) => { e.preventDefault(); onForgotPasswordClick(); }} className="forgot-password">Forgot Password?</a>
-                            </div>
-
-                            {/* Submit */}
-                            <button type="submit" disabled={isLoggingIn} className={`btn-login-main ${role}`} style={{ opacity: isLoggingIn ? 0.7 : 1 }}>
-                                {isLoggingIn ? 'Logging in...' : 'Login'}
-                            </button>
-                        </form>
+                            </form>
+                        )}
 
                         <div style={{ marginTop: 'auto', paddingTop: '40px', textAlign: 'center' }}>
                             <a href="/super-admin-login" style={{ fontSize: '10px', color: '#f1f5f9', opacity: 0.1, textDecoration: 'none' }}>.</a>

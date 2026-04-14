@@ -217,7 +217,6 @@ export default function Messages({ user }: { user: any }) {
                 <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Messages</h2>
-                        <button style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer' }}><Icons.Edit /></button>
                     </div>
                     <div style={{ position: 'relative', marginBottom: '16px' }}>
                         <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#94a3b8' }}><Icons.Search /></span>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { api } from '../../services';
 
@@ -23,6 +23,13 @@ export default function UploadRecord({ onBack }: UploadRecordProps) {
     const [doctorName, setDoctorName] = useState('');
     const [title, setTitle] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -82,14 +89,14 @@ export default function UploadRecord({ onBack }: UploadRecordProps) {
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <button onClick={onBack} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icons.ArrowLeft />
                 </button>
-                <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Digitize a Record</h2>
+                <h2 style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: '900', color: '#1e293b', margin: 0 }}>Digitize a Record</h2>
             </div>
 
             {/* Content Card */}
-            <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', padding: '40px', maxWidth: '800px' }}>
+            <div style={{ background: 'white', borderRadius: '32px', border: isMobile ? 'none' : '1px solid #e2e8f0', padding: isMobile ? '24px 0' : '48px', maxWidth: '800px', boxShadow: isMobile ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
 
                 {/* AI Notice */}
                 <div style={{
@@ -131,8 +138,9 @@ export default function UploadRecord({ onBack }: UploadRecordProps) {
                         justifyContent: 'center',
                         cursor: 'pointer',
                         marginBottom: '32px',
-                        transition: 'all 0.2s',
-                        position: 'relative'
+                        transition: 'all 0.3s ease',
+                        position: 'relative',
+                        padding: isMobile ? '32px 16px' : '48px'
                     }}
                 >
                     <input type="file" id="file-upload" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={handleFileChange} />
@@ -166,7 +174,7 @@ export default function UploadRecord({ onBack }: UploadRecordProps) {
                 </div>
 
                 {/* Simple Form */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
                     <div style={{ gridColumn: '1 / -1' }}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>Record Type</label>
                         <select

@@ -43,6 +43,13 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
     const [activeTab, setActiveTab] = useState('Lab Result');
     const [records, setRecords] = useState<MedicalRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const tabs = [
         { id: 'Lab Result', label: 'Lab Results', icon: <Icons.Flask /> },
@@ -93,15 +100,16 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a' }}>Medical Records</h2>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '16px', marginBottom: '32px' }}>
+                <h2 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: '900', color: '#1e293b', margin: 0 }}>Medical Records</h2>
                 <button
                     onClick={onUploadRecord}
                     style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0',
-                        background: 'white', color: '#0f172a', fontWeight: '600', cursor: 'pointer',
-                        fontSize: '14px'
+                        display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
+                        padding: '12px 20px', borderRadius: '12px', border: 'none',
+                        background: '#2E37A4', color: 'white', fontWeight: '700', cursor: 'pointer',
+                        fontSize: '14px', width: isMobile ? '100%' : 'auto',
+                        boxShadow: '0 10px 15px -3px rgba(46, 55, 164, 0.2)'
                     }}
                 >
                     <Icons.Upload /> Upload Record
@@ -109,19 +117,20 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '12px' : '16px', marginBottom: '32px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         style={{
                             display: 'flex', alignItems: 'center', gap: '8px',
-                            padding: '10px 20px', borderRadius: '24px',
-                            border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500',
-                            background: activeTab === tab.id ? '#2E37A4' : '#f1f5f9',
+                            padding: isMobile ? '10px 16px' : '12px 24px', borderRadius: '14px',
+                            border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '700',
+                            background: activeTab === tab.id ? '#2E37A4' : 'white',
                             color: activeTab === tab.id ? 'white' : '#64748b',
                             transition: 'all 0.2s',
-                            boxShadow: activeTab === tab.id ? '0 4px 6px -1px rgba(46, 55, 164, 0.2)' : 'none'
+                            boxShadow: activeTab === tab.id ? '0 4px 12px rgba(46, 55, 164, 0.2)' : '0 1px 3px rgba(0,0,0,0.05)',
+                            whiteSpace: 'nowrap'
                         }}
                     >
                         {tab.icon} {tab.label}
@@ -184,25 +193,25 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
                             {filteredRecords.length === 0 && <p style={{ color: '#64748b', textAlign: 'center', padding: '40px' }}>No clinical notes found.</p>}
                             {filteredRecords.map(note => (
                                 <div key={note.id} className="dash-card" style={{
-                                    background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                                    transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                    background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', padding: isMobile ? '20px' : '24px',
+                                    display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', cursor: 'pointer',
+                                    transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', gap: isMobile ? '20px' : '0'
                                 }}
                                 >
-                                    <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                                    <div style={{ display: 'flex', gap: isMobile ? '16px' : '20px', alignItems: 'flex-start' }}>
                                         <div style={{
-                                            width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0,
+                                            width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
                                             background: '#f0f9ff', color: '#0ea5e9',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center'
                                         }}>
                                             <Icons.FileText />
                                         </div>
                                         <div>
-                                            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>{note.title}</h3>
-                                            <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#64748b', lineHeight: '1.5', maxWidth: '600px' }}>
+                                            <h3 style={{ margin: '0 0 6px 0', fontSize: '17px', fontWeight: '800', color: '#0f172a' }}>{note.title}</h3>
+                                            <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#64748b', lineHeight: '1.6', maxWidth: '700px' }}>
                                                 {note.description}
                                             </p>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: '#94a3b8' }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px', fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     <Icons.UserSmall /> <span>{note.doctor_name}</span>
                                                 </div>
@@ -212,9 +221,20 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
                                             </div>
                                         </div>
                                     </div>
-                                    <div style={{ color: '#cbd5e1' }}>
-                                        <button onClick={(e) => { e.stopPropagation(); handleFileOpen(note.file_url) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                                            <Icons.Download />
+                                    <div style={{ width: isMobile ? '100%' : 'auto' }}>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleFileOpen(note.file_url) }} 
+                                            style={{ 
+                                                background: isMobile ? '#f8fafc' : 'none', 
+                                                border: isMobile ? '1px solid #e2e8f0' : 'none', 
+                                                borderRadius: '10px',
+                                                padding: isMobile ? '10px' : '0',
+                                                cursor: 'pointer', color: '#2E37A4',
+                                                width: isMobile ? '100%' : 'auto',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                            }}
+                                        >
+                                            <Icons.Download /> {isMobile && 'Download Note'}
                                         </button>
                                     </div>
                                 </div>
@@ -277,58 +297,97 @@ export default function MedicalRecords({ onUploadRecord }: MedicalRecordsProps) 
 
                     {/* Table Card for Lab Results */}
                     {activeTab === 'Lab Result' && (
-                        <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                        <div style={{ background: isMobile ? 'transparent' : 'white', borderRadius: '16px', border: isMobile ? 'none' : '1px solid #e2e8f0', overflow: 'hidden', boxShadow: isMobile ? 'none' : '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
                             {filteredRecords.length === 0 && <p style={{ color: '#64748b', textAlign: 'center', padding: '40px' }}>No lab results found.</p>}
-                            {filteredRecords.length > 0 && <div className="table-responsive">
-                                <table className="trans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                        <tr>
-                                            <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
-                                            <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test Name</th>
-                                            <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ordering Doctor</th>
-                                            <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</th>
-                                            <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                                            <th style={{ padding: '16px 24px', textAlign: 'right', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                            {filteredRecords.length > 0 && (
+                                isMobile ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         {filteredRecords.map(r => (
-                                            <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#f8fafc'} onMouseOut={e => e.currentTarget.style.background = 'white'}>
-                                                <td style={{ padding: '20px 24px', color: '#64748b', fontSize: '14px' }}>{new Date(r.record_date).toLocaleDateString()}</td>
-                                                <td style={{ padding: '20px 24px', color: '#0f172a', fontWeight: '600', fontSize: '14px' }}>{r.title}</td>
-                                                <td style={{ padding: '20px 24px', color: '#64748b', fontSize: '14px' }}>{r.doctor_name}</td>
-                                                <td style={{ padding: '20px 24px', color: '#0f172a', fontWeight: '700', fontSize: '14px' }}>{r.description}</td>
-                                                <td style={{ padding: '20px 24px' }}>
+                                            <div key={r.id} style={{ background: 'white', borderRadius: '20px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                                    <div>
+                                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{r.title}</h4>
+                                                        <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>{new Date(r.record_date).toLocaleDateString()}</p>
+                                                    </div>
                                                     <span style={{
                                                         ...getStatusStyle(r.status),
-                                                        padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: '600',
-                                                        display: 'inline-flex', alignItems: 'center', gap: '6px'
+                                                        padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', height: 'fit-content'
                                                     }}>
-                                                        {r.status === 'Abnormal' && <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-                                                        {r.status === 'Normal' && <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                                                         {r.status}
                                                     </span>
-                                                </td>
-                                                <td style={{ padding: '20px 24px', textAlign: 'right' }}>
-                                                    <button
-                                                        onClick={() => handleFileOpen(r.file_url)}
-                                                        style={{
-                                                            display: 'inline-flex', alignItems: 'center', gap: '8px',
-                                                            padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white',
-                                                            color: '#0f172a', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
-                                                            transition: 'all 0.2s'
-                                                        }}
-                                                        onMouseOver={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
-                                                        onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-                                                    >
-                                                        <Icons.Eye /> View
-                                                    </button>
-                                                </td>
-                                            </tr>
+                                                </div>
+                                                <div style={{ marginBottom: '20px' }}>
+                                                    <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#475569', fontWeight: '500' }}>{r.description}</p>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
+                                                        <Icons.UserSmall /> <span>{r.doctor_name}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleFileOpen(r.file_url)}
+                                                    style={{
+                                                        width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', 
+                                                        background: '#f8fafc', color: '#2E37A4', fontWeight: '700', fontSize: '13px',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                                    }}
+                                                >
+                                                    <Icons.Eye /> View Report
+                                                </button>
+                                            </div>
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>}
+                                    </div>
+                                ) : (
+                                    <div className="table-responsive">
+                                        <table className="trans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                <tr>
+                                                    <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</th>
+                                                    <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test Name</th>
+                                                    <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ordering Doctor</th>
+                                                    <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</th>
+                                                    <th style={{ padding: '16px 24px', textAlign: 'left', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                                                    <th style={{ padding: '16px 24px', textAlign: 'right', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredRecords.map(r => (
+                                                    <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#f8fafc'} onMouseOut={e => e.currentTarget.style.background = 'white'}>
+                                                        <td style={{ padding: '20px 24px', color: '#64748b', fontSize: '14px' }}>{new Date(r.record_date).toLocaleDateString()}</td>
+                                                        <td style={{ padding: '20px 24px', color: '#0f172a', fontWeight: '600', fontSize: '14px' }}>{r.title}</td>
+                                                        <td style={{ padding: '20px 24px', color: '#64748b', fontSize: '14px' }}>{r.doctor_name}</td>
+                                                        <td style={{ padding: '20px 24px', color: '#0f172a', fontWeight: '700', fontSize: '14px' }}>{r.description}</td>
+                                                        <td style={{ padding: '20px 24px' }}>
+                                                            <span style={{
+                                                                ...getStatusStyle(r.status),
+                                                                padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: '600',
+                                                                display: 'inline-flex', alignItems: 'center', gap: '6px'
+                                                            }}>
+                                                                {r.status === 'Abnormal' && <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+                                                                {r.status === 'Normal' && <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                                                {r.status}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '20px 24px', textAlign: 'right' }}>
+                                                            <button
+                                                                onClick={() => handleFileOpen(r.file_url)}
+                                                                style={{
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                                                    padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white',
+                                                                    color: '#0f172a', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                                                                    transition: 'all 0.2s'
+                                                                }}
+                                                                onMouseOver={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                                                onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                                                            >
+                                                                <Icons.Eye /> View
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )
+                            )}
                         </div>
                     )}
                 </>

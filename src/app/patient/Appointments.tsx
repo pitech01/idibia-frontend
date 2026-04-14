@@ -17,6 +17,9 @@ interface User {
     name: string;
     email: string;
     role: string;
+    doctor?: {
+        specialty: string;
+    };
 }
 
 interface Appointment {
@@ -50,6 +53,13 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
     const [user, setUser] = useState<any>(null);
     const [showWebRTCCall, setShowWebRTCCall] = useState(false);
     const [activeCallAppointment, setActiveCallAppointment] = useState<any>(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         fetchAppointments();
@@ -190,14 +200,14 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
             )}
 
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Appointments</h2>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '16px' }}>
+                <h2 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: '900', color: '#1e293b', margin: 0 }}>Appointments</h2>
                 <button
                     onClick={() => onRequestNewBooking?.()}
                     style={{
-                        background: '#2E37A4', color: 'white', padding: '12px 24px', borderRadius: '12px',
-                        border: 'none', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
-                        boxShadow: '0 4px 6px -1px rgba(46, 55, 164, 0.2)'
+                        background: '#2E37A4', color: 'white', padding: isMobile ? '14px 20px' : '12px 24px', borderRadius: '12px',
+                        border: 'none', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                        boxShadow: '0 10px 15px -3px rgba(46, 55, 164, 0.2)', width: isMobile ? '100%' : 'auto', justifyContent: 'center'
                     }}
                 >
                     <Icons.Plus /> New Booking
@@ -205,16 +215,16 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '32px', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: isMobile ? '20px' : '32px', borderBottom: '1px solid #e2e8f0', overflowX: 'auto', whiteSpace: 'nowrap', scrollbarWidth: 'none' }}>
                 {['Upcoming', 'Past', 'Cancelled'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab.toLowerCase())}
                         style={{
-                            background: 'none', border: 'none', padding: '12px 4px',
-                            fontSize: '15px', fontWeight: activeTab === tab.toLowerCase() ? '700' : '500',
-                            color: activeTab === tab.toLowerCase() ? '#2E37A4' : '#64748b',
-                            borderBottom: activeTab === tab.toLowerCase() ? '2px solid #2E37A4' : '2px solid transparent',
+                            background: 'none', border: 'none', padding: '12px 0',
+                            fontSize: isMobile ? '14px' : '15px', fontWeight: activeTab === tab.toLowerCase() ? '800' : '600',
+                            color: activeTab === tab.toLowerCase() ? '#2E37A4' : '#94a3b8',
+                            borderBottom: activeTab === tab.toLowerCase() ? '3px solid #2E37A4' : '3px solid transparent',
                             cursor: 'pointer', transition: 'all 0.2s', marginBottom: '-1px'
                         }}
                     >
@@ -236,106 +246,105 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                     {/* Active Appointment Hero Card */}
                     {heroAppointment && (
                         <div style={{
-                            background: 'linear-gradient(90deg, #EEF2FF 0%, #F5F3FF 100%)',
-                            borderRadius: '20px',
-                            padding: '32px',
+                            background: 'white',
+                            borderRadius: '24px',
+                            padding: isMobile ? '24px' : '32px',
                             display: 'flex',
-                            alignItems: 'center',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            alignItems: isMobile ? 'flex-start' : 'center',
                             justifyContent: 'space-between',
-                            border: '1px solid #e0e7ff',
+                            border: '1px solid #e2e8f0',
                             position: 'relative',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)'
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+                            overflow: 'hidden'
                         }}>
-                            <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
-                                <span style={{
-                                    background: 'white', color: '#0f172a', padding: '6px 12px', borderRadius: '20px',
-                                    fontSize: '11px', fontWeight: '700', border: '1px solid #e2e8f0', textTransform: 'uppercase'
-                                }}>{heroAppointment.status}</span>
-                            </div>
+                             {/* Accented Indicator */}
+                             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '6px', background: '#2E37A4' }}></div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '40px', width: '100%' }}>
+                            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '24px' : '40px', width: '100%' }}>
                                 {/* Left: Time & Date */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '120px' }}>
-                                    <span style={{ fontSize: '36px', fontWeight: '800', color: '#0f172a', lineHeight: '1' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px' }}>
+                                    <span style={{ fontSize: '32px', fontWeight: '900', color: '#1e293b', lineHeight: '1' }}>
                                         {heroAppointment.start_time.substring(0, 5)}
                                     </span>
-                                    <span style={{ fontSize: '14px', fontWeight: '500', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Icons.Calendar /> {new Date(heroAppointment.appointment_date).toDateString()}
+                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#2E37A4', background: '#eef2ff', padding: '4px 10px', borderRadius: '8px', marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' }}>
+                                        <Icons.Calendar /> {new Date(heroAppointment.appointment_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                                     </span>
                                 </div>
 
                                 {/* Middle: Doctor Info */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '1px solid rgba(0,0,0,0.05)', paddingLeft: '40px' }}>
-                                    <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-                                        {heroAppointment.doctor?.name || 'Unknown Doctor'}
-                                    </h3>
-                                    <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>General Practitioner</p>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2E37A4', fontWeight: '600', fontSize: '13px', marginTop: '4px' }}>
-                                        {heroAppointment.type === 'video' ? <><Icons.Video /> Virtual Consultation</> : <><Icons.MapPin /> In-Person Visit</>}
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    gap: '6px', 
+                                    borderLeft: isMobile ? 'none' : '1px solid #f1f5f9', 
+                                    paddingLeft: isMobile ? '0' : '40px' 
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                                            Dr. {heroAppointment.doctor?.name || 'Specialist'}
+                                        </h3>
+                                        <span style={{ background: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>Active</span>
+                                    </div>
+                                    <p style={{ margin: 0, color: '#64748b', fontSize: '14px', fontWeight: '500' }}>{heroAppointment.doctor?.doctor?.specialty || 'General Practitioner'}</p>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2E37A4', fontWeight: '700', fontSize: '12px', marginTop: '6px' }}>
+                                        {heroAppointment.type === 'video' ? <><Icons.Video /> VIRTUAL CALL</> : <><Icons.MapPin /> IN-PERSON VISIT</>}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Right: Actions */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginTop: '20px' }}>
+                            <div style={{ 
+                                display: 'flex', 
+                                flexDirection: isMobile ? 'column' : 'row', 
+                                alignItems: 'center', 
+                                gap: '12px', 
+                                marginTop: isMobile ? '24px' : '0',
+                                width: isMobile ? '100%' : 'auto' 
+                            }}>
                                 {(() => {
                                     const apptTime = new Date(heroAppointment.iso_start_time || "");
                                     const isTooEarly = new Date() < apptTime;
                                     const status = heroAppointment.status as any;
                                     return (
                                         <>
-                                            <button
-                                                onClick={() => handleStartChat(heroAppointment.id)}
-                                                disabled={isTooEarly}
-                                                style={{ 
-                                                    background: 'transparent', 
-                                                    border: isTooEarly ? '1px solid #cbd5e1' : '1px solid #2E37A4', 
-                                                    color: isTooEarly ? '#94a3b8' : '#2E37A4', 
-                                                    padding: '11px 24px', borderRadius: '12px', fontWeight: '600', 
-                                                    cursor: isTooEarly ? 'not-allowed' : 'pointer', fontSize: '14px' 
-                                                }}
-                                                title={isTooEarly ? `Chat available at ${heroAppointment.start_time}` : ""}
-                                            >
-                                                Chat Doctor
-                                            </button>
-                                            <button
-                                                onClick={() => handleCancel(heroAppointment.id)}
-                                                style={{ background: 'transparent', border: 'none', color: '#ef4444', fontWeight: '600', cursor: 'pointer', fontSize: '14px' }}>
-                                                Cancel
-                                            </button>
                                             {heroAppointment.payment_status === 'unpaid' && (
                                                 <button
                                                     onClick={() => handlePay(heroAppointment.id)}
-                                                    style={{ background: '#16a34a', color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                                                    Pay (₦{heroAppointment.amount.toLocaleString()})
+                                                    style={{ background: '#16a34a', color: 'white', padding: '14px 24px', borderRadius: '12px', border: 'none', fontWeight: '700', cursor: 'pointer', width: isMobile ? '100%' : 'auto', fontSize: '14px' }}>
+                                                    Pay ₦{heroAppointment.amount.toLocaleString()}
                                                 </button>
                                             )}
-                                            {heroAppointment.payment_status === 'paid' && status === 'confirmed' && (
+                                            {heroAppointment.payment_status === 'paid' && (status === 'confirmed' || status === 'ongoing') && (
                                                 <button
                                                     onClick={() => handleJoinWaitRoom(heroAppointment)}
-                                                    disabled={isTooEarly}
+                                                    disabled={isTooEarly && status !== 'ongoing'}
                                                     style={{ 
-                                                        background: isTooEarly ? '#94a3b8' : '#2E37A4', 
-                                                        color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', 
-                                                        fontWeight: '600', cursor: isTooEarly ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' 
-                                                    }}
-                                                    title={isTooEarly ? `Available at ${heroAppointment.start_time}` : ""}
-                                                >
-                                                    {isTooEarly ? `Starts at ${heroAppointment.start_time.substring(0, 5)}` : (heroAppointment.type === 'video' ? 'Join Waiting Room' : 'Check-in')}
-                                                </button>
-                                            )}
-                                            {status === 'ongoing' && (
-                                                <button
-                                                    onClick={() => handleJoinWaitRoom(heroAppointment)}
-                                                    style={{ 
-                                                        background: '#16a34a', 
-                                                        color: 'white', padding: '12px 24px', borderRadius: '12px', border: 'none', 
-                                                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' 
+                                                        background: isMobile ? '#2E37A4' : (isTooEarly && status !== 'ongoing' ? '#94a3b8' : '#2E37A4'), 
+                                                        color: 'white', padding: '14px 28px', borderRadius: '12px', border: 'none', 
+                                                        fontWeight: '700', cursor: (isTooEarly && status !== 'ongoing') ? 'not-allowed' : 'pointer', width: isMobile ? '100%' : 'auto', fontSize: '15px' 
                                                     }}
                                                 >
-                                                    {heroAppointment.type === 'video' ? 'Re-join Call' : 'Enter Consultation'}
+                                                    {status === 'ongoing' ? 'Join Session' : (isTooEarly ? `Starts at ${heroAppointment.start_time.substring(0, 5)}` : 'Join Waiting Room')}
                                                 </button>
                                             )}
+                                            <button
+                                                onClick={() => handleStartChat(heroAppointment.id)}
+                                                style={{ 
+                                                    background: 'transparent', 
+                                                    border: '1px solid #e2e8f0', 
+                                                    color: '#64748b', 
+                                                    padding: '14px 24px', borderRadius: '12px', fontWeight: '700', 
+                                                    cursor: 'pointer', fontSize: '14px', width: isMobile ? '100%' : 'auto'
+                                                }}
+                                            >
+                                                Chat
+                                            </button>
+                                            <button
+                                                onClick={() => handleCancel(heroAppointment.id)}
+                                                style={{ background: 'transparent', border: 'none', color: '#ef4444', fontWeight: '700', cursor: 'pointer', fontSize: '13px', width: isMobile ? '100%' : 'auto' }}>
+                                                Cancel
+                                            </button>
                                         </>
                                     );
                                 })()}
@@ -350,31 +359,31 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 {otherUpcoming.map(appt => (
                                     <div key={appt.id} style={{
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px',
-                                        background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0'
+                                        display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', padding: isMobile ? '16px' : '20px 24px',
+                                        background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', gap: isMobile ? '16px' : '0'
                                     }}>
-                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                            <div style={{ width: '48px', height: '48px', background: appt.type === 'video' ? '#EEF2FF' : '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: appt.type === 'video' ? '#2E37A4' : '#64748b', border: '1px solid #f1f5f9' }}>
+                                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                            <div style={{ width: '44px', height: '44px', background: appt.type === 'video' ? '#EEF2FF' : '#f8fafc', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: appt.type === 'video' ? '#2E37A4' : '#64748b', flexShrink: 0 }}>
                                                 {appt.type === 'video' ? <Icons.Video /> : <Icons.MapPin />}
                                             </div>
                                             <div>
-                                                <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px' }}>{appt.doctor?.name}</h4>
-                                                <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                                <h4 style={{ margin: '0 0 2px 0', color: '#0f172a', fontWeight: '800', fontSize: '15px' }}>{appt.doctor?.name}</h4>
+                                                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
                                             {appt.payment_status === 'unpaid' && (
                                                 <button
                                                     onClick={() => handlePay(appt.id)}
-                                                    style={{ background: '#dcfce7', color: '#166534', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
+                                                    style={{ background: '#dcfce7', color: '#166534', border: 'none', padding: '8px 16px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '12px' }}
                                                 >
-                                                    Pay ₦{appt.amount.toLocaleString()}
+                                                    Pay Now
                                                 </button>
                                             )}
                                             {appt.payment_status === 'paid' && (
-                                                <span style={{ color: '#16a34a', fontSize: '13px', fontWeight: '600' }}>Paid</span>
+                                                <span style={{ color: '#16a34a', fontSize: '12px', fontWeight: '800', background: '#f0fdf4', padding: '4px 10px', borderRadius: '6px' }}>Paid</span>
                                             )}
-                                            <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Cancel</button>
+                                            <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '12px' }}>Cancel</button>
                                         </div>
                                     </div>
                                 ))}

@@ -88,6 +88,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const [showPostModal, setShowPostModal] = useState(false);
     const [managePost, setManagePost] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         if (selectedDoctor && selectedDoctor.doctor) {
@@ -286,84 +293,136 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const AdminDoctorsView = ({ doctors, setSelectedDoctor }: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
             {/* Pending Approvals */}
-            <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <div className="card" style={{ background: 'white', borderRadius: '12px', padding: isMobile ? '15px' : '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ color: '#d97706', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <AlertCircle size={20} /> Pending Approvals
                 </h3>
                 {doctors.filter((d: any) => d.doctor && d.doctor.status === 'pending_approval').length === 0 ? (
                     <p style={{ color: '#94a3b8', marginTop: '10px' }}>No pending applications.</p>
                 ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-                        <thead>
-                            <tr style={{ background: '#fff7ed', textAlign: 'left' }}>
-                                <th style={{ padding: '12px', color: '#9a3412' }}>Name</th>
-                                <th style={{ padding: '12px', color: '#9a3412' }}>Details</th>
-                                <th style={{ padding: '12px', color: '#9a3412' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {doctors.filter((d: any) => d.doctor && d.doctor.status === 'pending_approval').map((doc: any) => (
-                                <tr key={doc.id} style={{ borderBottom: '1px solid #fed7aa' }}>
-                                    <td style={{ padding: '12px', color: '#334155' }}>
-                                        <div>{doc.name}</div>
-                                        <div style={{ fontSize: '12px', color: '#64748b' }}>{doc.email}</div>
-                                    </td>
-                                    <td style={{ padding: '12px', color: '#334155' }}>
-                                        <div>{doc.doctor?.specialty || 'General'}</div>
-                                        <div style={{ fontSize: '12px' }}>{doc.doctor?.license_number}</div>
-                                    </td>
-                                    <td style={{ padding: '12px', display: 'flex', gap: '10px' }}>
-                                        <button onClick={() => setSelectedDoctor(doc)} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}>
-                                            View Application
+                    <div style={{ overflowX: 'auto', marginTop: '15px' }}>
+                        {!isMobile ? (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ background: '#fff7ed', textAlign: 'left' }}>
+                                        <th style={{ padding: '12px', color: '#9a3412' }}>Name</th>
+                                        <th style={{ padding: '12px', color: '#9a3412' }}>Details</th>
+                                        <th style={{ padding: '12px', color: '#9a3412' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {doctors.filter((d: any) => d.doctor && d.doctor.status === 'pending_approval').map((doc: any) => (
+                                        <tr key={doc.id} style={{ borderBottom: '1px solid #fed7aa' }}>
+                                            <td style={{ padding: '12px', color: '#334155' }}>
+                                                <div>{doc.name}</div>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{doc.email}</div>
+                                            </td>
+                                            <td style={{ padding: '12px', color: '#334155' }}>
+                                                <div>{doc.doctor?.specialty || 'General'}</div>
+                                                <div style={{ fontSize: '12px' }}>{doc.doctor?.license_number}</div>
+                                            </td>
+                                            <td style={{ padding: '12px', display: 'flex', gap: '10px' }}>
+                                                <button onClick={() => setSelectedDoctor(doc)} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}>
+                                                    View Application
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                {doctors.filter((d: any) => d.doctor && d.doctor.status === 'pending_approval').map((doc: any) => (
+                                    <div key={doc.id} style={{ padding: '15px', border: '2px solid #fed7aa', borderRadius: '10px', background: '#fff7ed' }}>
+                                        <div style={{ fontWeight: '700', color: '#9a3412', marginBottom: '4px' }}>{doc.name}</div>
+                                        <div style={{ fontSize: '12px', color: '#c2410c', marginBottom: '10px' }}>{doc.doctor?.specialty} • License: {doc.doctor?.license_number}</div>
+                                        <button onClick={() => setSelectedDoctor(doc)} style={{ width: '100%', background: '#3b82f6', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                            Review Application
                                         </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
             {/* Doctors Directory */}
-            <div className="card" style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+            <div className="card" style={{ background: 'white', borderRadius: '12px', padding: isMobile ? '15px' : '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <h3>Medical Professionals Directory</h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-                    <thead>
-                        <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Name</th>
-                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Specialty</th>
-                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Status</th>
-                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {doctors.map((doc: any) => {
-                            const status = doc.doctor?.status || doc.status || 'Active';
-                            const isVerified = doc.doctor?.is_verified || doc.is_verified;
-                            return (
-                                <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '12px', color: '#334155' }}>
-                                        {doc.name || doc.user?.name}
-                                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{doc.email || doc.user?.email}</div>
-                                    </td>
-                                    <td style={{ padding: '12px', color: '#64748b' }}>{doc.specialty || doc.doctor?.specialty || 'N/A'}</td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span style={{
-                                            background: status === 'active' || isVerified ? '#dcfce7' : status === 'pending_approval' ? '#fff7ed' : '#fee2e2',
-                                            color: status === 'active' || isVerified ? '#166534' : status === 'pending_approval' ? '#c2410c' : '#991b1b',
-                                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', textTransform: 'capitalize'
-                                        }}>{status === 'pending_approval' ? 'Pending' : status}</span>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <button onClick={() => setSelectedDoctor(doc)} style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <Eye size={14} /> View
-                                        </button>
-                                    </td>
+                <div style={{ overflowX: 'auto', marginTop: '20px' }}>
+                    {!isMobile ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Name</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Specialty</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Fee (₦)</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Status</th>
+                                    <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Action</th>
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                {doctors.map((doc: any) => {
+                                    const status = doc.doctor?.status || doc.status || 'Active';
+                                    const isVerified = doc.doctor?.is_verified || doc.is_verified;
+                                    return (
+                                        <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '12px', color: '#334155' }}>
+                                                {doc.name || doc.user?.name}
+                                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>{doc.email || doc.user?.email}</div>
+                                            </td>
+                                            <td style={{ padding: '12px', color: '#64748b' }}>{doc.specialty || doc.doctor?.specialty || 'N/A'}</td>
+                                            <td style={{ padding: '12px', fontWeight: '700', color: '#0f172a' }}>
+                                                ₦{parseFloat(doc.doctor?.consultation_fee || '0').toLocaleString()}
+                                            </td>
+                                            <td style={{ padding: '12px' }}>
+                                                <span style={{
+                                                    background: status === 'active' || isVerified ? '#dcfce7' : status === 'pending_approval' ? '#fff7ed' : '#fee2e2',
+                                                    color: status === 'active' || isVerified ? '#166534' : status === 'pending_approval' ? '#c2410c' : '#991b1b',
+                                                    padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', textTransform: 'capitalize'
+                                                }}>{status === 'pending_approval' ? 'Pending' : status}</span>
+                                            </td>
+                                            <td style={{ padding: '12px' }}>
+                                                <button onClick={() => setSelectedDoctor(doc)} style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Eye size={14} /> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            {doctors.map((doc: any) => {
+                                const status = doc.doctor?.status || doc.status || 'Active';
+                                const isVerified = doc.doctor?.is_verified || doc.is_verified;
+                                return (
+                                    <div key={doc.id} style={{ padding: '15px', border: '1px solid #f1f5f9', borderRadius: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                                            <div>
+                                                <div style={{ fontWeight: '700', color: '#1e293b' }}>{doc.name}</div>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{doc.doctor?.specialty || 'N/A'}</div>
+                                            </div>
+                                            <span style={{
+                                                background: status === 'active' || isVerified ? '#dcfce7' : status === 'pending_approval' ? '#fff7ed' : '#fee2e2',
+                                                color: status === 'active' || isVerified ? '#166534' : status === 'pending_approval' ? '#c2410c' : '#991b1b',
+                                                padding: '2px 8px', borderRadius: '4px', fontSize: '10px', textTransform: 'capitalize', fontWeight: 'bold'
+                                            }}>{status === 'pending_approval' ? 'Pending' : status}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: '800', color: '#2E37A4' }}>₦{parseFloat(doc.doctor?.consultation_fee || '0').toLocaleString()}</div>
+                                            <button onClick={() => setSelectedDoctor(doc)} style={{ background: '#f1f5f9', color: '#3b82f6', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                                                Profile Details
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -513,69 +572,102 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     </select>
                 </div>
 
-                {/* Table */}
+                {/* Table / Cards */}
                 <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Date & Time</th>
-                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Doctor</th>
-                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Patient</th>
-                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Amount</th>
-                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Status</th>
-                                <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    { !isMobile ? (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                                        <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Date & Time</th>
+                                        <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Doctor</th>
+                                        <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Patient</th>
+                                        <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Amount</th>
+                                        <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Status</th>
+                                        <th style={{ padding: '15px', color: '#64748b', fontWeight: '600' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                                No consultations found matching your filters.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filtered.map((appt: any) => (
+                                            <tr key={appt.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+                                                <td style={{ padding: '15px' }}>
+                                                    <div style={{ fontWeight: '600', color: '#1e293b' }}>{new Date(appt.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                                    <div style={{ fontSize: '12px', color: '#64748b' }}>{appt.time}</div>
+                                                </td>
+                                                <td style={{ padding: '15px' }}>
+                                                    <div style={{ fontWeight: '500' }}>Dr. {appt.doctor_name}</div>
+                                                </td>
+                                                <td style={{ padding: '15px' }}>
+                                                    <div>{appt.patient_name}</div>
+                                                </td>
+                                                <td style={{ padding: '15px' }}>
+                                                    <div style={{ fontWeight: '600' }}>₦{appt.amount.toLocaleString()}</div>
+                                                    <div style={{ fontSize: '10px', textTransform: 'uppercase', color: appt.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>{appt.payment_status}</div>
+                                                </td>
+                                                <td style={{ padding: '15px' }}>
+                                                    <span style={{
+                                                        padding: '5px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
+                                                        background: 
+                                                            appt.status === 'completed' ? '#dcfce7' : 
+                                                            appt.status === 'canceled' ? '#fee2e2' : 
+                                                            appt.status === 'scheduled' ? '#e0f2fe' : '#fff7ed',
+                                                        color: 
+                                                            appt.status === 'completed' ? '#166534' : 
+                                                            appt.status === 'canceled' ? '#991b1b' : 
+                                                            appt.status === 'scheduled' ? '#0369a1' : '#c2410c'
+                                                    }}>{appt.status}</span>
+                                                </td>
+                                                <td style={{ padding: '15px' }}>
+                                                    <button 
+                                                        onClick={() => setSelectedAppointment(appt)}
+                                                        style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                                                    >
+                                                        Details
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
                             {filtered.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                                        No consultations found matching your filters.
-                                    </td>
-                                </tr>
+                                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No consultations found.</div>
                             ) : (
                                 filtered.map((appt: any) => (
-                                    <tr key={appt.id} style={{ borderTop: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '15px' }}>
-                                            <div style={{ fontWeight: '600', color: '#1e293b' }}>{new Date(appt.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                                            <div style={{ fontSize: '12px', color: '#64748b' }}>{appt.time}</div>
-                                        </td>
-                                        <td style={{ padding: '15px' }}>
-                                            <div style={{ fontWeight: '500' }}>Dr. {appt.doctor_name}</div>
-                                        </td>
-                                        <td style={{ padding: '15px' }}>
-                                            <div>{appt.patient_name}</div>
-                                        </td>
-                                        <td style={{ padding: '15px' }}>
-                                            <div style={{ fontWeight: '600' }}>₦{appt.amount.toLocaleString()}</div>
-                                            <div style={{ fontSize: '10px', textTransform: 'uppercase', color: appt.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>{appt.payment_status}</div>
-                                        </td>
-                                        <td style={{ padding: '15px' }}>
+                                    <div key={appt.id} style={{ padding: '15px', borderBottom: '1px solid #f1f5f9' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>Dr. {appt.doctor_name}</div>
                                             <span style={{
-                                                padding: '5px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase',
-                                                background: 
-                                                    appt.status === 'completed' ? '#dcfce7' : 
-                                                    appt.status === 'canceled' ? '#fee2e2' : 
-                                                    appt.status === 'scheduled' ? '#e0f2fe' : '#fff7ed',
-                                                color: 
-                                                    appt.status === 'completed' ? '#166534' : 
-                                                    appt.status === 'canceled' ? '#991b1b' : 
-                                                    appt.status === 'scheduled' ? '#0369a1' : '#c2410c'
+                                                padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase',
+                                                background: appt.status === 'completed' ? '#dcfce7' : appt.status === 'canceled' ? '#fee2e2' : '#e0f2fe',
+                                                color: appt.status === 'completed' ? '#166534' : appt.status === 'canceled' ? '#991b1b' : '#0369a1'
                                             }}>{appt.status}</span>
-                                        </td>
-                                        <td style={{ padding: '15px' }}>
-                                            <button 
-                                                onClick={() => setSelectedAppointment(appt)}
-                                                style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-                                            >
-                                                Details
-                                            </button>
-                                        </td>
-                                    </tr>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                            <div style={{ fontSize: '12px', color: '#64748b' }}>{appt.patient_name} • {new Date(appt.date).toLocaleDateString()}</div>
+                                            <div style={{ fontWeight: '800', color: '#0f172a' }}>₦{appt.amount.toLocaleString()}</div>
+                                        </div>
+                                        <button 
+                                            onClick={() => setSelectedAppointment(appt)}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '8px', background: '#f1f5f9', color: '#1e293b', border: 'none', fontWeight: '700', fontSize: '13px' }}
+                                        >
+                                            View Professional Record
+                                        </button>
+                                    </div>
                                 ))
                             )}
-                        </tbody>
-                    </table>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -589,24 +681,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     Total: ₦{stats.financials.total_commissions.toLocaleString()}
                 </div>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                    <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                        <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Date</th>
-                        <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Description</th>
-                        <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {stats.financials.recent_earnings.map((tx: any) => (
-                        <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '12px' }}>{tx.date}</td>
-                            <td style={{ padding: '12px' }}>{tx.description}</td>
-                            <td style={{ padding: '12px', fontWeight: '700', color: '#16a34a' }}>+₦{tx.amount.toLocaleString()}</td>
+            <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Date</th>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Description</th>
+                            <th style={{ padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>Amount</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {stats.financials.recent_earnings.map((tx: any) => (
+                            <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '12px' }}>{tx.date}</td>
+                                <td style={{ padding: '12px' }}>{tx.description}</td>
+                                <td style={{ padding: '12px', fontWeight: '700', color: '#16a34a' }}>+₦{tx.amount.toLocaleString()}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 
@@ -846,33 +940,59 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             </div>
 
                             <div style={{ marginBottom: '30px' }}>
-                                <h3 style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', marginBottom: '15px' }}>Consultation Pricing</h3>
-                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <label style={{ display: 'block', fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Consultation Fee (₦)</label>
-                                        <input
-                                            type="number"
-                                            value={pricingFee}
-                                            onChange={(e) => setPricingFee(e.target.value)}
-                                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: '600', color: '#0f172a' }}
-                                        />
+                                <h3 style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', color: '#64748b', marginBottom: '15px' }}>Consultation Pricing & Earnings</h3>
+                                <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', marginBottom: '16px' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Global Consultation Fee (₦)</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold', color: '#64748b' }}>₦</span>
+                                                <input
+                                                    type="number"
+                                                    value={pricingFee}
+                                                    onChange={(e) => setPricingFee(e.target.value)}
+                                                    placeholder="0.00"
+                                                    style={{ width: '100%', padding: '12px 12px 12px 30px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: '700', color: '#1e293b', outline: 'none' }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                const toastId = toast.loading('Updating professional fees...');
+                                                try {
+                                                    await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/pricing`, { consultation_fee: pricingFee });
+                                                    toast.success('Professional fees updated!', { id: toastId });
+                                                    
+                                                    // Update local selectedDoctor immediately so UI reflects it
+                                                    setSelectedDoctor({
+                                                        ...selectedDoctor,
+                                                        doctor: {
+                                                            ...selectedDoctor.doctor,
+                                                            consultation_fee: pricingFee
+                                                        }
+                                                    });
+                                                    
+                                                    fetchData();
+                                                } catch (error: any) {
+                                                    console.error(error);
+                                                    toast.error('Failed to update pricing', { id: toastId });
+                                                }
+                                            }}
+                                            style={{ background: '#2E37A4', color: 'white', border: 'none', padding: '14px 24px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
+                                        >
+                                            Update Pricing
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={async () => {
-                                            const toastId = toast.loading('Updating price...');
-                                            try {
-                                                await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/pricing`, { consultation_fee: pricingFee });
-                                                toast.success('Pricing updated!', { id: toastId });
-                                                fetchData();
-                                            } catch (error: any) {
-                                                console.error(error);
-                                                toast.error('Failed to update pricing', { id: toastId });
-                                            }
-                                        }}
-                                        style={{ background: '#0f172a', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', marginTop: '18px' }}
-                                    >
-                                        Save Fee
-                                    </button>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px', background: 'white', padding: '16px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                                        <div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '800' }}>Doctor Earnings (60%)</div>
+                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#16a34a' }}>₦{(parseFloat(pricingFee || '0') * 0.6).toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '800' }}>Platform Commission (40%)</div>
+                                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#2E37A4' }}>₦{(parseFloat(pricingFee || '0') * 0.4).toLocaleString()}</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

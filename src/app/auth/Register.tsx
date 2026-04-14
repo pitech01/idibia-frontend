@@ -3,6 +3,7 @@ import CustomDatePicker from '../../components/CustomDatePicker';
 import { toast as _toast } from 'react-hot-toast';
 const toast: any = _toast;
 import { api, WEB_URL } from '../../services';
+import { countryData } from '../../data/countries';
 
 // --- Icons ---
 const Icons = {
@@ -82,7 +83,8 @@ const INITIAL_DATA: RegistrationData = {
     submissionStatus: 'draft',
     termsAccepted: false,
     isVerified: false,
-    virtualOnly: false
+    virtualOnly: false,
+    country: 'Nigeria'
 };
 
 interface RegisterProps {
@@ -689,14 +691,23 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 <label>Workplace Name</label>
                 <input type="text" className="form-input-clean" value={data.workplaceName || ''} onChange={e => updateData({ workplaceName: e.target.value })} />
             </div>
+            <div className="form-group">
+                <label>Country</label>
+                <select className="form-input-clean" value={data.country || 'Nigeria'} onChange={e => updateData({ country: e.target.value, state: '' })}>
+                    {Object.keys(countryData).map(c => (
+                        <option key={c} value={c}>{c}</option>
+                    ))}
+                </select>
+            </div>
 
             <div className="row-2">
                 <div className="form-group">
-                    <label>State</label>
+                    <label>State / Province</label>
                     <select className="form-input-clean" value={data.state || ''} onChange={e => updateData({ state: e.target.value })}>
                         <option value="">Select State</option>
-                        <option value="Lagos">Lagos</option>
-                        <option value="Abuja">Abuja</option>
+                        {data.country && countryData[data.country] && countryData[data.country].map(s => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
                     </select>
                 </div>
                 <div className="form-group">
@@ -848,25 +859,19 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
             <div className="row-2" style={{ marginBottom: '20px' }}>
                 <div className="form-group">
                     <label>Country</label>
-                    <select className="form-input-clean" value={data.country || 'Nigeria'} onChange={e => updateData({ country: e.target.value })}>
-                        <option value="Nigeria">Nigeria</option>
-                        <option value="Ghana">Ghana</option>
-                        <option value="Kenya">Kenya</option>
-                        <option value="South Africa">South Africa</option>
-                        <option value="United Kingdom">United Kingdom</option>
-                        <option value="United States">United States</option>
+                    <select className="form-input-clean" value={data.country || 'Nigeria'} onChange={e => updateData({ country: e.target.value, state: '' })}>
+                        {Object.keys(countryData).map(c => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
                     </select>
                 </div>
                 <div className="form-group">
                     <label>State / Province</label>
                     <select className="form-input-clean" value={data.state || ''} onChange={e => updateData({ state: e.target.value })}>
                         <option value="">Select State</option>
-                        <option value="Lagos">Lagos</option>
-                        <option value="Abuja">Abuja</option>
-                        <option value="Rivers">Rivers</option>
-                        <option value="Kano">Kano</option>
-                        <option value="Ogun">Ogun</option>
-                        <option value="Other">Other</option>
+                        {data.country && countryData[data.country] && countryData[data.country].map(s => (
+                            <option key={s} value={s}>{s}</option>
+                        ))}
                     </select>
                 </div>
             </div>

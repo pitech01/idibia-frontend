@@ -30,29 +30,48 @@ interface NewBookingProps {
     user?: any;
 }
 
-const Stepper = ({ currentStep }: { currentStep: number }) => {
+const Stepper = ({ currentStep, isMobile }: { currentStep: number, isMobile: boolean }) => {
     const steps = [
-        { id: 1, label: 'Choose specialist' },
-        { id: 2, label: 'Select availability' },
-        { id: 3, label: 'Secure payment' }
+        { id: 1, label: 'Specialist' },
+        { id: 2, label: 'Availability' },
+        { id: 3, label: 'Payment' }
     ];
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '40px', marginBottom: '48px' }}>
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: isMobile ? '12px' : '40px',
+            marginBottom: isMobile ? '32px' : '48px',
+            padding: isMobile ? '0 10px' : '0'
+        }}>
             {steps.map((s, i) => (
-                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '12px' }}>
                     <div style={{
-                        width: '40px', height: '40px', borderRadius: '14px',
+                        width: isMobile ? '32px' : '40px',
+                        height: isMobile ? '32px' : '40px',
+                        borderRadius: '12px',
                         background: currentStep >= s.id ? '#2E37A4' : '#f1f5f9',
                         color: currentStep >= s.id ? 'white' : '#94a3b8',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontWeight: '800', fontSize: '15px', transition: '0.3s',
-                        boxShadow: currentStep === s.id ? '0 10px 15px -3px rgba(46, 55, 164, 0.3)' : 'none'
+                        fontWeight: '800', fontSize: isMobile ? '13px' : '15px', transition: '0.3s',
+                        boxShadow: currentStep === s.id ? '0 10px 15px -3px rgba(46, 55, 164, 0.3)' : 'none',
+                        flexShrink: 0
                     }}>{s.id}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Step {s.id}</span>
-                        <span style={{ fontSize: '14px', fontWeight: '700', color: currentStep >= s.id ? '#0f172a' : '#cbd5e1' }}>{s.label}</span>
-                    </div>
-                    {i < steps.length - 1 && <div style={{ width: '40px', height: '2px', background: '#f1f5f9', marginLeft: '20px' }} />}
+                    {!isMobile && (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Step {s.id}</span>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: currentStep >= s.id ? '#0f172a' : '#cbd5e1', whiteSpace: 'nowrap' }}>{s.label}</span>
+                        </div>
+                    )}
+                    {i < steps.length - 1 && (
+                        <div style={{
+                            width: isMobile ? '20px' : '40px',
+                            height: '2px',
+                            background: currentStep > s.id ? '#2E37A4' : '#f1f5f9',
+                            marginLeft: isMobile ? '5px' : '10px'
+                        }} />
+                    )}
                 </div>
             ))}
         </div>
@@ -79,6 +98,14 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
     const [consultationType, setConsultationType] = useState('video');
     const [reason, setReason] = useState('');
     const [viewMonth, setViewMonth] = useState(new Date());
+
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         fetchDoctors();
@@ -239,9 +266,18 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
             </div>
 
             {/* Enhanced Content Card */}
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '32px', padding: '48px', minHeight: '700px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+            <div style={{
+                background: 'white',
+                border: isMobile ? 'none' : '1px solid #e2e8f0',
+                borderRadius: isMobile ? '0' : '32px',
+                padding: isMobile ? '24px 16px' : '48px',
+                minHeight: isMobile ? 'calc(100vh - 100px)' : '700px',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: isMobile ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.02)'
+            }}>
 
-                <Stepper currentStep={step} />
+                <Stepper currentStep={step} isMobile={isMobile} />
 
                 {/* Step Content */}
                 <div style={{ flex: 1 }}>
@@ -264,25 +300,40 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? '100%' : '300px'}, 1fr))`, gap: isMobile ? '12px' : '20px' }}>
                                 {filteredDoctors.length === 0 && <p>No records found.</p>}
                                 {filteredDoctors.map(doctor => (
                                     <div key={doctor.id} style={{
-                                        border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px',
-                                        display: 'flex', gap: '20px', transition: 'all 0.2s', background: 'white',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)', cursor: 'pointer'
+                                        border: selectedDoctor?.id === doctor.id ? '2px solid #2E37A4' : '1px solid #e2e8f0',
+                                        borderRadius: '16px',
+                                        padding: isMobile ? '16px' : '24px',
+                                        display: 'flex',
+                                        gap: isMobile ? '12px' : '20px',
+                                        transition: 'all 0.2s',
+                                        background: selectedDoctor?.id === doctor.id ? '#f0f4ff' : 'white',
+                                        boxShadow: selectedDoctor?.id === doctor.id ? '0 4px 12px rgba(46, 55, 164, 0.1)' : '0 1px 3px rgba(0,0,0,0.05)',
+                                        cursor: 'pointer',
+                                        alignItems: 'center'
                                     }} onClick={() => handleSelectDoctor(doctor)}>
                                         <div style={{
-                                            width: '64px', height: '64px', borderRadius: '16px', background: '#EEF2FF',
-                                            color: '#2E37A4', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: '20px', fontWeight: '700', flexShrink: 0
+                                            width: isMobile ? '52px' : '64px',
+                                            height: isMobile ? '52px' : '64px',
+                                            borderRadius: '14px',
+                                            background: '#EEF2FF',
+                                            color: '#2E37A4',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: isMobile ? '18px' : '20px',
+                                            fontWeight: '700',
+                                            flexShrink: 0
                                         }}>
                                             {doctor.name.charAt(0)}
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Dr. {doctor.name}</h3>
-                                            <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0' }}>{doctor.doctor?.specialty || "Specialist"}</p>
-                                            <div style={{ color: '#2E37A4', fontWeight: '700', fontSize: '14px', marginTop: '8px' }}>
+                                            <h3 style={{ fontSize: isMobile ? '15px' : '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>Dr. {doctor.name}</h3>
+                                            <p style={{ fontSize: isMobile ? '12px' : '13px', color: '#64748b', margin: '2px 0' }}>{doctor.doctor?.specialty || "Specialist"}</p>
+                                            <div style={{ color: '#2E37A4', fontWeight: '700', fontSize: isMobile ? '13px' : '14px', marginTop: '4px' }}>
                                                 ₦{doctor.doctor?.consultation_fee?.toLocaleString() || '0'}
                                             </div>
                                         </div>
@@ -345,7 +396,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                                     key={d} 
                                                     onClick={() => !isPast && setSelectedDate(dateVal)}
                                                     style={{ 
-                                                        height: '48px', 
+                                                        height: isMobile ? '40px' : '48px', 
                                                         display: 'flex', 
                                                         alignItems: 'center', 
                                                         justifyContent: 'center',
@@ -356,7 +407,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                                         fontWeight: isSelected || dateObj.getTime() === today.getTime() ? '700' : '500',
                                                         transition: 'all 0.2s',
                                                         border: dateObj.getTime() === today.getTime() && !isSelected ? '1.5px solid #2E37A4' : 'none',
-                                                        fontSize: '14px'
+                                                        fontSize: isMobile ? '13px' : '14px'
                                                     }}
                                                     className={!isPast && !isSelected ? "calendar-day-hover" : ""}
                                                 >
@@ -366,9 +417,9 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                         }
 
                                         return (
-                                            <div style={{ padding: '24px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>
+                                            <div style={{ padding: isMobile ? '12px' : '24px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '16px' : '24px' }}>
+                                                    <h4 style={{ margin: 0, fontSize: isMobile ? '14px' : '16px', fontWeight: '800', color: '#1e293b' }}>
                                                         {months[viewMonth.getMonth()]} {viewMonth.getFullYear()}
                                                     </h4>
                                                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -397,7 +448,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                             </div>
 
                             <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '16px' }}>2. Available Time Slots</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '12px', marginBottom: '32px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? '80px' : '100px'}, 1fr))`, gap: '12px', marginBottom: '32px' }}>
                                 {timeSlots.map((slot) => (
                                     <button
                                         key={slot}
@@ -417,7 +468,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                 {timeSlots.length === 0 && hasFetchedSlots && <p style={{ gridColumn: '1 / -1', color: '#ef4444', fontSize: '14px', fontWeight: '500' }}>No available slots for this date.</p>}
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Consultation Type</label>
                                     <div style={{ display: 'flex', gap: '12px' }}>
@@ -447,7 +498,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
 
                     {/* STEP 3: Review & Payment (The "Standard" Checkout) */}
                     {step === 3 && createdAppointment && (
-                        <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '40px' }}>
+                        <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 0.8fr', gap: isMobile ? '24px' : '40px' }}>
                             <div>
                                 <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '24px' }}>Confirm & Secure Booking</h3>
                                 
@@ -552,17 +603,18 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                 </div>
 
                 {/* Footer Actions */}
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '24px', marginTop: '24px', display: 'flex', justifyContent: 'space-between' }}>
-                    <button onClick={handleBackStep} disabled={bookingLoading} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '24px', marginTop: '24px', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                    <button onClick={handleBackStep} disabled={bookingLoading} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: isMobile ? '16px' : '18px', fontWeight: '700', cursor: 'pointer', flexShrink: 0, padding: '12px' }}>
                         {step === 1 ? 'Cancel' : 'Back'}
                     </button>
                     <button
                         onClick={step === 1 ? () => setStep(2) : initiateBooking}
-                        disabled={bookingLoading || (step === 2 && (!selectedDate || !selectedTime))}
+                        disabled={bookingLoading || (step === 1 && !selectedDoctor) || (step === 2 && (!selectedDate || !selectedTime))}
                         style={{
-                            padding: '14px 44px', background: '#2E37A4', color: 'white', borderRadius: '16px',
-                            border: 'none', fontWeight: '800', cursor: 'pointer', opacity: (bookingLoading || (step === 2 && (!selectedDate || !selectedTime))) ? 0.7 : 1,
-                            boxShadow: '0 10px 15px -3px rgba(46, 55, 164, 0.2)'
+                            padding: isMobile ? '16px 24px' : '18px 64px', background: '#2E37A4', color: 'white', borderRadius: '18px',
+                            border: 'none', fontWeight: '900', cursor: 'pointer', opacity: (bookingLoading || (step === 1 && !selectedDoctor) || (step === 2 && (!selectedDate || !selectedTime))) ? 0.6 : 1,
+                            boxShadow: '0 10px 15px -3px rgba(46, 55, 164, 0.2)', fontSize: isMobile ? '15px' : '17px', flex: isMobile ? 1 : 'unset',
+                            transition: 'all 0.3s ease'
                         }}
                     >
                         {bookingLoading ? 'Processing Request...' : (step === 1 ? 'Select Slot' : 'Proceed to Checkout')}

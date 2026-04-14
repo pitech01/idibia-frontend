@@ -10,12 +10,15 @@ const Icons = {
 };
 
 interface DoctorSidebarProps {
+    user: any;
     activeTab: string;
     setActiveTab: (tab: string) => void;
     onLogout: () => void;
+    isOpen: boolean;
+    setIsOpen: (open: boolean) => void;
 }
 
-export default function DoctorSidebar({ activeTab, setActiveTab, onLogout }: DoctorSidebarProps) {
+export default function DoctorSidebar({ user, activeTab, setActiveTab, onLogout, isOpen, setIsOpen }: DoctorSidebarProps) {
     const handleLogout = () => {
         onLogout();
     }
@@ -26,26 +29,56 @@ export default function DoctorSidebar({ activeTab, setActiveTab, onLogout }: Doc
         { id: 'patients', label: 'Patients', icon: <Icons.Users /> },
         { id: 'messages', label: 'Messages', icon: <Icons.Chat /> },
         { id: 'earnings', label: 'Earnings', icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg> },
-        // { id: 'records', label: 'Records', icon: <Icons.Document /> },
         { id: 'support', label: 'Support', icon: <Icons.Question /> },
         { id: 'settings', label: 'Settings', icon: <Icons.Cog /> },
     ];
 
     return (
-        <aside className="doc-sidebar">
-            <div className="doc-brand">
-                <div style={{ background: '#3b82f6', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '10px' }}>
-                    <svg width="20" height="20" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        <aside className={`doc-sidebar ${isOpen ? 'sidebar-open' : ''}`}>
+            <div className="doc-brand" style={{ justifyContent: 'space-between', padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ background: '#3b82f6', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '10px' }}>
+                        <svg width="20" height="20" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '18px' }}>idibia</span>
                 </div>
-                iDibia Provider
+                
+                {/* Mobile Close Button */}
+                <button 
+                    onClick={() => setIsOpen(false)}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '5px' }}
+                    className="mobile-only"
+                >
+                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
             </div>
 
-            <nav className="doc-nav">
+            {/* Profile Section */}
+            <div style={{ padding: '0 24px 24px 24px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                        <img 
+                            src={user?.avatar || "/doctor_avatar_default_1776170000144.png"} 
+                            alt="Doctor" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontWeight: '800', fontSize: '14px', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            Dr. {user?.name?.split(' ')[0] || 'Provider'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>{user?.doctor?.specialty || 'General Practitioner'}</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav className="doc-nav" style={{ padding: '16px 12px' }}>
                 {menuItems.map(item => (
                     <button
                         key={item.id}
                         className={`doc-nav-item ${activeTab === item.id ? 'active' : ''}`}
                         onClick={() => setActiveTab(item.id)}
+                        style={{ margin: '4px 0', borderRadius: '12px' }}
                     >
                         {item.icon}
                         {item.label}
@@ -53,8 +86,8 @@ export default function DoctorSidebar({ activeTab, setActiveTab, onLogout }: Doc
                 ))}
             </nav>
 
-            <div className="doc-sidebar-footer">
-                <button className="doc-nav-item" onClick={handleLogout}>
+            <div className="doc-sidebar-footer" style={{ padding: '16px 12px' }}>
+                <button className="doc-nav-item" onClick={handleLogout} style={{ borderRadius: '12px' }}>
                     <Icons.Logout />
                     Sign Out
                 </button>

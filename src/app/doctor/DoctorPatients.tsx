@@ -36,6 +36,13 @@ export default function DoctorPatients({ setActiveTab }: DoctorPatientsProps) {
     const [statusFilter, setStatusFilter] = useState('All');
     const [patients, setPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         const fetchPatients = async () => {
@@ -89,20 +96,36 @@ export default function DoctorPatients({ setActiveTab }: DoctorPatientsProps) {
     return (
         <div className="doc-content-area animate-fade-in" style={{ paddingBottom: '40px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between', 
+                alignItems: isMobile ? 'flex-start' : 'center', 
+                marginBottom: '32px',
+                gap: isMobile ? '20px' : '0'
+            }}>
                 <div>
-                    <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>My Patients</h1>
+                    <h1 style={{ fontSize: isMobile ? '22px' : '24px', fontWeight: '700', color: '#0f172a', margin: 0 }}>My Patients</h1>
                     <p style={{ color: '#64748b', marginTop: '4px' }}>View and manage your assigned patients.</p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>{patients.length}</div>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: isMobile ? '20px' : '24px', 
+                    alignItems: 'center',
+                    width: isMobile ? '100%' : 'auto',
+                    justifyContent: isMobile ? 'flex-start' : 'flex-end',
+                    background: isMobile ? '#f8fafc' : 'transparent',
+                    padding: isMobile ? '16px' : '0',
+                    borderRadius: isMobile ? '12px' : '0'
+                }}>
+                    <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
+                        <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#0f172a' }}>{patients.length}</div>
                         <div style={{ fontSize: '12px', color: '#64748b' }}>Total Assigned</div>
                     </div>
                     <div style={{ width: '1px', height: '32px', background: '#e2e8f0' }}></div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb' }}>
+                    <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
+                        <div style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '700', color: '#2563eb' }}>
                             {patients.filter(p => p.status === 'Active').length}
                         </div>
                         <div style={{ fontSize: '12px', color: '#64748b' }}>Active Cases</div>
@@ -111,8 +134,16 @@ export default function DoctorPatients({ setActiveTab }: DoctorPatientsProps) {
             </div>
 
             {/* Controls */}
-            <div className="doc-card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ position: 'relative', width: '300px' }}>
+            <div className="doc-card" style={{ 
+                padding: '16px', 
+                marginBottom: '24px', 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between', 
+                alignItems: isMobile ? 'stretch' : 'center',
+                gap: isMobile ? '16px' : '0'
+            }}>
+                <div style={{ position: 'relative', width: isMobile ? '100%' : '300px' }}>
                     <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#94a3b8' }}><Icons.Search /></span>
                     <input
                         type="text"
@@ -124,19 +155,25 @@ export default function DoctorPatients({ setActiveTab }: DoctorPatientsProps) {
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: isMobile ? '8px' : '12px', 
+                    flexWrap: isMobile ? 'wrap' : 'nowrap' 
+                }}>
                     {['All', 'Active', 'Follow-Up', 'Completed'].map(status => (
                         <button
                             key={status}
                             onClick={() => setStatusFilter(status)}
                             className={`doc-btn ${statusFilter === status ? 'doc-btn-primary' : 'doc-btn-secondary'}`}
                             style={{
-                                padding: '8px 16px',
-                                fontSize: '13px',
+                                padding: isMobile ? '6px 12px' : '8px 16px',
+                                fontSize: isMobile ? '12px' : '13px',
                                 background: statusFilter === status ? '#2563eb' : 'white',
                                 color: statusFilter === status ? 'white' : '#64748b',
                                 border: statusFilter === status ? 'none' : '1px solid #e2e8f0',
-                                boxShadow: 'none'
+                                boxShadow: 'none',
+                                flex: isMobile ? '1' : 'none',
+                                textAlign: 'center'
                             }}
                         >
                             {status}
@@ -145,86 +182,152 @@ export default function DoctorPatients({ setActiveTab }: DoctorPatientsProps) {
                 </div>
             </div>
 
-            {/* Patients Table */}
-            <div className="doc-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                            <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Patient</th>
-                            <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>ID / Demographics</th>
-                            <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Consultation</th>
-                            <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Visits</th>
-                            <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Status</th>
-                            <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredPatients.map((patient) => (
-                            <tr key={patient.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} className="hover:bg-slate-50">
-                                <td style={{ padding: '16px 24px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <img src={patient.image} alt={patient.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                                        <span style={{ fontWeight: '600', color: '#0f172a' }}>{patient.name}</span>
+            {/* Patients Content */}
+            {isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {filteredPatients.map((patient) => (
+                        <div key={patient.id} className="doc-card" style={{ padding: '16px', marginBottom: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <img src={patient.image} alt={patient.name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
+                                    <div>
+                                        <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px' }}>{patient.name}</div>
+                                        <div style={{ fontSize: '12px', color: '#64748b' }}>{patient.patientId} • {patient.age}y • {patient.gender}</div>
                                     </div>
-                                </td>
-                                <td style={{ padding: '16px 24px' }}>
-                                    <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: '500' }}>{patient.patientId}</div>
-                                    <div style={{ fontSize: '12px', color: '#64748b' }}>{patient.age} yrs • {patient.gender}</div>
-                                </td>
-                                <td style={{ padding: '16px 24px' }}>
-                                    <span style={{ fontSize: '14px', color: '#0f172a' }}>{patient.reason}</span>
-                                </td>
-                                <td style={{ padding: '16px 24px' }}>
-                                    <div style={{ fontSize: '13px', color: '#0f172a' }}>Last: {patient.lastVisit}</div>
-                                    <div style={{ fontSize: '12px', color: patient.nextAppointment === 'None' ? '#94a3b8' : '#2563eb', fontWeight: patient.nextAppointment === 'None' ? '400' : '500' }}>
-                                        Next: {patient.nextAppointment}
-                                    </div>
-                                </td>
-                                <td style={{ padding: '16px 24px' }}>
-                                    <span style={{
-                                        padding: '4px 10px',
-                                        borderRadius: '20px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        background: getStatusColor(patient.status).bg,
-                                        color: getStatusColor(patient.status).text
-                                    }}>
-                                        {patient.status}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                        <button title="View Profile" style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b' }}>
-                                            <Icons.User />
-                                        </button>
-                                        <button title="View Records" style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b' }}>
-                                            <Icons.FileText />
-                                        </button>
-                                        <button
-                                            onClick={() => handleChatClick()}
-                                            title="Chat"
-                                            style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#2563eb' }}
-                                        >
-                                            <Icons.Chat />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                                </div>
+                                <span style={{
+                                    padding: '4px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '11px',
+                                    fontWeight: '700',
+                                    textTransform: 'uppercase',
+                                    background: getStatusColor(patient.status).bg,
+                                    color: getStatusColor(patient.status).text
+                                }}>
+                                    {patient.status}
+                                </span>
+                            </div>
 
-                        {filteredPatients.length === 0 && (
-                            <tr>
-                                <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                                        <Icons.Users />
-                                        <p>No patients found matching your search.</p>
-                                    </div>
-                                </td>
+                            <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Reason</div>
+                                <div style={{ fontSize: '14px', color: '#0f172a' }}>{patient.reason}</div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Last Visit</div>
+                                    <div style={{ fontSize: '13px', color: '#0f172a' }}>{patient.lastVisit}</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Next Appt</div>
+                                    <div style={{ fontSize: '13px', color: patient.nextAppointment === 'None' ? '#94a3b8' : '#2563eb' }}>{patient.nextAppointment}</div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+                                <button style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                    <Icons.User />
+                                    <span style={{ fontSize: '11px', fontWeight: '600' }}>Profile</span>
+                                </button>
+                                <button style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                    <Icons.FileText />
+                                    <span style={{ fontSize: '11px', fontWeight: '600' }}>Records</span>
+                                </button>
+                                <button onClick={() => handleChatClick()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}>
+                                    <Icons.Chat />
+                                    <span style={{ fontSize: '11px', fontWeight: '600' }}>Chat</span>
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    {filteredPatients.length === 0 && (
+                        <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
+                            <Icons.Users />
+                            <p>No patients found.</p>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="doc-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Patient</th>
+                                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>ID / Demographics</th>
+                                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Consultation</th>
+                                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Visits</th>
+                                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Status</th>
+                                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {filteredPatients.map((patient) => (
+                                <tr key={patient.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} className="hover:bg-slate-50">
+                                    <td style={{ padding: '16px 24px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <img src={patient.image} alt={patient.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                                            <span style={{ fontWeight: '600', color: '#0f172a' }}>{patient.name}</span>
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                        <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: '500' }}>{patient.patientId}</div>
+                                        <div style={{ fontSize: '12px', color: '#64748b' }}>{patient.age} yrs • {patient.gender}</div>
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                        <span style={{ fontSize: '14px', color: '#0f172a' }}>{patient.reason}</span>
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                        <div style={{ fontSize: '13px', color: '#0f172a' }}>Last: {patient.lastVisit}</div>
+                                        <div style={{ fontSize: '12px', color: patient.nextAppointment === 'None' ? '#94a3b8' : '#2563eb', fontWeight: patient.nextAppointment === 'None' ? '400' : '500' }}>
+                                            Next: {patient.nextAppointment}
+                                        </div>
+                                    </td>
+                                    <td style={{ padding: '16px 24px' }}>
+                                        <span style={{
+                                            padding: '4px 10px',
+                                            borderRadius: '20px',
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            background: getStatusColor(patient.status).bg,
+                                            color: getStatusColor(patient.status).text
+                                        }}>
+                                            {patient.status}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                            <button title="View Profile" style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b' }}>
+                                                <Icons.User />
+                                            </button>
+                                            <button title="View Records" style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#64748b' }}>
+                                                <Icons.FileText />
+                                            </button>
+                                            <button
+                                                onClick={() => handleChatClick()}
+                                                title="Chat"
+                                                style={{ padding: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', color: '#2563eb' }}
+                                            >
+                                                <Icons.Chat />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+
+                            {filteredPatients.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                            <Icons.Users />
+                                            <p>No patients found matching your search.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 }

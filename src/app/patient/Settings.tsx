@@ -35,6 +35,15 @@ export default function Settings() {
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // User Profile State
     const [profile, setProfile] = useState({
@@ -69,11 +78,56 @@ export default function Settings() {
         { id: 'emergency', label: 'Emergency Contact', icon: <Icons.Phone /> },
         { id: 'notifications', label: 'Notifications', icon: <Icons.Bell /> },
         { id: 'payment', label: 'Payment Methods', icon: <Icons.CreditCard /> },
+        { id: 'history', label: 'Transaction History', icon: <Icons.BuildingLibrary /> },
     ];
 
     useEffect(() => {
         fetchProfile();
-    }, []);
+        if (activeTab === 'payment') {
+            fetchPaymentMethods();
+        }
+        if (activeTab === 'history') {
+            fetchTransactions();
+        }
+    }, [activeTab]);
+
+    const fetchTransactions = async () => {
+        try {
+            const { data } = await api.get('/payments');
+            setTransactions(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const fetchPaymentMethods = async () => {
+        try {
+            const { data } = await api.get('/payment-methods');
+            setPaymentMethods(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleDeletePaymentMethod = async (id: number) => {
+        try {
+            await api.delete(`/payment-methods/${id}`);
+            toast.success('Payment method removed');
+            fetchPaymentMethods();
+        } catch (error) {
+            toast.error('Failed to remove payment method');
+        }
+    };
+
+    const handleSetDefaultPaymentMethod = async (id: number) => {
+        try {
+            await api.put(`/payment-methods/${id}/default`);
+            toast.success('Default updated');
+            fetchPaymentMethods();
+        } catch (error) {
+            toast.error('Failed to update default');
+        }
+    };
 
     const fetchProfile = async () => {
         try {
@@ -129,18 +183,37 @@ export default function Settings() {
 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
-            <div className="settings-header">
-                <h1>Settings</h1>
-                <p>Manage your account preferences, privacy, and personal details.</p>
+            <div className="settings-header" style={{ marginBottom: '32px' }}>
+                <h1 style={{ fontSize: isMobile ? '28px' : '36px', fontWeight: '900', color: '#1e293b', margin: '0 0 8px 0' }}>Settings</h1>
+                <p style={{ fontSize: '16px', color: '#64748b', maxWidth: '600px', lineHeight: '1.6' }}>Manage your account preferences, privacy, and personal details.</p>
             </div>
 
             {/* Horizontal Tabs */}
-            <div className="settings-tabs-container">
+            <div className="settings-tabs-container" style={{ 
+                display: 'flex', gap: isMobile ? '12px' : '16px', marginBottom: '32px', 
+                overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none', msOverflowStyle: 'none' 
+            }}>
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`settings-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                        style={{ 
+                            whiteSpace: 'nowrap', 
+                            background: activeTab === tab.id ? '#2E37A4' : 'white',
+                            color: activeTab === tab.id ? 'white' : '#64748b',
+                            padding: isMobile ? '10px 16px' : '12px 24px',
+                            borderRadius: '12px',
+                            fontWeight: '700',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: activeTab === tab.id ? '0 4px 12px rgba(46, 55, 164, 0.2)' : '0 1px 3px rgba(0,0,0,0.05)',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                        }}
                     >
                         {tab.icon}
                         {tab.label}
@@ -156,8 +229,8 @@ export default function Settings() {
                 {!loading && activeTab === 'profile' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <div>
-                            <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0 0 4px 0' }}>Profile Details</h2>
-                            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Manage your personal information and preferences.</p>
+                            <h2 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '900', color: '#1e293b', margin: '0 0 8px 0' }}>Profile Details</h2>
+                            <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>Manage your personal information and preferences.</p>
                         </div>
 
                         {/* Profile Photo */}
@@ -195,44 +268,45 @@ export default function Settings() {
                         </div>
 
                         {/* Personal Information */}
-                        <div className="settings-card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                        <div className="settings-card" style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', padding: isMobile ? '20px' : '32px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '24px', gap: '16px' }}>
                                 <div>
-                                    <h3 className="settings-section-title">Personal Information</h3>
-                                    <p className="settings-section-desc">Your basic profile information.</p>
+                                    <h3 className="settings-section-title" style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: '0 0 4px 0' }}>Personal Information</h3>
+                                    <p className="settings-section-desc" style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Your basic profile information.</p>
                                 </div>
                                 <button onClick={handleSaveProfile} disabled={saving} style={{
-                                    padding: '6px 16px', border: '1px solid #e2e8f0', borderRadius: '6px',
-                                    background: saving ? '#f1f5f9' : 'white', color: '#0f172a', fontWeight: '600', fontSize: '13px', cursor: saving ? 'wait' : 'pointer'
+                                    padding: '10px 20px', borderRadius: '12px',
+                                    background: saving ? '#f1f5f9' : '#2E37A4', color: 'white', fontWeight: '700', fontSize: '14px', cursor: saving ? 'wait' : 'pointer',
+                                    border: 'none', width: isMobile ? '100%' : 'auto'
                                 }}>
                                     {saving ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">First Name</label>
-                                    <input type="text" value={profile.first_name} onChange={e => handleInputChange('first_name', e.target.value)} className="settings-input" />
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>First Name</label>
+                                    <input type="text" value={profile.first_name} onChange={e => handleInputChange('first_name', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Last Name</label>
-                                    <input type="text" value={profile.last_name} onChange={e => handleInputChange('last_name', e.target.value)} className="settings-input" />
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Last Name</label>
+                                    <input type="text" value={profile.last_name} onChange={e => handleInputChange('last_name', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Email Address</label>
-                                    <input type="email" value={profile.email} onChange={e => handleInputChange('email', e.target.value)} className="settings-input" />
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Email Address</label>
+                                    <input type="email" value={profile.email} onChange={e => handleInputChange('email', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Phone Number</label>
-                                    <input type="tel" value={profile.phone} onChange={e => handleInputChange('phone', e.target.value)} className="settings-input" />
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Phone Number</label>
+                                    <input type="tel" value={profile.phone} onChange={e => handleInputChange('phone', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Date of Birth</label>
-                                    <input type="date" value={profile.dob} onChange={e => handleInputChange('dob', e.target.value)} className="settings-input" />
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Date of Birth</label>
+                                    <input type="date" value={profile.dob} onChange={e => handleInputChange('dob', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Gender</label>
-                                    <select className="settings-input" value={profile.gender} onChange={e => handleInputChange('gender', e.target.value)}>
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Gender</label>
+                                    <select style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} value={profile.gender} onChange={e => handleInputChange('gender', e.target.value)}>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
                                     </select>
@@ -241,14 +315,14 @@ export default function Settings() {
                         </div>
 
                         {/* Medical Information */}
-                        <div className="settings-card">
-                            <h3 className="settings-section-title">Medical Information</h3>
-                            <p className="settings-section-desc" style={{ marginBottom: '24px' }}>Basic health information for emergency situations.</p>
+                        <div className="settings-card" style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', padding: isMobile ? '20px' : '32px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                            <h3 className="settings-section-title" style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: '0 0 4px 0' }}>Medical Information</h3>
+                            <p className="settings-section-desc" style={{ marginBottom: '24px', color: '#64748b', fontSize: '14px' }}>Basic health information for emergency situations.</p>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-                                <div className="settings-input-group" style={{ maxWidth: '48%' }}>
-                                    <label className="settings-label">Blood Type</label>
-                                    <select className="settings-input" value={profile.blood_group} onChange={e => handleInputChange('blood_group', e.target.value)}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
+                                <div className="settings-input-group" style={{ maxWidth: isMobile ? '100%' : '100%' }}>
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Blood Type</label>
+                                    <select style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} value={profile.blood_group} onChange={e => handleInputChange('blood_group', e.target.value)}>
                                         <option value="O+">O+</option>
                                         <option value="A+">A+</option>
                                         <option value="B+">B+</option>
@@ -260,12 +334,15 @@ export default function Settings() {
                                     </select>
                                 </div>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Address</label>
-                                    <input type="text" value={profile.address} onChange={e => handleInputChange('address', e.target.value)} className="settings-input" />
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Address</label>
+                                    <input type="text" value={profile.address} onChange={e => handleInputChange('address', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                             </div>
-                            <div style={{ marginTop: '20px', textAlign: 'right' }}>
-                                <button onClick={handleSaveProfile} disabled={saving} className="settings-btn-primary">
+                            <div style={{ marginTop: '32px', textAlign: 'right' }}>
+                                <button onClick={handleSaveProfile} disabled={saving} style={{ 
+                                    padding: '14px 28px', borderRadius: '14px', border: 'none', background: '#2E37A4', color: 'white', fontWeight: '800', cursor: 'pointer', width: isMobile ? '100%' : 'auto',
+                                    boxShadow: '0 4px 6px -1px rgba(46, 55, 164, 0.2)'
+                                }}>
                                     {saving ? 'Saving...' : 'Save All Changes'}
                                 </button>
                             </div>
@@ -359,25 +436,25 @@ export default function Settings() {
                         </div>
 
                         {/* Contact Card */}
-                        <div className="settings-card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                        <div className="settings-card" style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', padding: isMobile ? '20px' : '32px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '24px', gap: '16px' }}>
                                 <div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: 0 }}>{profile.emergency_name || 'No contact added'}</h3>
-                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#475569', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>{profile.emergency_relationship}</span>
+                                        <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 }}>{profile.emergency_name || 'No contact added'}</h3>
+                                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#2E37A4', background: '#eff6ff', padding: '4px 10px', borderRadius: '8px', border: '1px solid #dbeafe', textTransform: 'uppercase' }}>{profile.emergency_relationship}</span>
                                     </div>
-                                    <div style={{ fontSize: '13px', color: '#64748b' }}>{profile.emergency_phone}</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>{profile.emergency_phone}</div>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Full Name</label>
-                                    <input type="text" value={profile.emergency_name} onChange={e => handleInputChange('emergency_name', e.target.value)} className="settings-input" />
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Full Name</label>
+                                    <input type="text" value={profile.emergency_name} onChange={e => handleInputChange('emergency_name', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                                 <div className="settings-input-group">
-                                    <label className="settings-label">Relationship</label>
-                                    <select className="settings-input" value={profile.emergency_relationship} onChange={e => handleInputChange('emergency_relationship', e.target.value)}>
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Relationship</label>
+                                    <select style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} value={profile.emergency_relationship} onChange={e => handleInputChange('emergency_relationship', e.target.value)}>
                                         <option value="Mother">Mother</option>
                                         <option value="Father">Father</option>
                                         <option value="Spouse">Spouse</option>
@@ -385,27 +462,30 @@ export default function Settings() {
                                         <option value="Friend">Friend</option>
                                     </select>
                                 </div>
-                                <div className="settings-input-group" style={{ gridColumn: '1 / -1' }}>
-                                    <label className="settings-label">Phone Number</label>
-                                    <input type="tel" value={profile.emergency_phone} onChange={e => handleInputChange('emergency_phone', e.target.value)} className="settings-input" />
+                                <div className="settings-input-group" style={{ gridColumn: isMobile ? '1' : '1 / -1' }}>
+                                    <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Phone Number</label>
+                                    <input type="tel" value={profile.emergency_phone} onChange={e => handleInputChange('emergency_phone', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
                                 </div>
                             </div>
 
-                            <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '16px', display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                            <div style={{ background: '#f0f9ff', borderRadius: '16px', padding: '20px', display: 'flex', gap: '16px', marginBottom: '32px', border: '1px solid #bae6fd' }}>
                                 <div style={{ paddingTop: '2px' }}>
-                                    <div style={{ width: '16px', height: '16px', background: '#2563eb', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    <div style={{ width: '20px', height: '20px', background: '#0ea5e9', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                     </div>
                                 </div>
                                 <div>
-                                    <h5 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>Allow Live Location Sharing</h5>
-                                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>This contact will receive your live location during ambulance dispatch or medical emergencies.</p>
+                                    <h5 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '800', color: '#0369a1' }}>Live Location Sharing</h5>
+                                    <p style={{ margin: 0, fontSize: '13px', color: '#0ea5e9', fontWeight: '500', lineHeight: '1.5' }}>This contact will receive your live location during ambulance dispatch or medical emergencies.</p>
                                 </div>
                             </div>
 
                             <div style={{ textAlign: 'right' }}>
-                                <button onClick={handleSaveProfile} disabled={saving} className="settings-btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                                    <Icons.Save /> {saving ? 'Saving...' : 'Save Changes'}
+                                <button onClick={handleSaveProfile} disabled={saving} style={{ 
+                                    padding: '14px 28px', borderRadius: '14px', border: 'none', background: '#2E37A4', color: 'white', fontWeight: '800', cursor: 'pointer', width: isMobile ? '100%' : 'auto',
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(46, 55, 164, 0.2)'
+                                }}>
+                                    <Icons.Save /> {saving ? 'Saving...' : 'Save Contact Details'}
                                 </button>
                             </div>
                         </div>
@@ -555,52 +635,51 @@ export default function Settings() {
 
                         {/* Saved Cards */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {/* Card Item */}
-                            <div style={{
-                                padding: '24px', borderRadius: '16px', border: '1px solid #2563eb', background: 'white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                    <div style={{ width: '56px', height: '36px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
-                                        <Icons.CreditCard />
-                                    </div>
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>•••• •••• •••• 4532</div>
-                                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #dbeafe' }}>Default</div>
+                            {paymentMethods.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #e2e8f0', color: '#64748b' }}>
+                                    No saved payment methods yet. They will appear here after your first card payment.
+                                </div>
+                            ) : (
+                                paymentMethods.map(method => (
+                                    <div key={method.id} style={{
+                                        padding: '20px', borderRadius: '16px', border: method.is_default ? '1.5px solid #2E37A4' : '1px solid #e2e8f0', background: 'white',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '20px' }}>
+                                            <div style={{ width: '48px', height: '32px', background: '#f8fafc', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', border: '1px solid #f1f5f9' }}>
+                                                <Icons.CreditCard />
+                                            </div>
+                                            <div>
+                                                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '4px' : '12px' }}>
+                                                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', textTransform: 'capitalize' }}>
+                                                        {method.brand} •••• {method.last4}
+                                                    </div>
+                                                    {method.is_default && (
+                                                        <div style={{ fontSize: '10px', fontWeight: '800', color: '#2E37A4', background: '#eff6ff', padding: '2px 8px', borderRadius: '60px', border: '1px solid #dbeafe', textTransform: 'uppercase' }}>Default</div>
+                                                    )}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px', fontWeight: '600' }}>Expires {method.exp_month}/{method.exp_year}</div>
+                                            </div>
                                         </div>
-                                        <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>Expires 12/26</div>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {!method.is_default && (
+                                                <button 
+                                                    onClick={() => handleSetDefaultPaymentMethod(method.id)}
+                                                    style={{ background: 'none', border: 'none', color: '#2E37A4', fontSize: '12px', fontWeight: '700', cursor: 'pointer', padding: '8px' }}
+                                                >
+                                                    Set Default
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={() => handleDeletePaymentMethod(method.id)}
+                                                style={{ background: '#fef2f2', border: 'none', color: '#ef4444', cursor: 'pointer', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <Icons.Trash />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                                <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                                    <Icons.Trash />
-                                </button>
-                            </div>
-
-                            {/* Bank Account */}
-                            <div style={{
-                                padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: 'white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                    <div style={{ width: '56px', height: '36px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
-                                        <Icons.BuildingLibrary />
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>GTBank - ****7890</div>
-                                        <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>Bank Account</div>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <button style={{ background: 'none', border: 'none', color: '#0f172a', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        {/* Placeholder check for "Set Default" or just text */}
-                                        <span style={{ color: 'transparent' }}></span> Set Default
-                                    </button>
-                                    <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                                        <Icons.Trash />
-                                    </button>
-                                </div>
-                            </div>
+                                ))
+                            )}
                         </div>
 
                         {/* Add Button */}
@@ -616,18 +695,102 @@ export default function Settings() {
                             <Icons.Plus /> Add Payment Method
                         </button>
 
-                        {/* Transaction History */}
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc' }}>
+                             <div style={{ border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc' }}>
                             <div>
                                 <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>Transaction History</h4>
                                 <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>View all your past payments and receipts</p>
                             </div>
-                            <button style={{
-                                padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px',
-                                background: 'white', color: '#0f172a', fontWeight: '600', fontSize: '13px', cursor: 'pointer'
-                            }}>
+                            <button 
+                                onClick={() => setActiveTab('history')}
+                                style={{
+                                    padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px',
+                                    background: 'white', color: '#0f172a', fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+                                }}
+                            >
                                 View History
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Transaction History Content */}
+                {activeTab === 'history' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        <div>
+                            <h2 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: '900', color: '#1e293b', margin: '0 0 8px 0' }}>Transaction History</h2>
+                            <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>Track all your payments, top-ups, and refunds.</p>
+                        </div>
+
+                        <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                            {transactions.length === 0 ? (
+                                <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <div style={{ fontSize: '40px', marginBottom: '16px' }}>💳</div>
+                                    <p>No transactions found.</p>
+                                </div>
+                            ) : (
+                                <div style={{ overflowX: 'auto' }}>
+                                    {!isMobile ? (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                    <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Details</th>
+                                                    <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Date</th>
+                                                    <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Status</th>
+                                                    <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {transactions.map(tx => (
+                                                    <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '20px 24px' }}>
+                                                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>{tx.description}</div>
+                                                            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>Ref: {tx.reference}</div>
+                                                        </td>
+                                                        <td style={{ padding: '20px 24px', fontSize: '14px', color: '#64748b' }}>
+                                                            {new Date(tx.created_at).toLocaleDateString()}
+                                                        </td>
+                                                        <td style={{ padding: '20px 24px' }}>
+                                                            <span style={{
+                                                                padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase',
+                                                                background: tx.status === 'success' ? '#f0fdf4' : tx.status === 'pending' ? '#fffbeb' : '#fef2f2',
+                                                                color: tx.status === 'success' ? '#16a34a' : tx.status === 'pending' ? '#d97706' : '#ef4444'
+                                                            }}>
+                                                                {tx.status}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '20px 24px', fontSize: '15px', fontWeight: '900', color: tx.type === 'debit' ? '#ef4444' : '#16a34a', textAlign: 'right' }}>
+                                                            {tx.type === 'debit' ? '-' : '+'}₦{parseFloat(tx.amount).toLocaleString()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            {transactions.map(tx => (
+                                                <div key={tx.id} style={{ padding: '20px', borderBottom: '1px solid #f1f5f9' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b' }}>{tx.description}</div>
+                                                        <div style={{ fontSize: '14px', fontWeight: '900', color: tx.type === 'debit' ? '#ef4444' : '#16a34a' }}>
+                                                            {tx.type === 'debit' ? '-' : '+'}₦{parseFloat(tx.amount).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>{new Date(tx.created_at).toLocaleDateString()}</div>
+                                                        <span style={{
+                                                            padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase',
+                                                            background: tx.status === 'success' ? '#f0fdf4' : tx.status === 'pending' ? '#fffbeb' : '#fef2f2',
+                                                            color: tx.status === 'success' ? '#16a34a' : tx.status === 'pending' ? '#d97706' : '#ef4444'
+                                                        }}>
+                                                            {tx.status}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

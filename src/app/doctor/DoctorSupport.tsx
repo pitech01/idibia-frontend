@@ -9,6 +9,13 @@ export default function DoctorSupport() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<any>(null);
     const [replyMessage, setReplyMessage] = useState('');
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Create Ticket Form State
     const [newTicket, setNewTicket] = useState({
@@ -76,18 +83,27 @@ export default function DoctorSupport() {
     };
 
     return (
-        <div className="animate-fade-in" style={{ padding: '30px' }}>
+        <div className="animate-fade-in" style={{ padding: isMobile ? '16px' : '30px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+            <div style={{ 
+                display: 'flex', 
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between', 
+                alignItems: isMobile ? 'flex-start' : 'center', 
+                marginBottom: '30px',
+                gap: isMobile ? '20px' : '0'
+            }}>
                 <div>
-                    <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a' }}>Provider Support</h2>
-                    <p style={{ color: '#64748b' }}>Technical and administrative support.</p>
+                    <h2 style={{ fontSize: isMobile ? '22px' : '24px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Provider Support</h2>
+                    <p style={{ color: '#64748b', fontSize: '14px', margin: '4px 0 0 0' }}>Technical and administrative support.</p>
                 </div>
                 <button
                     onClick={() => setShowCreateModal(true)}
                     style={{
                         background: '#3b82f6', color: 'white', padding: '12px 24px', borderRadius: '12px',
-                        border: 'none', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                        border: 'none', fontWeight: '600', cursor: 'pointer', display: 'flex', 
+                        alignItems: 'center', gap: '8px', width: isMobile ? '100%' : 'auto',
+                        justifyContent: 'center'
                     }}
                 >
                     + New Ticket
@@ -117,23 +133,27 @@ export default function DoctorSupport() {
                                 onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                                 onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
                             >
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                                        <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1e293b' }}>{ticket.subject}</h4>
+                                <div style={{ flex: 1, overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                                        <h4 style={{ margin: 0, fontSize: isMobile ? '15px' : '16px', fontWeight: '600', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ticket.subject}</h4>
                                         <span style={{
-                                            padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', textTransform: 'capitalize',
+                                            padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase',
                                             background: ticket.status === 'open' ? '#dbeafe' : ticket.status === 'resolved' ? '#dcfce7' : '#f1f5f9',
-                                            color: ticket.status === 'open' ? '#1e40af' : ticket.status === 'resolved' ? '#166534' : '#64748b'
+                                            color: ticket.status === 'open' ? '#1e40af' : ticket.status === 'resolved' ? '#166534' : '#64748b',
+                                            letterSpacing: '0.02em'
                                         }}>
                                             {ticket.status.replace('_', ' ')}
                                         </span>
                                     </div>
-                                    <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
-                                        Ticket #{ticket.id} • {new Date(ticket.created_at).toLocaleDateString()} • {ticket.category}
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+                                        Ticket #{ticket.id} • {new Date(ticket.created_at).toLocaleDateString()}
+                                    </p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94a3b8', textTransform: 'capitalize' }}>
+                                        Category: {ticket.category}
                                     </p>
                                 </div>
-                                <div style={{ color: '#cbd5e1' }}>
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                <div style={{ color: '#cbd5e1', paddingLeft: '12px' }}>
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                                 </div>
                             </div>
                         ))
@@ -226,23 +246,40 @@ export default function DoctorSupport() {
 
             {/* Ticket Details/Chat Modal */}
             {selectedTicket && createPortal(
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-                    <div style={{ background: 'white', width: '90%', maxWidth: '600px', height: '80vh', borderRadius: '20px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: isMobile ? 'flex-end' : 'center', zIndex: 9999 }}>
+                    <div style={{ 
+                        background: 'white', 
+                        width: '100%', 
+                        maxWidth: isMobile ? '100%' : '600px', 
+                        height: isMobile ? '100%' : '80vh', 
+                        borderRadius: isMobile ? '0' : '20px', 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        overflow: 'hidden' 
+                    }}>
                         {/* Chat Header */}
-                        <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-                            <div>
-                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>{selectedTicket.subject}</h3>
-                                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Ticket #{selectedTicket.id}</p>
+                        <div style={{ 
+                            padding: '16px 20px', 
+                            borderBottom: '1px solid #e2e8f0', 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            background: '#f8fafc',
+                            minHeight: isMobile ? '70px' : 'auto'
+                        }}>
+                            <div style={{ overflow: 'hidden' }}>
+                                <h3 style={{ margin: 0, fontSize: isMobile ? '15px' : '18px', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedTicket.subject}</h3>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>Ticket #{selectedTicket.id}</p>
                             </div>
-                            <button onClick={() => setSelectedTicket(null)} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
+                            <button onClick={() => setSelectedTicket(null)} style={{ border: 'none', background: 'none', fontSize: '28px', cursor: 'pointer', color: '#94a3b8', padding: '8px' }}>&times;</button>
                         </div>
 
                         {/* Chat Messages */}
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '20px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             {selectedTicket.messages && selectedTicket.messages.map((msg: any) => {
-                                const isMe = msg.user_id === selectedTicket.user_id;
+                                const isMe = msg.user_id === selectedTicket.user_id || msg.sender_role === 'doctor';
                                 return (
-                                    <div key={msg.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+                                    <div key={msg.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
                                         <div style={{
                                             padding: '12px 16px',
                                             borderRadius: '16px',
@@ -250,11 +287,13 @@ export default function DoctorSupport() {
                                             color: isMe ? 'white' : '#334155',
                                             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                             borderBottomRightRadius: isMe ? '4px' : '16px',
-                                            borderBottomLeftRadius: isMe ? '16px' : '4px'
+                                            borderBottomLeftRadius: isMe ? '16px' : '4px',
+                                            fontSize: '14px',
+                                            lineHeight: '1.5'
                                         }}>
-                                            <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>{msg.message}</p>
+                                            {msg.message}
                                         </div>
-                                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', textAlign: isMe ? 'right' : 'left', padding: '0 4px' }}>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', textAlign: isMe ? 'right' : 'left', padding: '0 4px' }}>
                                             {isMe ? 'You' : 'Support'} • {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     </div>
@@ -263,9 +302,9 @@ export default function DoctorSupport() {
                         </div>
 
                         {/* Chat Input */}
-                        <div style={{ padding: '20px', background: 'white', borderTop: '1px solid #e2e8f0' }}>
-                            {selectedTicket.status === 'closed' ? (
-                                <div style={{ textAlign: 'center', color: '#64748b', padding: '10px' }}>This ticket is closed.</div>
+                        <div style={{ padding: isMobile ? '16px' : '20px', background: 'white', borderTop: '1px solid #e2e8f0', paddingBottom: isMobile ? '24px' : '20px' }}>
+                            {selectedTicket.status === 'closed' || selectedTicket.status === 'resolved' ? (
+                                <div style={{ textAlign: 'center', color: '#64748b', padding: '10px', fontSize: '13px' }}>This ticket is marked as {selectedTicket.status}.</div>
                             ) : (
                                 <form onSubmit={handleReply} style={{ display: 'flex', gap: '10px' }}>
                                     <input
@@ -273,7 +312,7 @@ export default function DoctorSupport() {
                                         value={replyMessage}
                                         onChange={e => setReplyMessage(e.target.value)}
                                         placeholder="Type your reply..."
-                                        style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                        style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }}
                                     />
                                     <button type="submit" style={{ padding: '0 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }}>
                                         Send

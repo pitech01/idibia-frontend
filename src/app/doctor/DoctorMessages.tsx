@@ -185,14 +185,14 @@ export default function DoctorMessages() {
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : '320px 1fr',
             gridTemplateRows: '1fr',
-            height: 'calc(100vh - 100px)', // Adjust for doc header
+            height: isMobile ? 'calc(100vh - 140px)' : 'calc(100vh - 120px)',
             minHeight: '0',
             background: 'white',
-            borderRadius: '16px',
-            border: '1px solid #e2e8f0',
+            borderRadius: isMobile ? '0' : '16px',
+            border: isMobile ? 'none' : '1px solid #e2e8f0',
             overflow: 'hidden',
-            margin: '0', // Reset margin if doc-content-area has it
-            padding: '0' // Reset padding if doc-content-area has it
+            margin: isMobile ? '-10px -10px' : '0',
+            padding: '0'
         }}>
             {showVideoCall && selectedChatId && activeChat && (
                 <WebRTCCall
@@ -216,7 +216,6 @@ export default function DoctorMessages() {
                 <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', background: 'white' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Messages</h2>
-                        <button style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}><Icons.Edit /></button>
                     </div>
                     <div style={{ position: 'relative', marginBottom: '16px' }}>
                         <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#94a3b8' }}><Icons.Search /></span>
@@ -296,98 +295,149 @@ export default function DoctorMessages() {
                 background: '#f8fafc',
                 overflow: 'hidden'
             }}>
-                {/* Active Chat Header */}
-                <div style={{ padding: '16px 24px', background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {isMobile && (
-                            <button onClick={() => setShowChatOnMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-                                <Icons.ChevronLeft />
-                            </button>
-                        )}
-                        <div style={{ position: 'relative' }}>
-                            <img src={activeChat?.img} alt={activeChat?.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                            {activeChat?.online && <div style={{ position: 'absolute', bottom: '0', right: '0', width: '10px', height: '10px', background: '#22c55e', borderRadius: '50%', border: '2px solid white' }}></div>}
+                {!selectedChatId ? (
+                    <div style={{ 
+                        flex: 1, 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        padding: '40px',
+                        textAlign: 'center',
+                        background: 'white'
+                    }}>
+                        <div style={{ 
+                            width: '80px', 
+                            height: '80px', 
+                            background: '#eff6ff', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            marginBottom: '20px',
+                            color: '#2563eb'
+                        }}>
+                             <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                         </div>
-                        <div>
-                            <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>{activeChat?.name}</h3>
-                            <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{activeChat?.role}</p>
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '16px', color: '#64748b' }}>
-                        <button
-                            onClick={handleStartVideoCall}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
-                        >
-                            <Icons.Video />
-                        </button>
-                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
-                            <Icons.Info />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Messages Feed */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <div style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                        <Icons.Shield /> End-to-End Encrypted
-                    </div>
-
-                    <div style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', margin: '10px 0' }}>Today</div>
-
-                    {messages.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '20px' }}>No messages yet. Start the conversation with {activeChat?.name}.</div>
-                    ) : (
-                        messages.map(msg => (
-                            <div
-                                key={msg.id}
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: msg.sender === 'me' ? 'flex-end' : 'flex-start',
-                                    maxWidth: '70%',
-                                    alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start'
-                                }}
-                            >
-                                <div style={{
-                                    padding: '12px 16px', borderRadius: '12px',
-                                    background: msg.sender === 'me' ? '#2563eb' : 'white', // Blue for doctor sender
-                                    color: msg.sender === 'me' ? 'white' : '#1e293b',
-                                    border: msg.sender === 'me' ? 'none' : '1px solid #e2e8f0',
-                                    borderBottomRightRadius: msg.sender === 'me' ? '4px' : '12px',
-                                    borderTopLeftRadius: msg.sender === 'them' ? '4px' : '12px',
-                                    fontSize: '14px', lineHeight: '1.5',
-                                    boxShadow: msg.sender === 'them' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                                }}>
-                                    {msg.text}
-                                </div>
-                                <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>{msg.time}</span>
+                        <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Select a conversation</h3>
+                        <p style={{ fontSize: '14px', color: '#64748b', maxWidth: '300px', lineHeight: '1.6' }}>Choose a patient from the list on the left to start a secure consultation.</p>
+                        
+                        <div style={{ 
+                            marginTop: '32px', 
+                            display: 'flex', 
+                            gap: '24px', 
+                            padding: '16px 24px',
+                            background: '#f8fafc',
+                            borderRadius: '16px',
+                            border: '1px solid #f1f5f9'
+                        }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#2563eb', marginBottom: '4px' }}>ENCRYPTED</div>
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>Secure Private Line</div>
                             </div>
-                        ))
-                    )}
-                </div>
-
-                {/* Input Area */}
-                <div style={{ padding: '16px 24px', background: 'white', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <button style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
-                        <Icons.Paperclip />
-                    </button>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                        <input
-                            type="text"
-                            placeholder="Type a message..."
-                            value={messageInput}
-                            onChange={(e) => setMessageInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                            style={{
-                                width: '100%', padding: '12px 16px', borderRadius: '24px',
-                                border: '1px solid #e2e8f0', background: '#f8fafc', outline: 'none', fontSize: '14px', fontFamily: 'inherit'
-                            }}
-                        />
+                            <div style={{ width: '1px', background: '#e2e8f0' }}></div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#2563eb', marginBottom: '4px' }}>INSTANT</div>
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>Real-time Sync</div>
+                            </div>
+                        </div>
                     </div>
-                    <button onClick={handleSendMessage} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}>
-                        <Icons.Send />
-                    </button>
-                </div>
+                ) : (
+                    <>
+                        {/* Active Chat Header */}
+                        <div style={{ padding: '16px 24px', background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                {isMobile && (
+                                    <button onClick={() => setShowChatOnMobile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                                        <Icons.ChevronLeft />
+                                    </button>
+                                )}
+                                <div style={{ position: 'relative' }}>
+                                    <img src={activeChat?.img} alt={activeChat?.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                                    {activeChat?.online && <div style={{ position: 'absolute', bottom: '0', right: '0', width: '10px', height: '10px', background: '#22c55e', borderRadius: '50%', border: '2px solid white' }}></div>}
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>{activeChat?.name}</h3>
+                                    <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{activeChat?.role}</p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px', color: '#64748b' }}>
+                                <button
+                                    onClick={handleStartVideoCall}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                                >
+                                    <Icons.Video />
+                                </button>
+                                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+                                    <Icons.Info />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Messages Feed */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                <Icons.Shield /> End-to-End Encrypted
+                            </div>
+
+                            <div style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', margin: '10px 0' }}>Today</div>
+
+                            {messages.length === 0 ? (
+                                <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '20px' }}>No messages yet. Start the conversation with {activeChat?.name}.</div>
+                            ) : (
+                                messages.map(msg => (
+                                    <div
+                                        key={msg.id}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: msg.sender === 'me' ? 'flex-end' : 'flex-start',
+                                            maxWidth: '70%',
+                                            alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start'
+                                        }}
+                                    >
+                                        <div style={{
+                                            padding: '12px 16px', borderRadius: '12px',
+                                            background: msg.sender === 'me' ? '#2563eb' : 'white', // Blue for doctor sender
+                                            color: msg.sender === 'me' ? 'white' : '#1e293b',
+                                            border: msg.sender === 'me' ? 'none' : '1px solid #e2e8f0',
+                                            borderBottomRightRadius: msg.sender === 'me' ? '4px' : '12px',
+                                            borderTopLeftRadius: msg.sender === 'them' ? '4px' : '12px',
+                                            fontSize: '14px', lineHeight: '1.5',
+                                            boxShadow: msg.sender === 'them' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                                        }}>
+                                            {msg.text}
+                                        </div>
+                                        <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>{msg.time}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Input Area */}
+                        <div style={{ padding: '16px 24px', background: 'white', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <button style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                <Icons.Paperclip />
+                            </button>
+                            <div style={{ flex: 1, position: 'relative' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Type a message..."
+                                    value={messageInput}
+                                    onChange={(e) => setMessageInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    style={{
+                                        width: '100%', padding: '12px 16px', borderRadius: '24px',
+                                        border: '1px solid #e2e8f0', background: '#f8fafc', outline: 'none', fontSize: '14px', fontFamily: 'inherit'
+                                    }}
+                                />
+                            </div>
+                            <button onClick={handleSendMessage} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer' }}>
+                                <Icons.Send />
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

@@ -17,10 +17,11 @@ const Icons = {
     MessageSquare: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
 };
 
-export default function DoctorSettings() {
-    const [activeTab, setActiveTab] = useState('profile');
+export default function DoctorSettings({ onUpdate, setActiveTab }: { onUpdate?: () => void; setActiveTab?: (tab: string) => void }) {
+    const [activeSection, setActiveSection] = useState('profile');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [formData, setFormData] = useState<any>({
         name: '',
         email: '',
@@ -32,6 +33,12 @@ export default function DoctorSettings() {
         consultation_type: 'both',
         consultation_duration: 30
     });
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const [toggles, setToggles] = useState({
         emailNotif: true,
@@ -59,8 +66,13 @@ export default function DoctorSettings() {
                 city: doctor?.city || '',
                 state: doctor?.state || '',
                 consultation_type: doctor?.consultation_type || 'both',
-                consultation_duration: doctor?.consultation_duration || 30
+                consultation_duration: doctor?.consultation_duration || 30,
+                avatar: user.avatar || '/doctor_avatar_default_1776170000144.png'
             });
+
+            if (user.settings) {
+                setToggles(prev => ({ ...prev, ...user.settings }));
+            }
         } catch (error) {
             console.error("Failed to fetch settings", error);
             toast.error("Failed to load settings");
@@ -74,8 +86,22 @@ export default function DoctorSettings() {
         setFormData((prev: any) => ({ ...prev, [name]: value }));
     };
 
-    const handleToggle = (key: keyof typeof toggles) => {
-        setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+    const handleToggle = async (key: keyof typeof toggles) => {
+        const newToggles = { ...toggles, [key]: !toggles[key] };
+        setToggles(newToggles);
+        
+        // Auto-save toggles
+        try {
+            const payload = { ...formData, settings: newToggles };
+            await api.put('/doctor/settings', payload);
+            toast.success("Preference updated");
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            console.error("Failed to auto-save preference", error);
+            // Revert on failure
+            setToggles(toggles);
+            toast.error("Failed to save preference");
+        }
     };
 
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -84,6 +110,28 @@ export default function DoctorSettings() {
         new_password: '',
         new_password_confirmation: ''
     });
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        setSaving(true);
+        try {
+            const response = await api.post('/profile/avatar', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setFormData((prev: any) => ({ ...prev, avatar: response.data.avatar }));
+            toast.success("Profile photo updated");
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            toast.error("Failed to upload avatar");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const handlePasswordUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -106,12 +154,18 @@ export default function DoctorSettings() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         setSaving(true);
         try {
-            await api.put('/doctor/settings', formData);
+            // Include toggles in settings
+            const payload = {
+                ...formData,
+                settings: toggles
+            };
+            await api.put('/doctor/settings', payload);
             toast.success("Settings updated successfully");
+            if (onUpdate) onUpdate();
         } catch (error) {
             console.error("Failed to update settings", error);
             toast.error("Failed to update settings");
@@ -207,18 +261,18 @@ export default function DoctorSettings() {
                     </div>
                 </div>
             )}
-            <div className="settings-header">
-                <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>Settings</h1>
-                <p style={{ color: '#64748b', marginTop: '4px' }}>Manage your profile and account preferences.</p>
+            <div style={{ marginBottom: isMobile ? '24px' : '40px', padding: isMobile ? '0 4px' : '0' }}>
+                <h1 style={{ fontSize: isMobile ? '24px' : '28px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Settings</h1>
+                <p style={{ color: '#64748b', marginTop: '4px', fontSize: '14px' }}>Manage your profile and account preferences.</p>
             </div>
 
-            {/* Horizontal Tabs - Duplicated from Patient */}
+            {/* Horizontal Tabs */}
             <div className="settings-tabs-container">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`settings-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+                        onClick={() => setActiveSection(tab.id)}
+                        className={`settings-tab-btn ${activeSection === tab.id ? 'active' : ''}`}
                     >
                         {tab.icon}
                         {tab.label}
@@ -227,42 +281,58 @@ export default function DoctorSettings() {
             </div>
 
             {/* Content Area */}
-            <div style={{ maxWidth: '800px' }}>
+            <div style={{ maxWidth: '1000px' }}>
                 <form onSubmit={handleSubmit}>
                     {/* Public Profile Section */}
-                    {activeTab === 'profile' && (
+                    {activeSection === 'profile' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div className="settings-card">
                                 <h3 className="settings-section-title">Profile Photo</h3>
                                 <p className="settings-section-desc" style={{ marginBottom: '24px' }}>This photo will be displayed on your public profile.</p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: isMobile ? 'column' : 'row',
+                                    alignItems: isMobile ? 'center' : 'center', 
+                                    gap: isMobile ? '20px' : '24px',
+                                    textAlign: isMobile ? 'center' : 'left'
+                                }}>
                                     <div style={{ position: 'relative' }}>
-                                        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                            <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=2070&auto=format&fit=crop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
+                                        <div style={{ width: isMobile ? '100px' : '80px', height: isMobile ? '100px' : '80px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '2px solid #e2e8f0' }}>
+                                            <img src={formData.avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
                                         </div>
-                                        <button type="button" style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: '#2563eb', color: 'white', border: '2px solid white', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                            <div style={{ transform: 'scale(0.7)' }}><Icons.Camera /></div>
-                                        </button>
+                                        <label htmlFor="avatar-upload" style={{ position: 'absolute', bottom: '0px', right: '0px', background: '#2563eb', color: 'white', border: '3px solid white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                                            <div style={{ transform: 'scale(0.8)' }}><Icons.Camera /></div>
+                                            <input type="file" id="avatar-upload" hidden accept="image/*" onChange={handleAvatarUpload} disabled={saving} />
+                                        </label>
                                     </div>
                                     <div>
-                                        <button type="button" className="btn-secondary-light" style={{ padding: '8px 16px', fontSize: '13px', marginBottom: '6px' }}>Change Photo</button>
+                                        <label htmlFor="avatar-upload" className="btn-secondary-light" style={{ display: 'inline-block', padding: '10px 20px', fontSize: '14px', marginBottom: '8px', width: isMobile ? '100%' : 'auto', cursor: 'pointer', textAlign: 'center' }}>
+                                            {saving ? 'Uploading...' : 'Change Photo'}
+                                        </label>
                                         <div style={{ fontSize: '12px', color: '#94a3b8' }}>JPG, PNG or GIF. Max 2MB.</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="settings-card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: isMobile ? 'column' : 'row',
+                                    justifyContent: 'space-between', 
+                                    alignItems: isMobile ? 'stretch' : 'flex-start', 
+                                    marginBottom: '32px',
+                                    gap: '16px'
+                                }}>
                                     <div>
-                                        <h3 className="settings-section-title">Public Information</h3>
-                                        <p className="settings-section-desc">Details visible to patients on the platform.</p>
+                                        <h3 className="settings-section-title" style={{ margin: 0 }}>Public Information</h3>
+                                        <p className="settings-section-desc" style={{ marginTop: '4px' }}>Details visible to patients on the platform.</p>
                                     </div>
-                                    <button type="submit" disabled={saving} className="settings-btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+                                    <button type="submit" disabled={saving} className="settings-btn-primary" style={{ padding: '10px 24px', fontSize: '14px', borderRadius: '12px' }}>
                                         {saving ? 'Saving...' : 'Save Changes'}
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '20px' : '24px' }}>
                                     <div className="settings-input-group">
                                         <label className="settings-label">Full Name</label>
                                         <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="settings-input" />
@@ -277,11 +347,11 @@ export default function DoctorSettings() {
                                     </div>
                                     <div className="settings-input-group">
                                         <label className="settings-label">Email (Display Only)</label>
-                                        <input type="email" value={formData.email} disabled className="settings-input" style={{ background: '#f1f5f9', cursor: 'not-allowed' }} />
+                                        <input type="email" value={formData.email} disabled className="settings-input" style={{ background: '#f8fafc', cursor: 'not-allowed', color: '#94a3b8' }} />
                                     </div>
-                                    <div className="settings-input-group" style={{ gridColumn: 'span 2' }}>
+                                    <div className="settings-input-group" style={{ gridColumn: isMobile ? 'auto' : 'span 2' }}>
                                         <label className="settings-label">Professional Bio</label>
-                                        <textarea name="bio" value={formData.bio} onChange={handleInputChange} className="settings-input" style={{ minHeight: '100px', resize: 'vertical' }} />
+                                        <textarea name="bio" value={formData.bio} onChange={handleInputChange} className="settings-input" style={{ minHeight: '120px', resize: 'vertical' }} />
                                     </div>
                                     <div className="settings-input-group">
                                         <label className="settings-label">City</label>
@@ -297,20 +367,27 @@ export default function DoctorSettings() {
                     )}
 
                     {/* Practice Details */}
-                    {activeTab === 'practice' && (
+                    {activeSection === 'practice' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div className="settings-card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: isMobile ? 'column' : 'row',
+                                    justifyContent: 'space-between', 
+                                    alignItems: isMobile ? 'stretch' : 'flex-start', 
+                                    marginBottom: '32px',
+                                    gap: '16px'
+                                }}>
                                     <div>
-                                        <h3 className="settings-section-title">Consultation Preferences</h3>
-                                        <p className="settings-section-desc">Manage how you conduct your appointments.</p>
+                                        <h3 className="settings-section-title" style={{ margin: 0 }}>Consultation Preferences</h3>
+                                        <p className="settings-section-desc" style={{ marginTop: '4px' }}>Manage how you conduct your appointments.</p>
                                     </div>
-                                    <button type="submit" disabled={saving} className="settings-btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+                                    <button type="submit" disabled={saving} className="settings-btn-primary" style={{ padding: '10px 24px', fontSize: '14px', borderRadius: '12px' }}>
                                         {saving ? 'Saving...' : 'Save Changes'}
                                     </button>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '20px' : '24px' }}>
                                     <div className="settings-input-group">
                                         <label className="settings-label">Consultation Type</label>
                                         <select name="consultation_type" value={formData.consultation_type} onChange={handleInputChange} className="settings-input">
@@ -329,13 +406,19 @@ export default function DoctorSettings() {
                             <div className="settings-card">
                                 <h3 className="settings-section-title">Availability Settings</h3>
                                 <p className="settings-section-desc" style={{ marginBottom: '24px' }}>Your availability is managed in the Schedule module.</p>
-                                <button type="button" className="btn-secondary-light">Go to Schedule</button>
+                                <button 
+                                    type="button" 
+                                    className="btn-secondary-light"
+                                    onClick={() => { if (setActiveTab) setActiveTab('schedule'); }}
+                                >
+                                    Go to Schedule
+                                </button>
                             </div>
                         </div>
                     )}
 
                     {/* Security & Login */}
-                    {activeTab === 'security' && (
+                    {activeSection === 'security' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div className="settings-card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -344,7 +427,12 @@ export default function DoctorSettings() {
                                 </div>
                                 <p className="settings-section-desc" style={{ marginBottom: '24px' }}>Keep your account secure with a strong password and 2FA.</p>
 
-                                <div className="settings-item-row" style={{ borderTop: '1px solid #f1f5f9' }}>
+                                <div className="settings-item-row" style={{ 
+                                    borderTop: '1px solid #f1f5f9', 
+                                    flexDirection: isMobile ? 'column' : 'row',
+                                    alignItems: isMobile ? 'flex-start' : 'center',
+                                    gap: isMobile ? '16px' : '0'
+                                }}>
                                     <div>
                                         <div style={{ fontWeight: '600', color: '#0f172a', fontSize: '15px' }}>Password</div>
                                         <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Change your account password</div>
@@ -353,28 +441,39 @@ export default function DoctorSettings() {
                                         type="button"
                                         onClick={() => setShowPasswordModal(true)}
                                         className="settings-btn-primary"
-                                        style={{ background: 'white', border: '1px solid #e2e8f0', color: '#0f172a', padding: '8px 16px', fontSize: '13px' }}
+                                        style={{ 
+                                            background: 'white', border: '1px solid #e2e8f0', color: '#0f172a', 
+                                            padding: '10px 20px', fontSize: '14px', width: isMobile ? '100%' : 'auto'
+                                        }}
                                     >
-                                        Update
+                                        Update Password
                                     </button>
                                 </div>
 
-                                <div className="settings-item-row">
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div className="settings-item-row" style={{
+                                    flexDirection: isMobile ? 'column' : 'row',
+                                    alignItems: isMobile ? 'flex-start' : 'center',
+                                    gap: isMobile ? '16px' : '0'
+                                }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                             <div style={{ fontWeight: '600', color: '#0f172a', fontSize: '15px' }}>Two-Factor Authentication (2FA)</div>
-                                            <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #dbeafe' }}>Recommended</span>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #dbeafe', textTransform: 'uppercase' }}>Recommended</span>
                                         </div>
-                                        <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Ask for OTP via SMS for every login.</div>
+                                        <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Ask for OTP via SMS for every login attempt.</div>
                                     </div>
-                                    <div className={`toggle-switch-lg ${toggles.twoFactor ? 'active' : ''}`} onClick={() => handleToggle('twoFactor')} />
+                                    <div 
+                                        className={`toggle-switch-lg ${toggles.twoFactor ? 'active' : ''}`} 
+                                        onClick={() => handleToggle('twoFactor')}
+                                        style={{ alignSelf: isMobile ? 'flex-end' : 'center' }}
+                                    />
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Notifications */}
-                    {activeTab === 'notifications' && (
+                    {activeSection === 'notifications' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             <div className="settings-card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>

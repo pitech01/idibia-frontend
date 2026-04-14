@@ -36,18 +36,20 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
     const activeTab = getActiveTab();
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    const fetchUser = async () => {
+        try {
+            const response = await api.get('/user');
+            setUser(response.data);
+        } catch (error) {
+            console.error("Failed to fetch user", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const response = await api.get('/user');
-                setUser(response.data);
-            } catch (error) {
-                console.error("Failed to fetch user", error);
-            } finally {
-                setTimeout(() => setLoading(false), 1000);
-            }
-        };
         fetchUser();
     }, []);
 
@@ -62,6 +64,9 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
             'earnings': '/doctor/dashboard/earnings'
         };
         navigate(routeMap[tab] || '/doctor/dashboard');
+        
+        // Auto-close sidebar on mobile after selecting a tab
+        setSidebarOpen(false);
     };
 
     if (loading) {
@@ -70,10 +75,25 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
 
     return (
         <div className="doc-layout">
-            <DoctorSidebar activeTab={activeTab} setActiveTab={handleTabChange} onLogout={onLogout} />
+            {sidebarOpen && <div className="doc-overlay" onClick={() => setSidebarOpen(false)}></div>}
+            
+            <DoctorSidebar 
+                user={user}
+                activeTab={activeTab} 
+                setActiveTab={handleTabChange} 
+                onLogout={onLogout} 
+                isOpen={sidebarOpen}
+                setIsOpen={setSidebarOpen}
+            />
 
             <main className="doc-main">
-                <DoctorHeader user={user} activeTab={activeTab} setActiveTab={handleTabChange} />
+                <DoctorHeader 
+                    user={user} 
+                    activeTab={activeTab} 
+                    setActiveTab={handleTabChange} 
+                    sidebarOpen={sidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                />
 
                 <Routes>
                     <Route path="/" element={<DoctorOverview setActiveTab={handleTabChange} />} />
@@ -81,7 +101,7 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
                     <Route path="/patients" element={<DoctorPatients setActiveTab={handleTabChange} />} />
                     <Route path="/messages" element={<DoctorMessages />} />
                     <Route path="/support" element={<DoctorSupport />} />
-                    <Route path="/settings" element={<DoctorSettings />} />
+                    <Route path="/settings" element={<DoctorSettings onUpdate={fetchUser} setActiveTab={handleTabChange} />} />
                     <Route path="/earnings" element={<DoctorEarnings />} />
                     <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
                 </Routes>
