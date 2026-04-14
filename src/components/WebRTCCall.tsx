@@ -39,7 +39,11 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
         console.log('🔄 Initializing Socket.io connection to:', SIGNALING_SERVER);
         socketRef.current = io(SIGNALING_SERVER, {
             query: { userId, appointmentId },
-            transports: ['websocket', 'polling'] // Better compatibility for some hosts
+            transports: ['polling', 'websocket'], // Try polling first for maximum compatibility
+            secure: true,
+            reconnection: true,
+            reconnectionAttempts: 5,
+            timeout: 20000
         });
 
         socketRef.current.on('connect', () => {
