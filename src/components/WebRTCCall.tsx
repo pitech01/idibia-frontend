@@ -33,6 +33,7 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
     const peerRef = useRef<RTCPeerConnection | null>(null);
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
+    const localStreamRef = useRef<MediaStream | null>(null);
 
     useEffect(() => {
         // 1. Initialize Socket
@@ -68,6 +69,7 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 setLocalStream(stream);
+                localStreamRef.current = stream;
                 if (localVideoRef.current) localVideoRef.current.srcObject = stream;
                 stream.getTracks().forEach(track => pc.addTrack(track, stream));
                 socketRef.current.emit('call:join', { appointmentId, userId, role: isDoctor ? 'doctor' : 'patient' });
@@ -213,7 +215,14 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
         if (callStatus === 'ended') return;
         setCallStatus('ended');
         
-        if (localStream) localStream.getTracks().forEach(t => t.stop());
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach(t => {
+                t.stop();
+                console.log(`Stopping track: ${t.kind}`);
+            });
+            localStreamRef.current = null;
+        }
+        
         if (peerRef.current) peerRef.current.close();
         
         if (emit && socketRef.current && socketRef.current.connected) {
