@@ -190,7 +190,7 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
         startCallProtocol();
 
         return () => {
-            handleEndCall(false);
+            handleEndCall(true); // Always try to notify on unmount
             if (heartbeatInterval) clearInterval(heartbeatInterval);
         };
     }, []);
@@ -210,12 +210,23 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
     };
 
     const handleEndCall = (emit = true) => {
+        if (callStatus === 'ended') return;
         setCallStatus('ended');
+        
         if (localStream) localStream.getTracks().forEach(t => t.stop());
         if (peerRef.current) peerRef.current.close();
-        if (emit && socketRef.current) socketRef.current.emit('call:end', { appointmentId, target: receiverId });
-        if (socketRef.current) socketRef.current.disconnect();
-        onClose();
+        
+        if (emit && socketRef.current && socketRef.current.connected) {
+            socketRef.current.emit('call:end', { appointmentId, appointment_id: appointmentId });
+            // Small delay to ensure the event is sent before disconnection/unmount
+            setTimeout(() => {
+                if (socketRef.current) socketRef.current.disconnect();
+                onClose();
+            }, 100);
+        } else {
+            if (socketRef.current) socketRef.current.disconnect();
+            onClose();
+        }
     };
 
     const containerRef = useRef<HTMLDivElement>(null);
