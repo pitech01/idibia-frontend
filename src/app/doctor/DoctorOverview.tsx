@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../services';
 import Preloader from '../../components/Preloader';
 import { toast } from 'react-hot-toast';
+import WebRTCCall from '../../components/WebRTCCall';
 
 const Icons = {
     Clock: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
@@ -28,6 +29,8 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionProcessing, setActionProcessing] = useState<number | null>(null);
+    const [showWebRTCCall, setShowWebRTCCall] = useState(false);
+    const [activeCallAppointment, setActiveCallAppointment] = useState<any>(null);
 
     const fetchDashboard = async () => {
         try {
@@ -49,8 +52,14 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
         setActionProcessing(id);
         const toastId = toast.loading("Connecting to patient...");
         try {
-            await api.post(`/appointments/${id}/start`);
+            const res = await api.post(`/appointments/${id}/start`);
             toast.success("Connection Established! Patient notified.", { id: toastId });
+            
+            // Auto open call UI if data available
+            if (res.data.appointment) {
+                setActiveCallAppointment(res.data.appointment);
+                setShowWebRTCCall(true);
+            }
             fetchDashboard(); 
         } catch (error: any) {
             console.error("Start Error:", error);
@@ -82,6 +91,20 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
 
     return (
         <div className="doc-content animate-fade-in">
+            {showWebRTCCall && activeCallAppointment && (
+                <WebRTCCall
+                    appointmentId={activeCallAppointment.id}
+                    userId={user?.id}
+                    userName={user?.name || 'Doctor'}
+                    receiverId={activeCallAppointment.patient_id}
+                    isDoctor={true}
+                    onClose={() => {
+                        setShowWebRTCCall(false);
+                        setActiveCallAppointment(null);
+                        fetchDashboard();
+                    }}
+                />
+            )}
             {/* Premium Greeting Banner */}
             <div className="doc-banner" style={{ border: 'none', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white' }}>
                 <div className="doc-banner-text">
@@ -181,17 +204,31 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
                                         </button>
                                     )}
                                     {recent_appointment.status === 'ongoing' && (
-                                        <button
-                                            onClick={() => handleCompleteConsultation(recent_appointment.id)}
-                                            disabled={actionProcessing === recent_appointment.id}
-                                            style={{
-                                                flex: 1, background: '#16a34a', color: 'white', border: 'none', padding: '16px',
-                                                borderRadius: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                                                boxShadow: '0 10px 15px -3px rgba(22, 163, 74, 0.3)', transition: 'all 0.3s ease'
-                                            }}
-                                        >
-                                            <Icons.CheckCircle /> Complete Session
-                                        </button>
+                                        <div style={{ flex: 1, display: 'flex', gap: '12px' }}>
+                                            <button
+                                                onClick={() => {
+                                                    setActiveCallAppointment(recent_appointment);
+                                                    setShowWebRTCCall(true);
+                                                }}
+                                                style={{
+                                                    flex: 1, background: '#2E37A4', color: 'white', border: 'none', padding: '16px',
+                                                    borderRadius: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
+                                                }}
+                                            >
+                                                <Icons.Video /> Join Session
+                                            </button>
+                                            <button
+                                                onClick={() => handleCompleteConsultation(recent_appointment.id)}
+                                                disabled={actionProcessing === recent_appointment.id}
+                                                style={{
+                                                    flex: 1, background: '#16a34a', color: 'white', border: 'none', padding: '16px',
+                                                    borderRadius: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                                                    boxShadow: '0 10px 15px -3px rgba(22, 163, 74, 0.3)', transition: 'all 0.3s ease'
+                                                }}
+                                            >
+                                                <Icons.CheckCircle /> Complete
+                                            </button>
+                                        </div>
                                     )}
                                     {recent_appointment.status === 'completed' && (
                                         <div style={{ flex: 1, padding: '16px', background: '#f0fdf4', color: '#16a34a', borderRadius: '12px', textAlign: 'center', fontWeight: '800', border: '1px solid #dcfce7' }}>Session Fulfilled</div>

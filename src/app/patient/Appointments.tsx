@@ -304,7 +304,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                             }}>
                                 {(() => {
                                     const apptTime = new Date(heroAppointment.iso_start_time || "");
-                                    const isTooEarly = new Date() < apptTime;
+                                    const isTooEarly = new Date().getTime() < (apptTime.getTime() - (5 * 60 * 1000));
                                     const status = heroAppointment.status as any;
                                     return (
                                         <>

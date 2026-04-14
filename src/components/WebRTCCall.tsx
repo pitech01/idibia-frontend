@@ -38,7 +38,8 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
         // 1. Initialize Socket
         console.log('🔄 Initializing Socket.io connection to:', SIGNALING_SERVER);
         socketRef.current = io(SIGNALING_SERVER, {
-            query: { userId, appointmentId }
+            query: { userId, appointmentId },
+            transports: ['websocket', 'polling'] // Better compatibility for some hosts
         });
 
         socketRef.current.on('connect', () => {
@@ -92,8 +93,9 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
         };
 
         // 5. Signaling Server Events
-        socketRef.current.on('call:join', async () => {
-            if (isDoctor) {
+        const initiateCall = async () => {
+            if (isDoctor && peerRef.current) {
+                console.log('🚀 Initiating Call as Doctor...');
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
                 socketRef.current.emit('webrtc:signal', { 
@@ -103,7 +105,17 @@ const WebRTCCall = ({ appointmentId, userId, userName, receiverId, isDoctor, onC
                     signal: { type: 'offer', sdp: offer.sdp } 
                 });
             }
+        };
+
+        socketRef.current.on('call:join', async (data: any) => {
+            console.log('👤 Someone joined the call:', data);
+            await initiateCall();
             setCallStatus('ongoing');
+        });
+
+        socketRef.current.on('call:ready', async () => {
+            console.log('✨ Room is ready, both parties present');
+            await initiateCall();
         });
 
         socketRef.current.on('webrtc:signal', async (data: any) => {
