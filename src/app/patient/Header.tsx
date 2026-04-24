@@ -15,9 +15,10 @@ const Icons = {
 interface HeaderProps {
     user?: any;
     onToggleSidebar?: () => void;
+    onNavigateToProfile?: () => void;
 }
 
-export default function Header({ user, onToggleSidebar }: HeaderProps) {
+export default function Header({ user, onToggleSidebar, onNavigateToProfile }: HeaderProps) {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -118,6 +119,8 @@ export default function Header({ user, onToggleSidebar }: HeaderProps) {
 
                     {/* Notification Dropdown */}
                     {showNotifications && (
+                        <>
+                        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setShowNotifications(false)}></div>
                         <div className="animate-fade-in notification-dropdown" style={{
                             position: 'absolute',
                             top: '40px',
@@ -178,20 +181,21 @@ export default function Header({ user, onToggleSidebar }: HeaderProps) {
                             </div>
 
                             <div style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid #f1f5f9', background: '#fcfcfc' }}>
-                                <button style={{ background: 'none', border: 'none', color: '#475569', fontSize: '13px', fontWeight: '600', cursor: 'pointer', width: '100%' }}>
+                                <button onClick={markAllAsRead} style={{ background: 'none', border: 'none', color: '#2E37A4', fontSize: '13px', fontWeight: '600', cursor: 'pointer', width: '100%', fontFamily: 'inherit' }}>
                                     View All History
                                 </button>
                             </div>
                         </div>
+                        </>
                     )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={onNavigateToProfile}>
                     <div className="header-user-info" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>{user?.name || 'Loading...'}</span>
                         <span style={{ fontSize: '12px', color: '#64748b' }}>Patient</span>
                     </div>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontWeight: 'bold' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontWeight: 'bold' }}>
                         {user?.avatar ? (
                             <img src={user.avatar} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { toast as _toast } from 'react-hot-toast';
 const toast: any = _toast;
 import { api } from '../../services';
-import Preloader from '../../components/Preloader';
 
 const Icons = {
     Wallet: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>,
@@ -21,7 +20,8 @@ const Icons = {
     CheckCircle: () => <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>,
     Close: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
     Download: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
-    Flag: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-8a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" /><path strokeLinecap="round" strokeLinejoin="round" d="M9 13a4.002 4.002 0 01-1.726 1.76l-1.487.696A2 2 0 004 17.276V21M12 9a4 4 0 004 4M21 9a4 4 0 00-4 4" /></svg> // Approximate flag/report icon
+    Flag: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-8a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" /><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h18v10H3z" /></svg>,
+    Report: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
 };
 
 export default function PatientPayments() {
@@ -50,7 +50,7 @@ export default function PatientPayments() {
 
     const [user, setUser] = useState<any>(null);
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -74,8 +74,6 @@ export default function PatientPayments() {
         } catch (error) {
             console.error("Failed to load payment data", error);
             toast.error("Failed to load wallet info");
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -217,9 +215,6 @@ export default function PatientPayments() {
         }
     };
 
-    if (loading) {
-        return <Preloader />;
-    }
 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
@@ -281,14 +276,6 @@ export default function PatientPayments() {
                         >
                             <Icons.Plus /> Top Up Wallet
                         </button>
-                        <button style={{
-                            background: 'rgba(255,255,255,0.15)', color: 'white',
-                            border: '1px solid rgba(255,255,255,0.3)', padding: '12px 24px', borderRadius: '8px',
-                            fontWeight: '500', fontSize: '15px', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '8px'
-                        }}>
-                            <Icons.ArrowUpRight /> Withdraw / Refund
-                        </button>
                     </div>
                 </div>
 
@@ -301,15 +288,15 @@ export default function PatientPayments() {
                     <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.5', marginBottom: '24px' }}>
                         Link your HMO (AXA, Hygeia) to pay for consultations automatically.
                     </p>
-                    <button style={{
+                    <button disabled style={{
                         width: '100%',
-                        background: '#0284c7', color: 'white',
+                        background: '#f1f5f9', color: '#94a3b8',
                         border: 'none', padding: '12px', borderRadius: '8px',
-                        fontWeight: '600', fontSize: '15px', cursor: 'pointer',
+                        fontWeight: '600', fontSize: '15px', cursor: 'not-allowed',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                         marginTop: 'auto'
                     }}>
-                        <Icons.Link /> Link Provider
+                        <Icons.Lock /> Coming Soon
                     </button>
                 </div>
             </div>
@@ -397,13 +384,16 @@ export default function PatientPayments() {
                                                         }}>
                                                         <Icons.Download /> Download Receipt
                                                     </button>
-                                                    <button style={{
+                                                    <button onClick={() => {
+                                                        toast.success("Issue reported. Our support team will contact you.");
+                                                        setActiveActionId(null);
+                                                    }} style={{
                                                         display: 'flex', alignItems: 'center', gap: '10px',
                                                         width: '100%', padding: '12px 16px', background: 'white',
                                                         border: 'none', cursor: 'pointer',
                                                         color: '#94a3b8', fontSize: '14px', fontWeight: '500'
                                                     }}>
-                                                        <Icons.Flag /> Report Issue
+                                                        <Icons.Report /> Report Issue
                                                     </button>
                                                 </div>
                                             )}

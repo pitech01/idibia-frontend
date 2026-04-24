@@ -41,9 +41,25 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
     const fetchUser = async () => {
         try {
             const response = await api.get('/user');
-            setUser(response.data);
+            const userData = response.data;
+            setUser(userData);
+
+            // Gatekeeping Logic
+            if (userData.role !== 'doctor') {
+                 navigate('/');
+                 return;
+            }
+            
+            const doctor = userData.doctor;
+            const isVerified = doctor?.status === 'active' || doctor?.is_verified === true || doctor?.is_verified === 1 || doctor?.is_verified === '1';
+            
+            if (!doctor || !isVerified) {
+                navigate('/pending-dashboard');
+                return;
+            }
         } catch (error) {
             console.error("Failed to fetch user", error);
+            navigate('/login');
         } finally {
             setLoading(false);
         }

@@ -136,8 +136,8 @@ export default function Settings() {
 
             // Split name
             const names = data.name ? data.name.split(' ') : ['', ''];
-            const firstName = names[0];
-            const lastName = names.slice(1).join(' ');
+            const firstName = names[0] || 'User';
+            const lastName = names.slice(1).join(' ') || 'Doe';
 
             setProfile({
                 first_name: firstName,
@@ -176,6 +176,30 @@ export default function Settings() {
         } catch (error) {
             console.error(error);
             toast.error('Failed to update profile');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        setSaving(true);
+        try {
+            await api.post('/profile/avatar', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            // Assuming the API returns the new avatar URL, we would update it here
+            // In a real app we'd also update the user context
+            toast.success("Profile photo updated");
+            fetchProfile();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to upload avatar");
         } finally {
             setSaving(false);
         }
@@ -255,13 +279,15 @@ export default function Settings() {
                                     </button>
                                 </div>
                                 <div>
-                                    <button style={{
+                                    <label htmlFor="avatar-upload-patient" style={{
+                                        display: 'inline-block',
                                         padding: '8px 16px', border: '1px solid #cbd5e1', borderRadius: '8px',
                                         background: 'white', color: '#0f172a', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
                                         marginBottom: '6px'
                                     }}>
-                                        Upload New Photo
-                                    </button>
+                                        {saving ? 'Uploading...' : 'Upload New Photo'}
+                                        <input type="file" id="avatar-upload-patient" hidden accept="image/*" onChange={handleAvatarUpload} disabled={saving} />
+                                    </label>
                                     <div style={{ fontSize: '12px', color: '#94a3b8' }}>JPG, PNG or GIF. Max 2MB.</div>
                                 </div>
                             </div>
@@ -294,7 +320,7 @@ export default function Settings() {
                                 </div>
                                 <div className="settings-input-group">
                                     <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Email Address</label>
-                                    <input type="email" value={profile.email} onChange={e => handleInputChange('email', e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: '600', outline: 'none' }} />
+                                    <input type="email" value={profile.email} disabled style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f1f5f9', color: '#94a3b8', fontWeight: '600', outline: 'none', cursor: 'not-allowed' }} />
                                 </div>
                                 <div className="settings-input-group">
                                     <label className="settings-label" style={{ display: 'block', fontSize: '14px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Phone Number</label>

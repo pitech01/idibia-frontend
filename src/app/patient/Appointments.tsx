@@ -202,16 +202,18 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
             {/* Header */}
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: '16px' }}>
                 <h2 style={{ fontSize: isMobile ? '24px' : '32px', fontWeight: '900', color: '#1e293b', margin: 0 }}>Appointments</h2>
-                <button
-                    onClick={() => onRequestNewBooking?.()}
-                    style={{
-                        background: '#2E37A4', color: 'white', padding: isMobile ? '14px 20px' : '12px 24px', borderRadius: '12px',
-                        border: 'none', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
-                        boxShadow: '0 10px 15px -3px rgba(46, 55, 164, 0.2)', width: isMobile ? '100%' : 'auto', justifyContent: 'center'
-                    }}
-                >
-                    <Icons.Plus /> New Booking
-                </button>
+                <div style={{ display: 'flex', gap: '12px', width: isMobile ? '100%' : 'auto' }}>
+                    <button
+                        onClick={() => onRequestNewBooking?.()}
+                        style={{
+                            background: '#2E37A4', color: 'white', padding: isMobile ? '14px 20px' : '12px 24px', borderRadius: '12px',
+                            border: 'none', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+                            boxShadow: '0 10px 15px -3px rgba(46, 55, 164, 0.2)', flex: isMobile ? 1 : 'unset', justifyContent: 'center'
+                        }}
+                    >
+                        <Icons.Plus /> New Booking
+                    </button>
+                </div>
             </div>
 
             {/* Tabs */}
@@ -268,7 +270,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                         {heroAppointment.start_time.substring(0, 5)}
                                     </span>
                                     <span style={{ fontSize: '13px', fontWeight: '700', color: '#2E37A4', background: '#eef2ff', padding: '4px 10px', borderRadius: '8px', marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' }}>
-                                        <Icons.Calendar /> {new Date(heroAppointment.appointment_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                                        <Icons.Calendar /> {new Date(heroAppointment.appointment_date + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                                     </span>
                                 </div>
 
@@ -288,7 +290,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     </div>
                                     <p style={{ margin: 0, color: '#64748b', fontSize: '14px', fontWeight: '500' }}>{heroAppointment.doctor?.doctor?.specialty || 'General Practitioner'}</p>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2E37A4', fontWeight: '700', fontSize: '12px', marginTop: '6px' }}>
-                                        {heroAppointment.type === 'video' ? <><Icons.Video /> VIRTUAL CALL</> : <><Icons.MapPin /> IN-PERSON VISIT</>}
+                                        {heroAppointment.type === 'video' ? <><Icons.Video /> VIRTUAL MEETING</> : <><Icons.MapPin /> IN-PERSON VISIT</>}
                                     </div>
                                 </div>
                             </div>
@@ -303,8 +305,8 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                 width: isMobile ? '100%' : 'auto' 
                             }}>
                                 {(() => {
-                                    const apptTime = new Date(heroAppointment.iso_start_time || "");
-                                    const isTooEarly = new Date().getTime() < (apptTime.getTime() - (5 * 60 * 1000));
+                                    const apptTime = heroAppointment.iso_start_time ? new Date(heroAppointment.iso_start_time) : new Date(heroAppointment.appointment_date + 'T' + heroAppointment.start_time);
+                                    const isTooEarly = new Date().getTime() < (apptTime.getTime() - (15 * 60 * 1000));
                                     const status = heroAppointment.status as any;
                                     return (
                                         <>
@@ -368,7 +370,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                             </div>
                                             <div>
                                                 <h4 style={{ margin: '0 0 2px 0', color: '#0f172a', fontWeight: '800', fontSize: '15px' }}>{appt.doctor?.name}</h4>
-                                                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>{new Date(appt.appointment_date + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} • {appt.start_time.substring(0, 5)}</p>
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
@@ -380,10 +382,27 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                                     Pay Now
                                                 </button>
                                             )}
-                                            {appt.payment_status === 'paid' && (
-                                                <span style={{ color: '#16a34a', fontSize: '12px', fontWeight: '800', background: '#f0fdf4', padding: '4px 10px', borderRadius: '6px' }}>Paid</span>
+                                            {(() => {
+                                                if (appt.payment_status === 'paid') {
+                                                    const apptTime = appt.iso_start_time ? new Date(appt.iso_start_time) : new Date(appt.appointment_date + 'T' + appt.start_time);
+                                                    const isTooEarly = new Date().getTime() < (apptTime.getTime() - (15 * 60 * 1000));
+                                                    return (
+                                                        <button
+                                                            onClick={() => handleJoinWaitRoom(appt)}
+                                                            disabled={isTooEarly && (appt.status as string) !== 'ongoing'}
+                                                            style={{ background: (isTooEarly && (appt.status as string) !== 'ongoing') ? '#94a3b8' : '#2E37A4', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: (isTooEarly && (appt.status as string) !== 'ongoing') ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '11px' }}
+                                                        >
+                                                            Start Consultation
+                                                        </button>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                            {appt.payment_status === 'paid' ? (
+                                                <button onClick={() => toast.success("Redirecting to reschedule tab...")} style={{ color: '#f59e0b', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '12px' }}>Reschedule</button>
+                                            ) : (
+                                                <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '12px' }}>Cancel</button>
                                             )}
-                                            <button onClick={() => handleCancel(appt.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '12px' }}>Cancel</button>
                                         </div>
                                     </div>
                                 ))}
@@ -397,7 +416,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
             {!loading && activeTab === 'past' && (
                 <div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {pastAppointments.length === 0 && <div style={{ color: '#64748b' }}>No past appointments.</div>}
+                        {pastAppointments.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No past appointments.</div>}
                         {pastAppointments.map((appt) => (
                             <div key={appt.id} style={{
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px',
@@ -409,7 +428,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     </div>
                                     <div>
                                         <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px' }}>{appt.doctor?.name}</h4>
-                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} • {appt.start_time.substring(0, 5)}</p>
                                     </div>
                                 </div>
                                 <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>Completed</span>
@@ -423,7 +442,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
             {!loading && activeTab === 'cancelled' && (
                 <div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {cancelledAppointments.length === 0 && <div style={{ color: '#64748b' }}>No cancelled appointments.</div>}
+                        {cancelledAppointments.length === 0 && <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No cancelled appointments.</div>}
                         {cancelledAppointments.map((appt) => (
                             <div key={appt.id} style={{
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px',
@@ -435,7 +454,7 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                                     </div>
                                     <div>
                                         <h4 style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: '700', fontSize: '16px', textDecoration: 'line-through' }}>{appt.doctor?.name}</h4>
-                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date).toDateString()} • {appt.start_time.substring(0, 5)}</p>
+                                        <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>{new Date(appt.appointment_date + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} • {appt.start_time.substring(0, 5)}</p>
                                     </div>
                                 </div>
                                 <span style={{ background: '#fef2f2', color: '#dc2626', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>Cancelled</span>

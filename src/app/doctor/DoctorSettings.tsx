@@ -391,9 +391,9 @@ export default function DoctorSettings({ onUpdate, setActiveTab }: { onUpdate?: 
                                     <div className="settings-input-group">
                                         <label className="settings-label">Consultation Type</label>
                                         <select name="consultation_type" value={formData.consultation_type} onChange={handleInputChange} className="settings-input">
-                                            <option value="both">Both (Virtual & Physical)</option>
+                                            <option value="both">Both (Virtual & In-person)</option>
                                             <option value="virtual">Virtual Only</option>
-                                            <option value="physical">Physical Only</option>
+                                            <option value="physical">In-person Only</option>
                                         </select>
                                     </div>
                                     <div className="settings-input-group">

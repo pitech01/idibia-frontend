@@ -113,7 +113,7 @@ export default function PatientDashboard({ onLogout }: DashboardProps) {
             />
 
             <main className={`dashboard-main ${sidebarCollapsed ? 'expanded' : ''}`}>
-                <Header user={user} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+                <Header user={user} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} onNavigateToProfile={() => handleTabChange('settings')} />
 
                 <div className="content-scrollable">
                     <Routes>

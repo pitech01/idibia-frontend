@@ -84,7 +84,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
 
     // Helper for formatting currency
     const formatCurrency = (amount: any) => {
-        return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount || 0);
+        return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
     };
 
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -169,8 +169,8 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                         </div>
                                         <div style={{ height: '1px', background: 'rgba(59, 130, 246, 0.15)', marginBottom: '24px' }}></div>
                                         <div className="appointment-date-time-row">
-                                            <span><WidgetIcons.Book /> {upcoming.start_time}</span>
-                                            <span><WidgetIcons.Calendar /> {upcoming.appointment_date}</span>
+                                            <span><WidgetIcons.Book /> {upcoming.start_time.substring(0, 5)}</span>
+                                            <span><WidgetIcons.Calendar /> {new Date(upcoming.appointment_date + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>
                                         </div>
                                     </div>
                                 ) : (
@@ -184,13 +184,20 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
 
                         {upcoming && upcoming.type === 'video' && (
                             <div style={{ display: 'flex', gap: '16px' }}>
-                                <button 
-                                    onClick={() => onNavigate('appointments')} 
-                                    className="btn-primary-dark" 
-                                    style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: 'none' }}
-                                >
-                                    <WidgetIcons.Video /> Start Consultation
-                                </button>
+                                {(() => {
+                                    const apptTime = upcoming.iso_start_time ? new Date(upcoming.iso_start_time) : new Date(upcoming.appointment_date + 'T' + upcoming.start_time);
+                                    const isTooEarly = new Date().getTime() < (apptTime.getTime() - (15 * 60 * 1000));
+                                    return (
+                                        <button 
+                                            onClick={() => !isTooEarly && onNavigate('appointments')} 
+                                            className="btn-primary-dark" 
+                                            disabled={isTooEarly}
+                                            style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', cursor: isTooEarly ? 'not-allowed' : 'pointer', border: 'none', opacity: isTooEarly ? 0.5 : 1 }}
+                                        >
+                                            <WidgetIcons.Video /> Start Consultation
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>
@@ -290,7 +297,7 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                                 )) : <p style={{ color: '#64748b' }}>No records yet.</p>
                             )}
                         </div>
-                        <button style={{ width: '100%', marginTop: '12px', padding: '12px', background: 'transparent', color: '#2E37A4', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Update Vitals</button>
+                        <button onClick={() => onNavigate('records')} style={{ width: '100%', marginTop: '12px', padding: '12px', background: 'transparent', color: '#2E37A4', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Update Vitals</button>
                     </div>
                 </div>
             </div>

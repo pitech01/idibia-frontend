@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api, WEB_URL } from '../../services';
 import { toast as _toast } from 'react-hot-toast';
 const toast: any = _toast;
@@ -25,7 +25,13 @@ interface LoginProps {
 }
 
 export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, onLoginSuccess }: LoginProps) {
-    const [role, setRole] = useState<Role>('patient');
+    const [role, setRole] = useState<Role>(() => {
+        return (sessionStorage.getItem('authRole') as Role) || 'patient';
+    });
+
+    useEffect(() => {
+        sessionStorage.setItem('authRole', role);
+    }, [role]);
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({ email: '', password: '', rememberMe: false });
     const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -67,7 +73,8 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
 
             const response = await api.post('/login', {
                 email: formData.email,
-                password: formData.password
+                password: formData.password,
+                remember: formData.rememberMe
             });
             
             if (response.data.two_factor_required) {
@@ -125,7 +132,7 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
             isProfileComplete = patient?.is_completed ? !!patient.is_completed : false;
         } else if (userRole === 'doctor') {
             isProfileComplete = !!doctor;
-            isVerified = doctor?.status === 'active' || doctor?.is_verified;
+            isVerified = doctor?.status === 'active' || doctor?.is_verified === true || doctor?.is_verified === 1 || doctor?.is_verified === '1';
         }
 
         localStorage.setItem('token', data.token);

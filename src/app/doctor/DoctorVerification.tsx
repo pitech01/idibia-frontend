@@ -370,9 +370,9 @@ export default function DoctorVerification({ onComplete }: DoctorVerificationPro
                                         onChange={handleInputChange}
                                         className="doc-input"
                                     >
-                                        <option value="both">Both Virtual & Physical</option>
+                                        <option value="both">Both Virtual & In-person</option>
                                         <option value="virtual">Virtual Only</option>
-                                        <option value="physical">Physical Only</option>
+                                        <option value="physical">In-person Only</option>
                                     </select>
                                 </div>
 

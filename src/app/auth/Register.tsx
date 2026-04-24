@@ -96,7 +96,13 @@ interface RegisterProps {
 export default function Register({ onBack, onLoginClick, onRegisterSuccess }: RegisterProps) {
     // --- STATE ---
     const [step, setStep] = useState(1);
-    const [role, setRole] = useState<Role>('patient');
+    const [role, setRole] = useState<Role>(() => {
+        return (sessionStorage.getItem('authRole') as Role) || 'patient';
+    });
+    
+    useEffect(() => {
+        sessionStorage.setItem('authRole', role);
+    }, [role]);
     const [data, setData] = useState<RegistrationData>(INITIAL_DATA);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -443,7 +449,9 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                     <label className="checkbox-container">
                         <input type="checkbox" required checked={data.termsAccepted} onChange={e => updateData({ termsAccepted: e.target.checked })} />
                         <span className="checkmark"><Icons.Check /></span>
-                        <span style={{ fontSize: '13px', color: '#64748b' }}>I agree to the Terms & Privacy Policy</span>
+                        <span style={{ fontSize: '13px', color: '#64748b' }}>
+                            I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#0077B6', textDecoration: 'underline' }}>Terms</a> & <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#0077B6', textDecoration: 'underline' }}>Privacy Policy</a>
+                        </span>
                     </label>
                 </div>
 
@@ -581,6 +589,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 className={`btn-login-main ${role}`}
                 onClick={nextStep}
                 disabled={!data.firstName || !data.lastName || !data.dob || !data.gender || (role === 'doctor' && !data.phone)}
+                style={{ marginTop: '20px' }}
             >
                 Next Step
             </button>
@@ -604,6 +613,13 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                     <option value="Dermatology">Dermatology</option>
                     <option value="Pediatrics">Pediatrics</option>
                     <option value="Neurology">Neurology</option>
+                    <option value="Orthopedics">Orthopedics</option>
+                    <option value="Gynecology">Gynecology</option>
+                    <option value="Psychiatry">Psychiatry</option>
+                    <option value="Oncology">Oncology</option>
+                    <option value="Urology">Urology</option>
+                    <option value="Ophthalmology">Ophthalmology</option>
+                    <option value="ENT">ENT</option>
                 </select>
             </div>
 
@@ -613,7 +629,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
             </div>
 
             <div className="form-group">
-                <label>Medical License Number (MDCN)</label>
+                <label>License No</label>
                 <input type="text" className="form-input-clean" placeholder="License #" value={data.license || ''} onChange={e => updateData({ license: e.target.value })} />
             </div>
 
@@ -633,7 +649,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
             <h2 className="step-title">Documents</h2>
             <p className="step-desc">Upload validation documents.</p>
 
-            <label className="upload-box" style={{ display: 'block' }}>
+            <label className="upload-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                 <input
                     type="file"
                     hidden
@@ -646,11 +662,13 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                     }}
                 />
                 <Icons.Upload />
-                <p>{data.fileLicense ? data.fileLicense : "Upload Medical License"}</p>
-                <span>PDF, JPG or PNG</span>
+                <div style={{ margin: 0 }}>
+                    <span style={{ fontWeight: 600, color: '#334155', display: 'block' }}>{data.fileLicense ? data.fileLicense : "Upload Medical License"}</span>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>PDF, JPG or PNG</span>
+                </div>
             </label>
 
-            <label className="upload-box" style={{ display: 'block' }}>
+            <label className="upload-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                 <input
                     type="file"
                     hidden
@@ -663,8 +681,10 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                     }}
                 />
                 <Icons.Upload />
-                <p>{data.fileId ? data.fileId : "Upload Government ID"}</p>
-                <span>Valid Passport, NIN or Driver's License</span>
+                <div style={{ margin: 0 }}>
+                    <span style={{ fontWeight: 600, color: '#334155', display: 'block' }}>{data.fileId ? data.fileId : "Upload Government ID"}</span>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>Valid Passport, NIN or Driver's License</span>
+                </div>
             </label>
 
             <button className={`btn-login-main ${role}`} onClick={nextStep} style={{ marginTop: '20px' }} disabled={!data.fileLicenseObj || !data.fileIdObj}>Next Step</button>
@@ -762,7 +782,19 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 </div>
             </div>
 
-            <div className="security-note" style={{ marginTop: '20px', fontSize: '13px', color: '#64748b', background: '#f1f5f9', padding: '10px', borderRadius: '8px', display: 'flex', gap: '8px' }}>
+            <div className="security-note" style={{ 
+                marginTop: '25px', 
+                fontSize: '14px', 
+                color: '#ffffff', 
+                background: '#2563eb', 
+                padding: '15px 20px', 
+                borderRadius: '12px', 
+                display: 'flex', 
+                gap: '12px', 
+                alignItems: 'center',
+                fontWeight: '700',
+                boxShadow: '0 4px 10px rgba(37, 99, 235, 0.15)'
+            }}>
                 <Icons.Shield />
                 <span>Verification may take up to 24-48 hours.</span>
             </div>
@@ -832,6 +864,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 className={`btn-login-main ${role}`}
                 onClick={nextStep}
                 disabled={!data.emergencyName || !data.emergencyPhone}
+                style={{ marginTop: '20px' }}
             >
                 Next Step
             </button>
@@ -978,6 +1011,15 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 .form-input-clean { width: 100%; padding: 12px 15px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s; color: #1e293b; background: #f8fafc; margin-top: 5px; }
                 .form-input-clean:focus { border-color: #0077B6; background: white; box-shadow: 0 0 0 3px rgba(0, 119, 182, 0.1); }
                 
+                select.form-input-clean {
+                    appearance: none;
+                    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E");
+                    background-repeat: no-repeat;
+                    background-position: right 15px center;
+                    background-size: 18px;
+                    padding-right: 45px;
+                }
+                
                 .otp-input { letter-spacing: 12px; font-size: 24px; text-align: center; font-weight: 700; color: #0077B6; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px; width: 100%; margin-bottom: 20px; }
                 
                 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -1025,6 +1067,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     overflow: hidden;
+                    margin-top: 25px;
                 }
 
                 .btn-login-main:disabled { 

@@ -13,7 +13,7 @@ const Icons = {
     Shield: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
     Clock: () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     Paperclip: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>,
-    Send: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+    Send: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
 };
 
 export default function Messages({ user }: { user: any }) {
@@ -97,7 +97,7 @@ export default function Messages({ user }: { user: any }) {
             const { data } = await api.get('/chats');
             // Format chats for simplified view
             const formatted = data.map((c: any) => {
-                const other = c.patient_id === user?.id ? c.doctor : c.patient;
+                const other = c.patient_id == user?.id ? c.doctor : c.patient;
                 return {
                     id: c.id,
                     name: other?.name || 'Unknown User',
@@ -170,11 +170,7 @@ export default function Messages({ user }: { user: any }) {
         }
     };
 
-    const handleStartVideoCall = () => {
-        if (selectedChatId) {
-            setShowVideoCall(true);
-        }
-    };
+
 
     const isMobile = windowWidth <= 768;
 
@@ -262,7 +258,7 @@ export default function Messages({ user }: { user: any }) {
                                             {chat.unread}
                                         </div>
                                     )}
-                                    {chat.encrypted && <div style={{ color: '#94a3b8' }}><Icons.Lock /></div>}
+                                    {/* Removed padlock */}
                                 </div>
                             </div>
                         </div>
@@ -290,30 +286,22 @@ export default function Messages({ user }: { user: any }) {
                                 </button>
                             )}
                             <div style={{ position: 'relative' }}>
-                                {activeChatsAvatar(activeChat)}
+                                {activeChatsAvatar(activeChat, user)}
                             </div>
                             <div>
                                 <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>
                                     {activeChatRoleName(activeChat, user)}
                                 </h3>
-                                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>General Practitioner</p>
+                                <p style={{ fontSize: '12px', color: '#64748b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>
+                                    {activeMessages.length > 0 ? activeMessages[activeMessages.length - 1].text : 'General Practitioner'}
+                                </p>
                             </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '16px', color: '#64748b' }}>
-                            <button
-                                onClick={handleStartVideoCall}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
-                                <Icons.Video />
-                            </button>
-                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}><Icons.Info /></button>
                         </div>
                     </div>
 
                     {/* Messages List */}
                     <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        <div style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                            <Icons.Shield /> End-to-End Encrypted
-                        </div>
+                        {/* Shield removed */}
 
                         {(activeChat?.status === 'active' || activeChat?.expires_at) && (
                             <div style={{
@@ -366,9 +354,6 @@ export default function Messages({ user }: { user: any }) {
 
                     {/* Input Area */}
                     <div style={{ padding: '16px 24px', background: 'white', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <button style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} disabled={timeLeft === 'Expired'}>
-                            <Icons.Paperclip />
-                        </button>
                         <div style={{ flex: 1, position: 'relative' }}>
                             <input
                                 type="text"
@@ -408,11 +393,12 @@ export default function Messages({ user }: { user: any }) {
     );
 }
 
-function activeChatsAvatar(chat: any) {
+function activeChatsAvatar(chat: any, user: any) {
     if (!chat) return null;
+    const other = chat.patient_id == user?.id ? chat.doctor : chat.patient;
     return (
         <>
-            <img src={`https://ui-avatars.com/api/?name=${chat.doctor?.name}&background=random`} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+            <img src={`https://ui-avatars.com/api/?name=${other?.name}&background=random`} alt="Avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
             <div style={{ position: 'absolute', bottom: '0', right: '0', width: '10px', height: '10px', background: '#22c55e', borderRadius: '50%', border: '2px solid white' }}></div>
         </>
     )
@@ -420,6 +406,6 @@ function activeChatsAvatar(chat: any) {
 
 function activeChatRoleName(chat: any, user: any) {
     if (!chat) return "";
-    const other = chat.patient_id === user?.id ? chat.doctor : chat.patient;
+    const other = chat.patient_id == user?.id ? chat.doctor : chat.patient;
     return other?.name || 'Unknown';
 }

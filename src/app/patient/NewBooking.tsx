@@ -475,7 +475,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                         <button
                                             onClick={() => setConsultationType('video')}
                                             style={{ flex: 1, padding: '10px', borderRadius: '8px', border: consultationType === 'video' ? '2px solid #2E37A4' : '1px solid #e2e8f0', background: consultationType === 'video' ? '#f0f4ff' : 'white', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
-                                        >Video Call</button>
+                                        >Virtual Meeting</button>
                                         <button
                                             onClick={() => setConsultationType('in-person')}
                                             style={{ flex: 1, padding: '10px', borderRadius: '8px', border: consultationType === 'in-person' ? '2px solid #2E37A4' : '1px solid #e2e8f0', background: consultationType === 'in-person' ? '#f0f4ff' : 'white', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
@@ -484,13 +484,19 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Reason (Optional)</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Brief reason for visit"
+                                    <select
                                         value={reason}
                                         onChange={e => setReason(e.target.value)}
-                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none' }}
-                                    />
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', background: 'white' }}
+                                    >
+                                        <option value="">Select a reason...</option>
+                                        <option value="General Checkup">General Checkup</option>
+                                        <option value="Follow-up">Follow-up</option>
+                                        <option value="Consultation">Consultation</option>
+                                        <option value="Prescription Refill">Prescription Refill</option>
+                                        <option value="Emergency">Emergency</option>
+                                        <option value="Other">Other</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -596,13 +602,14 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                 >
                                     {paymentProcessing ? 'Authorizing...' : 'Confirm & Securely Pay'}
                                 </button>
-                                <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>By clicking, you agree to our Medical Service Terms</p>
+                                <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>By clicking, you agree to our <a href="#" style={{ color: '#2E37A4', textDecoration: 'underline' }}>Medical Service Terms</a></p>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Footer Actions */}
+                {step < 3 && (
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '24px', marginTop: '24px', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
                     <button onClick={handleBackStep} disabled={bookingLoading} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: isMobile ? '16px' : '18px', fontWeight: '700', cursor: 'pointer', flexShrink: 0, padding: '12px' }}>
                         {step === 1 ? 'Cancel' : 'Back'}
@@ -620,6 +627,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                         {bookingLoading ? 'Processing Request...' : (step === 1 ? 'Select Slot' : 'Proceed to Checkout')}
                     </button>
                 </div>
+                )}
             </div>
         </div>
     );
