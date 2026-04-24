@@ -31,6 +31,20 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
     const [actionProcessing, setActionProcessing] = useState<number | null>(null);
     const [showWebRTCCall, setShowWebRTCCall] = useState(false);
     const [activeCallAppointment, setActiveCallAppointment] = useState<any>(null);
+    const [quote, setQuote] = useState('');
+
+    const quotes = [
+        "Healing is a matter of time, but it is sometimes also a matter of opportunity.",
+        "The art of medicine consists of amusing the patient while nature cures the disease.",
+        "Wherever the art of medicine is loved, there is also a love of humanity.",
+        "Always remember the privilege it is to be a healer.",
+        "Medicine is a science of uncertainty and an art of probability.",
+        "The good physician treats the disease; the great physician treats the patient who has the disease.",
+        "Your dedication to health is changing lives every single day.",
+        "Focus on the patient, not just the symptom.",
+        "Every patient is a new opportunity to learn and to heal.",
+        "Kindness is the best medicine for the soul."
+    ];
 
     const fetchDashboard = async () => {
         try {
@@ -46,6 +60,7 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
 
     useEffect(() => {
         fetchDashboard();
+        setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
     }, []);
 
     const handleStartConsultation = async (id: number) => {
@@ -108,11 +123,11 @@ export default function DoctorOverview({ setActiveTab }: DoctorOverviewProps) {
             {/* Premium Greeting Banner */}
             <div className="doc-banner" style={{ border: 'none', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white' }}>
                 <div className="doc-banner-text">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <span style={{ padding: '4px 10px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '30px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Shift</span>
-                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>• Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                        <span style={{ padding: '4px 10px', background: 'rgba(59, 130, 246, 0.2)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '30px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Daily Inspiration</span>
+                        <span style={{ fontSize: '13px', color: '#cbd5e1', fontStyle: 'italic', fontWeight: '500' }}>"{quote}"</span>
                     </div>
-                    <h1 style={{ color: 'white', fontSize: '32px' }}>Welcome back, Dr. {user?.last_name || 'Doctor'}</h1>
+                    <h1 style={{ color: 'white', fontSize: '32px' }}>Welcome back, Dr. {user?.name || 'Doctor'}</h1>
                     <p style={{ color: '#94a3b8', fontSize: '15px' }}>Your medical dashboard is ready. You have {stats?.today_appointments || 0} consultations scheduled for today.</p>
                 </div>
                 <div className="desktop-only" style={{ position: 'relative', width: '220px', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

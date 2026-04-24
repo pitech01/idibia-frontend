@@ -11,6 +11,7 @@ import DoctorSettings from './DoctorSettings.tsx';
 import DoctorEarnings from './DoctorEarnings.tsx';
 import Preloader from '../../components/Preloader.tsx';
 import { api } from '../../services';
+import { toast as _toast } from 'react-hot-toast';
 import './doctor.css';
 
 interface DoctorDashboardProps {
@@ -54,6 +55,9 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
             const isVerified = doctor?.status === 'active' || doctor?.is_verified === true || doctor?.is_verified === 1 || doctor?.is_verified === '1';
             
             if (!doctor || !isVerified) {
+                if (doctor?.status === 'rejected') {
+                    _toast.error(<b>Your application has been rejected.</b>, { duration: 6000 });
+                }
                 navigate('/pending-dashboard');
                 return;
             }

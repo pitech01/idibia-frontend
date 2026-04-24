@@ -8,6 +8,7 @@ import {
     Database, Cpu, Globe, Search, UserMinus, Clock,
     Coins, ArrowUpCircle, Edit3, ArrowUpRight, ArrowDownRight, History
 } from 'lucide-react';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 interface SuperAdminDashboardProps {
     onLogout: () => void;
@@ -26,6 +27,8 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
     const [showGlobalCreditModal, setShowGlobalCreditModal] = useState(false);
     const [globalCreditDelta, setGlobalCreditDelta] = useState({ amount: '', type: 'add' });
     const [creditHistory, setCreditHistory] = useState<any[]>([]);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<number | null>(null);
 
     const getActiveTab = () => {
         const path = location.pathname;
@@ -82,13 +85,20 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
     };
 
     const handleDeleteUser = async (id: number) => {
-        if (!confirm('DANGER: Permanent data removal and access revocation. Proceed?')) return;
+        setUserToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
+        const tid = toast.loading('Purging entity from system...');
         try {
-            await api.delete(`/super-admin/users/${id}`);
-            toast.success('Entity purged from system.');
+            await api.delete(`/super-admin/users/${userToDelete}`);
+            toast.success('Entity purged from system.', { id: tid });
             fetchData();
+            setShowDeleteModal(false);
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Purge failed');
+            toast.error(error.response?.data?.message || 'Purge failed', { id: tid });
         }
     };
 
@@ -558,6 +568,16 @@ export default function SuperAdminDashboard({ onLogout }: SuperAdminDashboardPro
                     </div>
                 </div>
             )}
+
+            <ConfirmationModal
+                show={showDeleteModal}
+                title="System Purge"
+                message="DANGER: Permanent data removal and access revocation. Are you sure you want to proceed with this entity purge?"
+                type="danger"
+                onConfirm={confirmDeleteUser}
+                onCancel={() => setShowDeleteModal(false)}
+                confirmText="Execute Purge"
+            />
         </div>
     );
 }

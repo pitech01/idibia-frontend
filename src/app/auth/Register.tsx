@@ -408,7 +408,7 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 if (role === 'patient' || role === 'doctor') {
                     nextStep();
                 } else {
-                    alert('Nurse flow coming soon');
+                    toast.error('Nurse flow coming soon');
                 }
             }}>
                 <div className="row-2">
@@ -782,22 +782,6 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                 </div>
             </div>
 
-            <div className="security-note" style={{ 
-                marginTop: '25px', 
-                fontSize: '14px', 
-                color: '#ffffff', 
-                background: '#2563eb', 
-                padding: '15px 20px', 
-                borderRadius: '12px', 
-                display: 'flex', 
-                gap: '12px', 
-                alignItems: 'center',
-                fontWeight: '700',
-                boxShadow: '0 4px 10px rgba(37, 99, 235, 0.15)'
-            }}>
-                <Icons.Shield />
-                <span>Verification may take up to 24-48 hours.</span>
-            </div>
 
             <button className={`btn-login-main ${role}`} onClick={handleDoctorSubmit} style={{ marginTop: '20px' }}>Submit for Verification</button>
         </div>
@@ -987,7 +971,6 @@ export default function Register({ onBack, onLoginClick, onRegisterSuccess }: Re
                         <h2 style={{ fontSize: '24px', marginBottom: '10px', color: '#1e293b' }}>Submission Received</h2>
                         <p style={{ color: '#64748b', fontSize: '16px', maxWidth: '400px', margin: '0 auto', lineHeight: '1.6' }}>
                             Thank you, <b>Dr. {data.lastName}</b>. Your profile is currently under review.
-                            Our team validates all medical licenses within 24-48 hours.
                         </p>
                         <div className="contact-support">
                             Need help? <a href="#">Contact Support</a>

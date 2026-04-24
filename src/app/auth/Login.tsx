@@ -135,6 +135,10 @@ export default function Login({ onBack, onRegisterClick, onForgotPasswordClick, 
             isVerified = doctor?.status === 'active' || doctor?.is_verified === true || doctor?.is_verified === 1 || doctor?.is_verified === '1';
         }
 
+        if (userRole === 'doctor' && doctor?.status === 'rejected') {
+            toast.error(<b>Your application has been rejected.</b>, { duration: 6000 });
+        }
+
         localStorage.setItem('token', data.token);
         toast.success(<b>Welcome back!</b>, { id: toastId });
 

@@ -398,7 +398,7 @@ export default function DoctorVerification({ onComplete }: DoctorVerificationPro
                             </div>
                             <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#0f172a', marginBottom: '12px' }}>Verification in Progress</h2>
                             <p style={{ color: '#64748b', fontSize: '16px', lineHeight: '1.6', maxWidth: '400px', margin: '0 auto' }}>
-                                Thank you for submitting your details. Our medical team is currently reviewing your documents. This usually takes <strong>24–48 hours</strong>.
+                                Thank you for submitting your details. Our medical team is currently reviewing your documents.
                             </p>
                             <div style={{ marginTop: '32px', padding: '16px', background: '#f8fafc', borderRadius: '8px', fontSize: '14px', color: '#64748b' }}>
                                 You will receive an email notification once your account is approved.

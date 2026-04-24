@@ -5,6 +5,7 @@ import { api, WEB_URL } from '../../services';
 import { toast } from 'react-hot-toast';
 import FilePreview from '../../components/FilePreview';
 import CreatePostModal from './CreatePostModal';
+import ConfirmationModal from '../../components/ConfirmationModal';
 import {
     LayoutDashboard, Users, UserRound, Calendar, CreditCard,
     Megaphone, MessageSquare, Settings, LogOut, Search,
@@ -89,6 +90,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const [managePost, setManagePost] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [confirmModal, setConfirmModal] = useState<{
+        show: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type: 'danger' | 'warning' | 'info' | 'success';
+        confirmText?: string;
+    }>({ show: false, title: '', message: '', onConfirm: () => { }, type: 'info' });
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -110,7 +119,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         try {
             setLoading(true);
             const [docsRes, postsRes, ticketsRes, patientsRes, apptsRes, statsRes] = await Promise.allSettled([
-                api.get('/doctors'),
+                api.get('/admin/doctors/all'),
                 api.get('/posts'),
                 api.get('/support'),
                 api.get('/admin/patients'),
@@ -177,14 +186,60 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     };
 
     const handleDeletePost = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this post?')) return;
-        try {
-            await api.delete(`/admin/posts/${id}`);
-            toast.success('Post deleted');
-            fetchData();
-        } catch (e) {
-            toast.error('Failed to delete post');
-        }
+        setConfirmModal({
+            show: true,
+            title: 'Delete Post',
+            message: 'Are you sure you want to delete this health update? This action cannot be undone.',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/posts/${id}`);
+                    toast.success('Post deleted');
+                    fetchData();
+                    setConfirmModal(prev => ({ ...prev, show: false }));
+                } catch (e) {
+                    toast.error('Failed to delete post');
+                }
+            }
+        });
+    };
+
+    const handleDeleteDoctor = async (id: number) => {
+        setConfirmModal({
+            show: true,
+            title: 'Delete Doctor',
+            message: 'Are you sure you want to delete this doctor? This will permanently remove their profile and user account.',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/doctors/${id}`);
+                    toast.success('Doctor deleted');
+                    fetchData();
+                    setConfirmModal(prev => ({ ...prev, show: false }));
+                } catch (e) {
+                    toast.error('Failed to delete doctor');
+                }
+            }
+        });
+    };
+
+    const handleDeletePatient = async (id: number) => {
+        setConfirmModal({
+            show: true,
+            title: 'Delete Patient',
+            message: 'Are you sure you want to delete this patient? This will permanently remove their medical history and user account.',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/admin/patients/${id}`);
+                    toast.success('Patient deleted');
+                    fetchData();
+                    setConfirmModal(prev => ({ ...prev, show: false }));
+                } catch (e) {
+                    toast.error('Failed to delete patient');
+                }
+            }
+        });
     };
 
     const handleReply = async (e: React.FormEvent) => {
@@ -363,7 +418,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {doctors.map((doc: any) => {
+                                {doctors.filter((d: any) => d.doctor?.status !== 'pending_approval' && d.status !== 'pending_approval').map((doc: any) => {
                                     const status = doc.doctor?.status || doc.status || 'Active';
                                     const isVerified = doc.doctor?.is_verified || doc.is_verified;
                                     return (
@@ -383,9 +438,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                                     padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', textTransform: 'capitalize'
                                                 }}>{status === 'pending_approval' ? 'Pending' : status}</span>
                                             </td>
-                                            <td style={{ padding: '12px' }}>
+                                            <td style={{ padding: '12px', display: 'flex', gap: '8px' }}>
                                                 <button onClick={() => setSelectedDoctor(doc)} style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                     <Eye size={14} /> View
+                                                </button>
+                                                <button onClick={() => handleDeleteDoctor(doc.doctor?.id || doc.id)} style={{ background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Trash2 size={14} />
                                                 </button>
                                             </td>
                                         </tr>
@@ -395,7 +453,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         </table>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            {doctors.map((doc: any) => {
+                            {doctors.filter((d: any) => d.doctor?.status !== 'pending_approval' && d.status !== 'pending_approval').map((doc: any) => {
                                 const status = doc.doctor?.status || doc.status || 'Active';
                                 const isVerified = doc.doctor?.is_verified || doc.is_verified;
                                 return (
@@ -488,9 +546,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>{p.patient?.gender} • {p.patient?.blood_group}</div>
                                 </td>
                                 <td style={{ padding: '12px' }}>{p.email}</td>
-                                <td style={{ padding: '12px' }}>
+                                <td style={{ padding: '12px', display: 'flex', gap: '8px' }}>
                                     <button onClick={() => setSelectedPatient(p)} style={{ background: 'transparent', color: '#3b82f6', border: '1px solid #3b82f6', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
                                         Details
+                                    </button>
+                                    <button onClick={() => handleDeletePatient(p.id)} style={{ background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                                        <Trash2 size={14} />
                                     </button>
                                 </td>
                             </tr>
@@ -1000,34 +1061,52 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 {selectedDoctor.doctor?.status === 'pending_approval' ? (
                                     <>
                                         <button
-                                            onClick={async () => {
-                                                if (!confirm('Are you sure you want to approve this doctor?')) return;
-                                                const toastId = toast.loading('Approving...');
-                                                try {
-                                                    await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/approve`);
-                                                    toast.success('Doctor Approved Successfully!', { id: toastId });
-                                                    setSelectedDoctor(null);
-                                                    fetchData();
-                                                } catch (e: any) {
-                                                    toast.error(e.response?.data?.message || 'Approval Failed', { id: toastId });
-                                                }
+                                            onClick={() => {
+                                                setConfirmModal({
+                                                    show: true,
+                                                    title: 'Approve Application',
+                                                    message: `Are you sure you want to approve Dr. ${selectedDoctor.name}? They will be granted full platform access.`,
+                                                    type: 'info',
+                                                    confirmText: 'Yes, Approve',
+                                                    onConfirm: async () => {
+                                                        const toastId = toast.loading('Approving...');
+                                                        try {
+                                                            await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/approve`);
+                                                            toast.success('Doctor Approved Successfully!', { id: toastId });
+                                                            setSelectedDoctor(null);
+                                                            fetchData();
+                                                            setConfirmModal(prev => ({ ...prev, show: false }));
+                                                        } catch (e: any) {
+                                                            toast.error(e.response?.data?.message || 'Approval Failed', { id: toastId });
+                                                        }
+                                                    }
+                                                });
                                             }}
                                             style={{ flex: 1, background: '#16a34a', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                                         >
                                             <CheckCircle size={20} /> Approve Application
                                         </button>
                                         <button
-                                            onClick={async () => {
-                                                if (!confirm('Are you sure you want to reject this doctor?')) return;
-                                                const toastId = toast.loading('Rejecting...');
-                                                try {
-                                                    await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/reject`);
-                                                    toast.success('Doctor Rejected.', { id: toastId });
-                                                    setSelectedDoctor(null);
-                                                    fetchData();
-                                                } catch (e: any) {
-                                                    toast.error(e.response?.data?.message || 'Rejection Failed', { id: toastId });
-                                                }
+                                            onClick={() => {
+                                                setConfirmModal({
+                                                    show: true,
+                                                    title: 'Reject Application',
+                                                    message: `Are you sure you want to reject the application for Dr. ${selectedDoctor.name}? This will inform them via email.`,
+                                                    type: 'warning',
+                                                    confirmText: 'Yes, Reject',
+                                                    onConfirm: async () => {
+                                                        const toastId = toast.loading('Rejecting...');
+                                                        try {
+                                                            await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/reject`);
+                                                            toast.success('Doctor Rejected.', { id: toastId });
+                                                            setSelectedDoctor(null);
+                                                            fetchData();
+                                                            setConfirmModal(prev => ({ ...prev, show: false }));
+                                                        } catch (e: any) {
+                                                            toast.error(e.response?.data?.message || 'Rejection Failed', { id: toastId });
+                                                        }
+                                                    }
+                                                });
                                             }}
                                             style={{ flex: 1, background: '#fee2e2', color: '#991b1b', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                                         >
@@ -1035,8 +1114,66 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                         </button>
                                     </>
                                 ) : (
-                                    <div style={{ flex: 1, textAlign: 'center', padding: '12px', background: '#f8fafc', color: '#64748b', borderRadius: '8px' }}>
-                                        This doctor is currently <strong>{selectedDoctor.doctor?.status}</strong>.
+                                    <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
+                                        {selectedDoctor.doctor?.status === 'active' ? (
+                                            <button
+                                                onClick={() => {
+                                                    setConfirmModal({
+                                                        show: true,
+                                                        title: 'Suspend Doctor Account',
+                                                        message: `Are you sure you want to suspend Dr. ${selectedDoctor.name}? They will be hidden from patients and unable to accept bookings.`,
+                                                        type: 'warning',
+                                                        confirmText: 'Yes, Suspend',
+                                                        onConfirm: async () => {
+                                                            const toastId = toast.loading('Suspending...');
+                                                            try {
+                                                                await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/suspend`);
+                                                                toast.success('Doctor Account Suspended', { id: toastId });
+                                                                setSelectedDoctor(null);
+                                                                fetchData();
+                                                                setConfirmModal(prev => ({ ...prev, show: false }));
+                                                            } catch (e: any) {
+                                                                toast.error(e.response?.data?.message || 'Suspension Failed', { id: toastId });
+                                                            }
+                                                        }
+                                                    });
+                                                }}
+                                                style={{ flex: 1, background: '#fee2e2', color: '#991b1b', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                            >
+                                                <XCircle size={18} /> Suspend Account
+                                            </button>
+                                        ) : selectedDoctor.doctor?.status === 'suspended' ? (
+                                            <button
+                                                onClick={() => {
+                                                    setConfirmModal({
+                                                        show: true,
+                                                        title: 'Activate Doctor Account',
+                                                        message: `Are you sure you want to re-activate Dr. ${selectedDoctor.name}? They will be visible to patients again.`,
+                                                        type: 'info',
+                                                        confirmText: 'Yes, Activate',
+                                                        onConfirm: async () => {
+                                                            const toastId = toast.loading('Activating...');
+                                                            try {
+                                                                await api.put(`/admin/doctors/${selectedDoctor.doctor.id}/activate`);
+                                                                toast.success('Doctor Account Activated!', { id: toastId });
+                                                                setSelectedDoctor(null);
+                                                                fetchData();
+                                                                setConfirmModal(prev => ({ ...prev, show: false }));
+                                                            } catch (e: any) {
+                                                                toast.error(e.response?.data?.message || 'Activation Failed', { id: toastId });
+                                                            }
+                                                        }
+                                                    });
+                                                }}
+                                                style={{ flex: 1, background: '#dcfce7', color: '#166534', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                            >
+                                                <CheckCircle size={18} /> Activate Account
+                                            </button>
+                                        ) : (
+                                            <div style={{ flex: 1, textAlign: 'center', padding: '12px', background: '#f8fafc', color: '#64748b', borderRadius: '8px' }}>
+                                                This doctor is currently <strong>{selectedDoctor.doctor?.status}</strong>.
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1100,14 +1237,51 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             </div>
 
                             <div style={{ display: 'flex', gap: '15px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
-                                <button
-                                    onClick={() => {
-                                        toast.error("User management features are currently read-only.");
-                                    }}
-                                    style={{ flex: 1, background: '#fee2e2', color: '#991b1b', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
-                                >
-                                    Deactivate Account
-                                </button>
+                                {selectedPatient.status === 'suspended' ? (
+                                    <button
+                                        onClick={async () => {
+                                            const toastId = toast.loading('Re-activating account...');
+                                            try {
+                                                await api.put(`/admin/patients/${selectedPatient.id}/activate`);
+                                                toast.success('Patient account activated!', { id: toastId });
+                                                setSelectedPatient(null);
+                                                fetchData();
+                                            } catch (error) {
+                                                toast.error('Activation failed', { id: toastId });
+                                            }
+                                        }}
+                                        style={{ flex: 1, background: '#dcfce7', color: '#166534', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+                                    >
+                                        Activate Account
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={async () => {
+                                            setConfirmModal({
+                                                show: true,
+                                                title: 'Suspend Patient',
+                                                message: `Are you sure you want to suspend ${selectedPatient.name}'s account? They will lose access to the platform.`,
+                                                type: 'warning',
+                                                confirmText: 'Yes, Suspend',
+                                                onConfirm: async () => {
+                                                    const toastId = toast.loading('Suspending account...');
+                                                    try {
+                                                        await api.put(`/admin/patients/${selectedPatient.id}/suspend`);
+                                                        toast.success('Patient account suspended.', { id: toastId });
+                                                        setSelectedPatient(null);
+                                                        fetchData();
+                                                        setConfirmModal(prev => ({ ...prev, show: false }));
+                                                    } catch (error) {
+                                                        toast.error('Suspension failed', { id: toastId });
+                                                    }
+                                                }
+                                            });
+                                        }}
+                                        style={{ flex: 1, background: '#fee2e2', color: '#991b1b', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+                                    >
+                                        Deactivate Account
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => setSelectedPatient(null)}
                                     style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
@@ -1191,9 +1365,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 {selectedAppointment.status !== 'completed' && selectedAppointment.status !== 'canceled' && (
                                     <button
                                         onClick={() => {
-                                            if(confirm('Are you sure you want to cancel this appointment?')) {
-                                                toast.error("Cancellation feature for admins is not yet linked to backend.");
-                                            }
+                                            setConfirmModal({
+                                                show: true,
+                                                title: 'Cancel Appointment',
+                                                message: 'Are you sure you want to cancel this appointment? This action is currently manual for administrators.',
+                                                type: 'warning',
+                                                confirmText: 'Acknowledge',
+                                                onConfirm: () => {
+                                                    toast.error("Cancellation feature for admins is not yet linked to backend.");
+                                                    setConfirmModal(prev => ({ ...prev, show: false }));
+                                                }
+                                            });
                                         }}
                                         style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#fee2e2', color: '#991b1b', fontWeight: '600', cursor: 'pointer' }}
                                     >
@@ -1328,6 +1510,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     }}
                 />
             )}
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                show={confirmModal.show}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.confirmText}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+            />
         </div>
     );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { api } from '../../services';
 import WebRTCCall from '../../components/WebRTCCall';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const Icons = {
     Video: () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
@@ -54,6 +55,8 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
     const [showWebRTCCall, setShowWebRTCCall] = useState(false);
     const [activeCallAppointment, setActiveCallAppointment] = useState<any>(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancellingId, setCancellingId] = useState<number | null>(null);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -113,11 +116,17 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
     };
 
     const handleCancel = async (id: number) => {
-        if (!confirm('Are you sure you want to cancel this appointment?')) return;
+        setCancellingId(id);
+        setShowCancelModal(true);
+    };
+
+    const confirmCancel = async () => {
+        if (!cancellingId) return;
         try {
-            await api.post(`/appointments/${id}/cancel`);
+            await api.post(`/appointments/${cancellingId}/cancel`);
             toast.success('Appointment cancelled');
             fetchAppointments(); // Refresh
+            setShowCancelModal(false);
         } catch (error) {
             toast.error('Failed to cancel appointment');
         }
@@ -464,6 +473,15 @@ export default function Appointments({ onRequestNewBooking, onNavigateToMessages
                 </div>
             )}
 
+            <ConfirmationModal
+                show={showCancelModal}
+                title="Cancel Appointment"
+                message="Are you sure you want to cancel this appointment? This action cannot be undone."
+                type="danger"
+                onConfirm={confirmCancel}
+                onCancel={() => setShowCancelModal(false)}
+                confirmText="Yes, Cancel"
+            />
         </div>
     );
 }
