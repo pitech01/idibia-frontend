@@ -1478,6 +1478,23 @@ select.form-input-dark {
 @media (max-width: 768px) {
 
   /* Global Layout */
+  }
+
+  .blog-card:not(.blog-card-3) .blog-overlay-gradient {
+      background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.5) 50%, rgba(15, 23, 42, 0) 100%) !important;
+  }
+
+  .blog-card-3 .blog-overlay-gradient {
+      display: none !important;
+  }
+
+  
+
+  /* Ensure the date pill doesn't have too much margin when at the bottom */
+  .blog-date-pill {
+      margin-bottom: 10px !important;
+  }
+
   .container {
     padding: 0 20px;
   }
@@ -1750,7 +1767,7 @@ select.form-input-dark {
   .footer-bottom {
     margin-top: 30px;
   }
-}
+
 
 @media (max-width: 480px) {
   .hero-content h1 {
@@ -2183,7 +2200,8 @@ select.form-input-dark {
     }
 }
 
-/* Responsive overrides for new pages */
+
+/* Responsive overrides for new pages */
 @media (max-width: 1024px) {
     .hero-content h1 {
         font-size: 42px !important;
@@ -2268,4 +2286,32 @@ select.form-input-dark {
     .newsletter-btn {
         width: 100% !important;
     }
+
+    
+
+
+
+}
+
+/* Improved Blog Card Readability & Alignment */
+.blog-card:not(.blog-card-3) .blog-title-lg,
+.blog-card:not(.blog-card-3) .blog-title-sm {
+    color: white !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.blog-card:not(.blog-card-3) .blog-overlay-gradient {
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.5) 50%, rgba(15, 23, 42, 0) 100%) !important;
+}
+
+.blog-card-3 .blog-overlay-gradient {
+    display: none !important;
+}
+
+.blog-content-layer {
+    justify-content: flex-end !important;
+}
+
+.blog-date-pill {
+    margin-bottom: 10px !important;
 }
