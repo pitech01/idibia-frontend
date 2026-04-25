@@ -238,7 +238,12 @@ export default function DashboardHome({ onNavigate, user, loading }: DashboardHo
                     <div className="dash-card">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <h3 className="card-title" style={{ margin: 0, color: '#0f172a', fontSize: '18px' }}>Recent Activity</h3>
-                            <a href="#" style={{ fontSize: '14px', color: '#2E37A4', fontWeight: '600' }}>View all</a>
+                            <button 
+                                onClick={() => onNavigate('appointments')} 
+                                style={{ background: 'none', border: 'none', fontSize: '14px', color: '#2E37A4', fontWeight: '600', cursor: 'pointer' }}
+                            >
+                                View all
+                            </button>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {dataLoading ? <Skeleton count={3} height={60} /> : (

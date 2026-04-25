@@ -113,6 +113,7 @@ export default function DoctorDashboard({ onLogout }: DoctorDashboardProps) {
                     setActiveTab={handleTabChange} 
                     sidebarOpen={sidebarOpen}
                     setSidebarOpen={setSidebarOpen}
+                    onNavigateToProfile={() => handleTabChange('settings')}
                 />
 
                 <Routes>

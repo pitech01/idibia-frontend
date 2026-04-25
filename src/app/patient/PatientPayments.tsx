@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { toast as _toast } from 'react-hot-toast';
 const toast: any = _toast;
 import { api } from '../../services';
+import { io } from 'socket.io-client';
 
 const Icons = {
     Wallet: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>,
@@ -61,7 +62,29 @@ export default function PatientPayments() {
         if (trxref) {
             verifyPayment(trxref);
         }
-    }, []);
+
+        // 🚀 Real-time Payment Listener
+        if (user?.id) {
+            const SIGNALING_SERVER = import.meta.env.VITE_SIGNALING_URL || 'http://localhost:3000';
+            const socket = io(SIGNALING_SERVER, {
+                query: { userId: user.id },
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('payment:success', (data: any) => {
+                console.log("💰 Real-time Payment Confirmed:", data);
+                toast.success(`Payment Confirmed: ₦${parseFloat(data.amount).toLocaleString()}`, {
+                    icon: '✅',
+                    duration: 5000
+                });
+                fetchData(); // Refresh balance
+            });
+
+            return () => {
+                socket.disconnect();
+            };
+        }
+    }, [user?.id]);
 
     const fetchData = async () => {
         try {
@@ -195,12 +218,30 @@ export default function PatientPayments() {
         try {
             const { data } = await api.post('/payments/initialize', {
                 amount: parseFloat(cleanAmount),
-                email: user?.email
+                email: user?.email,
+                method: paymentMethod
             });
 
-            // Redirect to Paystack
-            window.location.href = data.authorization_url;
-        } catch {
+            // Use Paystack Inline instead of Redirect
+            const handler = (window as any).PaystackPop.setup({
+                key: data.public_key,
+                email: user?.email,
+                amount: parseFloat(cleanAmount) * 100,
+                ref: data.reference,
+                onClose: () => {
+                    setProcessing(false);
+                    toast("Payment window closed");
+                },
+                callback: (response: any) => {
+                    console.log("Paystack response:", response);
+                    verifyPayment(response.reference);
+                    setShowTopUpModal(false);
+                    setProcessing(false);
+                }
+            });
+            handler.openIframe();
+        } catch (error) {
+            console.error("Payment init error:", error);
             toast.error("Failed to initialize payment");
             setProcessing(false);
         }
@@ -424,7 +465,16 @@ export default function PatientPayments() {
                                 <input
                                     type="text"
                                     value={topUpAmount}
-                                    onChange={(e) => setTopUpAmount(e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                                        if (val === '') {
+                                            setTopUpAmount('');
+                                            return;
+                                        }
+                                        const parts = val.split('.');
+                                        parts[0] = parseInt(parts[0]).toLocaleString();
+                                        setTopUpAmount(parts.join('.'));
+                                    }}
                                     style={{
                                         width: '88%', padding: '16px 16px 16px 40px', fontSize: '16px', fontWeight: '600',
                                         border: '1px solid #e2e8f0', borderRadius: '12px', outline: 'none', color: '#0f172a'

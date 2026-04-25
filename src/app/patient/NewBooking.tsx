@@ -184,19 +184,38 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                 setTimeout(() => onBack(), 1500);
             } else {
                 // PAYSTACK FLOW
-                console.log("Initializing Paystack... Hybrid:", useWalletForHybrid);
                 const { data: paystackData } = await api.post('/payments/paystack/initialize', {
                     appointment_id: createdAppointment.id,
                     use_wallet: useWalletForHybrid
                 });
 
-                if (paystackData.authorization_url) {
-                    console.log("Redirecting to Paystack:", paystackData.authorization_url);
-                    toast.loading('Redirecting to secure payment...', { id: toastId });
-                    window.location.href = paystackData.authorization_url;
-                } else {
-                    throw new Error("Invalid Paystack response");
-                }
+                // Use Paystack Inline instead of Redirect
+                const handler = (window as any).PaystackPop.setup({
+                    key: paystackData.public_key,
+                    email: user?.email,
+                    amount: (paystackData.amount || (useWalletForHybrid ? Math.max(50, fee - walletBalance) : fee)) * 100,
+                    ref: paystackData.reference,
+                    onClose: () => {
+                        setPaymentProcessing(false);
+                        toast("Payment window closed");
+                    },
+                    callback: (response: any) => {
+                        console.log("Appointment Payment Response:", response);
+                        // Trigger verification on backend
+                        api.post('/payments/paystack/verify', { reference: response.reference })
+                            .then(() => {
+                                toast.success('Payment Successful! Appointment Confirmed.', { id: toastId });
+                                if (onRefresh) onRefresh();
+                                setTimeout(() => onBack(), 1500);
+                            })
+                            .catch(err => {
+                                console.error("Verification error:", err);
+                                toast.error("Verification failed. Please contact support.", { id: toastId });
+                                setPaymentProcessing(false);
+                            });
+                    }
+                });
+                handler.openIframe();
             }
         } catch (error: any) {
             console.error("Payment Error:", error);
@@ -233,9 +252,10 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
         try {
             const { data } = await api.get(`/doctors/${selectedDoctor?.id}/slots?date=${selectedDate}`);
             setTimeSlots(data.slots || []);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Fetch Slots Error:", error);
-            toast.error("Failed to load available slots");
+            const message = error.response?.data?.message || "Failed to load available slots";
+            toast.error(message);
             setTimeSlots([]);
         } finally {
             setHasFetchedSlots(true);

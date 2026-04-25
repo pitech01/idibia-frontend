@@ -70,6 +70,8 @@ export default function DoctorSchedule() {
         { day: 'Sunday', start_time: '00:00', end_time: '00:00', is_available: false },
     ]);
 
+    const [dailyAppointments, setDailyAppointments] = useState<any[]>([]);
+
     useEffect(() => {
         fetchScheduleAndAvailability();
     }, [selectedDate]);
@@ -83,12 +85,15 @@ export default function DoctorSchedule() {
             ]);
             setCurrentUser(userRes.data);
 
-            const appointments = scheduleRes.data.appointments; // Daily appointments
-            const upcoming = scheduleRes.data.upcoming || [];   // Future appointments
+            const appointments = scheduleRes.data.appointments || []; 
+            setDailyAppointments(appointments);
+            
+            const upcoming = scheduleRes.data.upcoming || [];
             setUpcomingAppointments(upcoming);
 
             const pendingCount = scheduleRes.data.pending_count;
             setPendingRequestsCount(pendingCount);
+            
             const fetchedAvailability = availabilityRes.data.availabilities || [];
 
             if (availabilityRes.data.doctor?.consultation_duration) {
@@ -97,7 +102,6 @@ export default function DoctorSchedule() {
 
             // Populate form if data exists
             if (fetchedAvailability.length > 0) {
-                // Map fetched availability to form state, preserving structure
                 const newForm = availabilityForm.map(daySlot => {
                     const found = fetchedAvailability.find((f: any) => f.day === daySlot.day);
                     if (found) {
@@ -112,68 +116,61 @@ export default function DoctorSchedule() {
                 });
                 setAvailabilityForm(newForm);
             }
-
-            // Construct Timeline
-            const timeline: DailySlot[] = [];
-
-            // 1. Add Booked Appointments
-            appointments.forEach((appt: any) => {
-                timeline.push({
-                    id: appt.id,
-                    time: appt.start_time.substring(0, 5),
-                    status: 'booked',
-                    patientName: appt.patient?.name || 'Unknown Patient',
-                    type: 'virtual',
-                    duration: `${availabilityRes.data.doctor?.consultation_duration || 30} min`
-                });
-            });
-
-            // 2. Add Available Slots based on Availability for the selected day
-            // Parse the selected date string (YYYY-MM-DD) as LOCAL time, not UTC
-            const [y, m, d] = selectedDate.split('-').map(Number);
-            const dateObj = new Date(y, m - 1, d); // Local date
-            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
-
-            const dayAvailability = fetchedAvailability.find((a: any) => a.day === dayName);
-
-            if (dayAvailability && dayAvailability.is_available) {
-                const duration = availabilityRes.data.doctor?.consultation_duration || 30;
-
-                // Parse start time (HH:MM)
-                let [startHour, startMinute] = dayAvailability.start_time.split(':').map(Number);
-                const [endHour, endMinute] = dayAvailability.end_time.split(':').map(Number);
-
-                let currentMinutes = startHour * 60 + startMinute;
-                const endMinutes = endHour * 60 + endMinute;
-
-                while (currentMinutes + duration <= endMinutes) {
-                    const h = Math.floor(currentMinutes / 60);
-                    const m = currentMinutes % 60;
-                    const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; // HH:MM
-
-                    // Check conflict
-                    const isBooked = timeline.some(t => t.time === timeStr);
-                    if (!isBooked) {
-                        timeline.push({ time: timeStr, status: 'available' });
-                    }
-
-                    currentMinutes += duration;
-                }
-            } else if (timeline.length === 0 && (!dayAvailability || !dayAvailability.is_available)) {
-                // No availability set or unavailable
-            }
-
-            // Sort by time
-            timeline.sort((a, b) => a.time.localeCompare(b.time));
-
-            setSchedule(timeline);
-            // setUpcomingAppointments(appointments); // REMOVED: Now using 'upcoming' from response
         } catch (error) {
             console.error("Failed to fetch data", error);
         } finally {
             setLoading(false);
         }
     };
+
+    // Construct Timeline reactively
+    useEffect(() => {
+        const timeline: DailySlot[] = [];
+
+        // 1. Add Booked Appointments
+        dailyAppointments.forEach((appt: any) => {
+            timeline.push({
+                id: appt.id,
+                time: appt.start_time.substring(0, 5),
+                status: 'booked',
+                patientName: appt.patient?.name || 'Unknown Patient',
+                type: 'virtual',
+                duration: `${appt.duration || consultationDuration} min`
+            });
+        });
+
+        // 2. Add Available Slots based on current form (Preview)
+        const [y, m, d] = selectedDate.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+
+        const currentDayConfig = availabilityForm.find(a => a.day === dayName);
+
+        if (currentDayConfig && currentDayConfig.is_available) {
+            const duration = consultationDuration || 30;
+
+            let [startHour, startMinute] = currentDayConfig.start_time.split(':').map(Number);
+            let [endHour, endMinute] = currentDayConfig.end_time.split(':').map(Number);
+
+            let currentMinutes = (startHour || 0) * 60 + (startMinute || 0);
+            const endMinutes = (endHour || 0) * 60 + (endMinute || 0);
+
+            while (currentMinutes + duration <= endMinutes) {
+                const h = Math.floor(currentMinutes / 60);
+                const mm = currentMinutes % 60;
+                const timeStr = `${h.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
+
+                const isBooked = timeline.some(t => t.time === timeStr);
+                if (!isBooked) {
+                    timeline.push({ time: timeStr, status: 'available', duration: `${duration}` });
+                }
+                currentMinutes += duration;
+            }
+        }
+
+        timeline.sort((a, b) => a.time.localeCompare(b.time));
+        setSchedule(timeline);
+    }, [dailyAppointments, availabilityForm, consultationDuration, selectedDate]);
 
     const handleSaveAvailability = async () => {
         try {

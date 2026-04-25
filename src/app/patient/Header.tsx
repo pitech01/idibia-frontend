@@ -16,9 +16,10 @@ interface HeaderProps {
     user?: any;
     onToggleSidebar?: () => void;
     onNavigateToProfile?: () => void;
+    onViewAllNotifications?: () => void;
 }
 
-export default function Header({ user, onToggleSidebar, onNavigateToProfile }: HeaderProps) {
+export default function Header({ user, onToggleSidebar, onNavigateToProfile, onViewAllNotifications }: HeaderProps) {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -181,7 +182,13 @@ export default function Header({ user, onToggleSidebar, onNavigateToProfile }: H
                             </div>
 
                             <div style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid #f1f5f9', background: '#fcfcfc' }}>
-                                <button onClick={markAllAsRead} style={{ background: 'none', border: 'none', color: '#2E37A4', fontSize: '13px', fontWeight: '600', cursor: 'pointer', width: '100%', fontFamily: 'inherit' }}>
+                                <button 
+                                    onClick={() => {
+                                        setShowNotifications(false);
+                                        onViewAllNotifications?.();
+                                    }} 
+                                    style={{ background: 'none', border: 'none', color: '#2E37A4', fontSize: '13px', fontWeight: '600', cursor: 'pointer', width: '100%', fontFamily: 'inherit' }}
+                                >
                                     View All History
                                 </button>
                             </div>
