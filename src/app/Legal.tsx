@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 
 const Icons = {
     ArrowLeft: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>,
@@ -7,28 +10,39 @@ const Icons = {
 
 interface LegalProps {
     initialTab?: 'privacy' | 'terms';
-    onBack: () => void;
+    onBack?: () => void;
 }
 
 export default function Legal({ initialTab = 'terms', onBack }: LegalProps) {
     const [activeTab, setActiveTab] = useState<'privacy' | 'terms'>(initialTab);
+    const navigate = useNavigate();
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, [activeTab]);
 
+    const handleBack = () => {
+        if (onBack) {
+            onBack();
+        } else {
+            navigate(-1);
+        }
+    };
+
     return (
-        <div className="legal-page-wrapper">
+        <div className="legal-page-wrapper" style={{ background: 'white' }}>
+            <PublicNavbar />
+            
             {/* Top Bar / Header */}
             <div className="legal-header" style={{
                 background: 'var(--primary-gradient)',
-                padding: '120px 0 80px',
+                padding: '80px 0 60px',
                 color: 'white',
                 textAlign: 'center',
                 position: 'relative'
             }}>
                 <button
-                    onClick={onBack}
+                    onClick={handleBack}
                     className="legal-back-btn"
                     style={{
                         position: 'absolute',
@@ -327,6 +341,7 @@ export default function Legal({ initialTab = 'terms', onBack }: LegalProps) {
 
                                     <div style={{ marginTop: '40px', padding: '30px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                                         <p style={{ color: '#64748b', fontSize: '14px' }}>For deeper technical details on our data encryption and storage, please refer to the <button onClick={() => setActiveTab('terms')} style={{ background: 'none', border: 'none', color: 'var(--primary-color)', fontWeight: '700', cursor: 'pointer', padding: 0 }}>Full Terms of Service</button>.</p>
+                                        <p style={{ margin: 0 }}>This is a legally binding agreement. Please read it carefully before using our services.</p>
                                     </div>
                                 </div>
                             )}
@@ -335,12 +350,7 @@ export default function Legal({ initialTab = 'terms', onBack }: LegalProps) {
                 </div>
             </section>
 
-            {/* Footer Tagline */}
-            <footer style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
-                <div className="container">
-                    <p>© 2026 i-Dibia Mobile Clinic. All rights reserved.</p>
-                </div>
-            </footer>
+            <PublicFooter />
         </div>
     );
 }

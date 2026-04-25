@@ -17,6 +17,16 @@ import AdminLogin from './app/admin/AdminLogin'
 import AdminDashboard from './app/admin/AdminDashboard'
 import SuperAdminLogin from './app/admin/SuperAdminLogin'
 import SuperAdminDashboard from './app/admin/SuperAdminDashboard'
+import FindDoctor from './app/FindDoctor'
+import Services from './app/Services'
+import Pharmacy from './app/Pharmacy'
+import Blog from './app/Blog'
+import BlogPost from './app/BlogPost'
+import Legal from './app/Legal'
+import AboutUs from './app/AboutUs'
+import ContactUs from './app/ContactUs'
+import Team from './app/Team'
+import Specialties from './app/Specialties'
 import { api } from './services'
 import './index.css'
 
@@ -146,6 +156,18 @@ function App() {
             }}
           />
         } />
+        <Route path="/find-doctor" element={<FindDoctor user={currentUser} />} />
+        <Route path="/services" element={<Services user={currentUser} />} />
+        <Route path="/pharmacy" element={<Pharmacy user={currentUser} />} />
+        <Route path="/blog" element={<Blog user={currentUser} />} />
+        <Route path="/blog/:id" element={<BlogPost user={currentUser} />} />
+        <Route path="/terms" element={<Legal initialTab="terms" onBack={() => navigate(-1)} />} />
+        <Route path="/privacy" element={<Legal initialTab="privacy" onBack={() => navigate(-1)} />} />
+        <Route path="/about" element={<AboutUs user={currentUser} />} />
+        <Route path="/contact" element={<ContactUs user={currentUser} />} />
+        <Route path="/team" element={<Team user={currentUser} />} />
+        <Route path="/specialties" element={<Specialties user={currentUser} />} />
+        <Route path="/specialties/:id" element={<Specialties user={currentUser} />} />
         <Route path="/login" element={
           <Login
             onBack={() => navigate('/')}

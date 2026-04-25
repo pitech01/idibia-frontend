@@ -10,8 +10,9 @@ import {
     LayoutDashboard, Users, UserRound, Calendar, CreditCard,
     Megaphone, MessageSquare, Settings, LogOut, Search,
     Eye, Trash2, Edit, AlertCircle, CheckCircle, XCircle,
-    MapPin, Droplet, FileText, UserCircle, Download
+    MapPin, Droplet, FileText, UserCircle, Download, Mail
 } from 'lucide-react';
+import Subscribers from './Subscribers';
 
 function StatCard({ title, value, sub, color, icon }: any) {
     return (
@@ -57,6 +58,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         if (path.includes('/admin/dashboard/payments')) return 'payments';
         if (path.includes('/admin/dashboard/updates')) return 'updates';
         if (path.includes('/admin/dashboard/support')) return 'support';
+        if (path.includes('/admin/dashboard/subscribers')) return 'subscribers';
         if (path.includes('/admin/dashboard/settings')) return 'settings';
         return 'overview';
     };
@@ -312,6 +314,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             'payments': '/admin/dashboard/payments',
             'updates': '/admin/dashboard/updates',
             'support': '/admin/dashboard/support',
+            'subscribers': '/admin/dashboard/subscribers',
             'settings': '/admin/dashboard/settings'
         };
         navigate(routeMap[tab] || '/admin/dashboard');
@@ -863,6 +866,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <SidebarItem id="payments" label="Transactions" icon={<CreditCard size={20} />} />
                     <SidebarItem id="updates" label="Health Updates" icon={<Megaphone size={20} />} />
                     <SidebarItem id="support" label="Support Messages" icon={<MessageSquare size={20} />} />
+                    <SidebarItem id="subscribers" label="Subscribers" icon={<Mail size={20} />} />
                     <SidebarItem id="settings" label="Settings" icon={<Settings size={20} />} />
                 </nav>
 
@@ -892,6 +896,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <Route path="/payments" element={<AdminPaymentsView stats={stats} />} />
                         <Route path="/updates" element={<AdminUpdatesView updates={updates} handleEdit={setManagePost} handleDelete={handleDeletePost} setShowModal={setShowPostModal} />} />
                         <Route path="/support" element={<AdminSupportView tickets={tickets} setSelectedTicket={setSelectedTicket} />} />
+                        <Route path="/subscribers" element={<Subscribers />} />
                         <Route path="/settings" element={<AdminSettingsView />} />
                         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                     </Routes>

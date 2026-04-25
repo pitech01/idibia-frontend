@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { api } from '../services';
 import heroImg from '../assets/hero-doctor.png';
 import aboutImg from '../assets/about-team.png';
-import blogNurse from '../assets/blog-nurse.png';
-import blogDoctor from '../assets/blog-doctor.png';
-import blogBp from '../assets/blog-bp.png';
+import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 
 // Icons as components
 const Icons = {
@@ -29,58 +30,27 @@ interface HomepageProps {
 }
 
 export default function Homepage({ onLoginClick, onDashboardClick, user }: HomepageProps) {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [posts, setPosts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                const response = await api.get('/posts');
+                setPosts(response.data);
+            } catch (error) {
+                console.error("Failed to fetch blog posts", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPosts();
+    }, []);
 
     return (
         <div className="homepage-wrapper">
-
-            {/* 1. Top Bar */}
-            <div className="top-bar">
-                <div className="container flex-between">
-                    <div className="flex-start" style={{ gap: '25px' }}>
-                        <div className="flex-start"><Icons.Mail /> <span>contact@dibia.med</span></div>
-                        <div className="flex-start"><Icons.Phone /> <span>+234 800 DIBIA MED</span></div>
-                        <div className="flex-start"><Icons.Phone /> <span>Emergency: 112</span></div>
-                    </div>
-                    <div className="flex-start" style={{ gap: '15px' }}>
-                        <a href="#"><Icons.Facebook /></a>
-                        <a href="#"><Icons.Twitter /></a>
-                        <div style={{ marginLeft: '10px', fontSize: '12px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '4px' }}>ENGLISH/PIDGIN</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 2. Navbar */}
-            <nav className="navbar">
-                <div className="container flex-between">
-                    <div className="nav-logo">
-                        <img src="/logo.png" alt="IDIBIA" style={{ height: '50px', objectFit: 'contain' }} />
-                    </div>
-
-                    {/* Mobile Menu Toggle */}
-                    <button
-                        className="mobile-menu-btn"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        {isMenuOpen ? <Icons.Close /> : <Icons.Menu />}
-                    </button>
-
-                    {/* Nav Items Container (Grouped for mobile toggling) */}
-                    <div className={`nav-items-wrapper ${isMenuOpen ? 'open' : ''}`}>
-                        <div className="nav-menu">
-                            <a href="#" className="active" onClick={() => setIsMenuOpen(false)}>Home</a>
-                            <a href="#" onClick={() => setIsMenuOpen(false)}>Find a Doctor</a>
-                            <a href="#" onClick={() => setIsMenuOpen(false)}>Services</a>
-                            <a href="#" onClick={() => setIsMenuOpen(false)}>Pharmacy</a>
-                        </div>
-                        {user ? (
-                            <button className="btn btn-primary" onClick={onDashboardClick}>Dashboard</button>
-                        ) : (
-                            <button className="btn btn-primary" onClick={onLoginClick}>Login</button>
-                        )}
-                    </div>
-                </div>
-            </nav>
+            <PublicNavbar user={user} onLoginClick={onLoginClick} onDashboardClick={onDashboardClick} />
 
             {/* 3. Hero Section */}
             <header className="hero">
@@ -94,7 +64,7 @@ export default function Homepage({ onLoginClick, onDashboardClick, user }: Homep
                             Bridging the gap between patients and providers in Nigeria. Consult in English, Pidgin, Yoruba, Igbo, or Hausa.
                         </p>
                         <div className="flex-start" style={{ gap: '20px' }}>
-                            <button className="btn btn-primary">Search for Doctors</button>
+                            <button className="btn btn-primary" onClick={() => window.location.href = '/find-doctor'}>Search for Doctors</button>
                             <div className="flex-start" style={{ fontWeight: '600', cursor: 'pointer' }}>
                                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'white', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-color)' }}>
                                     <Icons.Play />
@@ -194,21 +164,21 @@ export default function Homepage({ onLoginClick, onDashboardClick, user }: Homep
                             <div className="service-icon"><Icons.Plus /></div>
                             <h3 style={{ marginBottom: '15px', fontSize: '20px' }}>General Medicine</h3>
                             <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>Primary care for malaria, typhoid, and daily health concerns.</p>
-                            <a href="#" className="flex-start text-primary" style={{ fontWeight: '600', fontSize: '14px' }}>Book Now <Icons.Plus /></a>
+                            <Link to="/find-doctor" className="flex-start text-primary" style={{ fontWeight: '600', fontSize: '14px' }}>Book Now <Icons.Plus /></Link>
                         </div>
 
                         <div className="service-card" style={{ borderBottom: '3px solid var(--primary-color)' }}>
                             <div className="service-icon" style={{ background: 'var(--primary-gradient)', color: 'white' }}><Icons.Heart /></div>
                             <h3 style={{ marginBottom: '15px', fontSize: '20px' }}>Cardiology</h3>
                             <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>Expert heart care specialists available for consultation.</p>
-                            <a href="#" className="flex-start text-primary" style={{ fontWeight: '600', fontSize: '14px' }}>Book Now <Icons.Plus /></a>
+                            <Link to="/find-doctor" className="flex-start text-primary" style={{ fontWeight: '600', fontSize: '14px' }}>Book Now <Icons.Plus /></Link>
                         </div>
 
                         <div className="service-card">
                             <div className="service-icon"><Icons.Check /></div>
                             <h3 style={{ marginBottom: '15px', fontSize: '20px' }}>Pediatrics</h3>
                             <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>Dedicated child healthcare specialists.</p>
-                            <a href="#" className="flex-start text-primary" style={{ fontWeight: '600', fontSize: '14px' }}>Book Now <Icons.Plus /></a>
+                            <Link to="/find-doctor" className="flex-start text-primary" style={{ fontWeight: '600', fontSize: '14px' }}>Book Now <Icons.Plus /></Link>
                         </div>
 
                         <div className="service-card">
@@ -227,73 +197,34 @@ export default function Homepage({ onLoginClick, onDashboardClick, user }: Homep
                 <div className="container">
                     <div className="flex-between" style={{ marginBottom: '40px' }}>
                         <h2 style={{ fontSize: '36px', color: 'var(--secondary-color)' }}>Stay Informed With Our Latest <br /> Health Blogs</h2>
-                        <button className="btn btn-primary" style={{ padding: '10px 25px' }}>View All <Icons.ArrowUpRight /></button>
+                        <button className="btn btn-primary" style={{ padding: '10px 25px' }} onClick={() => navigate('/blog')}>View All <Icons.ArrowUpRight /></button>
                     </div>
 
                     <div className="blog-grid">
-
-                        {/* Card 1: Left Tall (Nurse, Cyan Button) */}
-                        <div className="blog-card blog-card-1" style={{ backgroundImage: `url(${blogNurse})` }}>
-                            <div className="blog-content-layer">
-                                <div className="blog-date-pill">July 6, 2026</div>
-                                <h3 className="blog-title-lg">The <br /> Skincare <br /> Routine <br /> That Works <br /> Expert Tips.</h3>
-
-                                <button className="btn-read-more-cyan">
-                                    Read More <Icons.ArrowUpRight />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Card 2: Middle Tall (Male Doctor, Bottom Text) */}
-                        <div className="blog-card blog-card-2" style={{ backgroundImage: `url(${blogDoctor})` }}>
-                            <div className="blog-overlay-gradient"></div>
-                            <div className="blog-content-layer" style={{ justifyContent: 'flex-end' }}>
-                                <div className="blog-date-pill" style={{ background: 'transparent', color: 'white', padding: 0, boxShadow: 'none' }}>
-                                    <span style={{ background: 'white', color: '#0f172a', padding: '4px 10px', borderRadius: '15px', fontSize: '10px' }}>• JULY 9, 2026</span>
-                                </div>
-                                <h3 className="blog-title-md">The Art of Managing <br /> Business and Patient <br /> Care</h3>
-                                <div className="btn-circle-white"><Icons.ArrowUpRight /></div>
-                            </div>
-                        </div>
-
-                        {/* Right Stack - Wrapper spans 2 rows (550px appx) to match tall cards */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', gridRow: 'span 2', height: '100%' }}>
-
-                            {/* Card 3: Top Right (Light Blue) - Strategies */}
-                            <div className="blog-card blog-card-3" style={{ flex: 1 }}>
-                                {/* Flex col is default */}
-                                <div className="blog-content-layer" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                    <div className="blog-date-pill">
-                                        <span style={{ fontSize: '14px', color: '#0f172a', marginRight: '5px' }}>•</span> JULY 9, 2026
+                        {loading ? (
+                            [1, 2, 3].map(i => (
+                                <div key={i} className="blog-card" style={{ background: '#f1f5f9', animation: 'pulse 2s infinite', height: '545px' }}></div>
+                            ))
+                        ) : posts.length > 0 ? (
+                            <>
+                                {posts.slice(0, 4).map((post, idx) => (
+                                    <div key={post.id} className={`blog-card blog-card-${idx + 1}`} style={{ 
+                                        backgroundImage: post.image_url ? `url(${post.image_url})` : 'none',
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center'
+                                    }}>
+                                        <div className="blog-overlay-gradient"></div>
+                                        <div className="blog-content-layer">
+                                            <div className="blog-date-pill">{post.time_to_read || '5 min read'}</div>
+                                            <h3 className={idx < 2 ? "blog-title-lg" : "blog-title-sm"}>
+                                                {post.title}
+                                            </h3>
+                                            <div className="btn-circle-white" onClick={() => navigate(`/blog/${post.id}`)}><Icons.ArrowUpRight /></div>
+                                        </div>
                                     </div>
-                                    <h3 className="blog-title-sm" style={{ fontSize: '22px', marginTop: '15px' }}>Strategies for <br /> Balancing Business <br /> Demands wit ...</h3>
-
-                                    {/* Button at bottom right */}
-                                    <div style={{ marginTop: 'auto', alignSelf: 'flex-end' }}>
-                                        <div className="btn-circle-white"><Icons.ArrowUpRight /></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Card 4: Bottom Right (BP Image) - Tips */}
-                            <div className="blog-card blog-card-4" style={{ backgroundImage: `url(${blogBp})`, flex: 1 }}>
-                                <div className="blog-overlay-gradient"></div>
-                                <div className="blog-content-layer" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                    {/* Date Top Left */}
-                                    <div className="blog-date-pill">
-                                        <span style={{ fontSize: '14px', color: '#0f172a', marginRight: '5px' }}>•</span> JULY 9, 2026
-                                    </div>
-
-                                    {/* Bottom Row: Title Left, Button Right */}
-                                    <div className="blog-card-bottom-row">
-                                        <h3 className="blog-title-md" style={{ fontSize: '24px', lineHeight: '1.2' }}>Effective <br /> Healthcare <br /> Tips</h3>
-                                        <div className="btn-circle-white"><Icons.ArrowUpRight /></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-
+                                ))}
+                            </>
+                        ) : null}
                     </div>
                 </div>
             </section>
@@ -386,67 +317,7 @@ export default function Homepage({ onLoginClick, onDashboardClick, user }: Homep
                 </div>
             </div>
 
-            {/* 10. Footer with Newsletter */}
-            <footer className="footer">
-                <div className="container">
-
-                    <div className="grid-4">
-                        <div>
-                            <div className="nav-logo" style={{ marginBottom: '20px' }}>
-                                <img src="/logo.png" alt="IDIBIA" style={{ height: '40px', objectFit: 'contain', background: 'white', padding: '5px', borderRadius: '8px' }} />
-                            </div>
-                            <p style={{ marginBottom: '20px', lineHeight: '1.8', fontSize: '14px' }}>
-                                Your trusted online pharmacy and healthcare partner. We provide genuine medications, expert consultations, and seamless health management for you and your family.
-                            </p>
-                        </div>
-
-                        <div>
-                            <h3>Our Services</h3>
-                            <ul style={{ lineHeight: '2.2', fontSize: '14px' }}>
-                                <li><a href="#">Angioplasty</a></li>
-                                <li><a href="#">Cardiology</a></li>
-                                <li><a href="#">Dental</a></li>
-                                <li><a href="#">Endocrinology</a></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h3>Useful Links</h3>
-                            <ul style={{ lineHeight: '2.2', fontSize: '14px' }}>
-                                <li><a href="#">Privacy Policy</a></li>
-                                <li><a href="#">Terms & Conditions</a></li>
-                                <li><a href="#">Contact Us</a></li>
-                                <li><a href="#">Latest News</a></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h3>Quick Links</h3>
-                            <ul style={{ lineHeight: '2.2', fontSize: '14px' }}>
-                                <li><a href="#">About Us</a></li>
-                                <li><a href="#">Team</a></li>
-                                <li><a href="#">Services</a></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    {/* Newsletter Bar */}
-                    <div className="newsletter-wrapper">
-                        <div className="newsletter-text">
-                            <h3 style={{ margin: 0 }}>Important Updates Waiting for you</h3>
-                            <p style={{ opacity: 0.7, fontSize: '14px' }}>Get our latest and best contents right into your inbox</p>
-                        </div>
-                        <div className="newsletter-bar">
-                            <input type="email" placeholder="Your Email Address" className="newsletter-input" />
-                            <button className="newsletter-btn">Subscribe Now</button>
-                        </div>
-                    </div>
-
-                    <div className="footer-bottom">
-                        <p>&copy; 2026 IDIBIA Med. All Rights Reserved.</p>
-                    </div>
-                </div>
-            </footer>
+            <PublicFooter />
 
         </div>
     );

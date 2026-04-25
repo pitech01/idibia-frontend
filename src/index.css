@@ -2183,4 +2183,89 @@ select.form-input-dark {
     }
 }
 
+/* Responsive overrides for new pages */
+@media (max-width: 1024px) {
+    .hero-content h1 {
+        font-size: 42px !important;
+    }
+}
 
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    /* Find Doctor Hero */
+    .find-doctor-page h1 {
+        font-size: 28px !important;
+    }
+    
+    .find-doctor-page .container {
+        padding: 0 20px;
+    }
+    
+    /* Services Hero */
+    .services-page h1 {
+        font-size: 32px !important;
+    }
+    
+    .service-hover-card {
+        padding: 24px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-4, .grid-3, .grid-2 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .find-doctor-page .btn-primary {
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .search-bar-wrapper {
+        flex-direction: column !important;
+        padding: 20px !important;
+    }
+    
+    .search-bar-wrapper div {
+        width: 100% !important;
+        flex: none !important;
+    }
+
+    .search-bar-wrapper button {
+        width: 100% !important;
+    }
+    
+    .pharmacy-splash h1 {
+        font-size: 28px !important;
+    }
+    
+    .pharmacy-splash {
+        padding: 40px 20px !important;
+        border-radius: 24px !important;
+    }
+    
+    .pharmacy-splash p {
+        font-size: 15px !important;
+    }
+    
+    .services-hero-title {
+        font-size: 36px !important;
+    }
+    
+    .localized-care-grid div:last-child {
+        height: 350px !important;
+    }
+
+    .newsletter-bar {
+        flex-direction: column !important;
+        border-radius: 20px !important;
+        padding: 20px !important;
+    }
+
+    .newsletter-btn {
+        width: 100% !important;
+    }
+}

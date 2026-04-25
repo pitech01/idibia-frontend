@@ -622,7 +622,7 @@ export default function NewBooking({ onBack, onRefresh, user }: NewBookingProps)
                                 >
                                     {paymentProcessing ? 'Authorizing...' : 'Confirm & Securely Pay'}
                                 </button>
-                                <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>By clicking, you agree to our <a href="#" style={{ color: '#2E37A4', textDecoration: 'underline' }}>Medical Service Terms</a></p>
+                                <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>By clicking, you agree to our <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#2E37A4', textDecoration: 'underline' }}>Medical Service Terms</a></p>
                             </div>
                         </div>
                     )}
